@@ -1,0 +1,101 @@
+# -----------------------------------------------------------------------------
+# MCC source archives, environments, and large input datasets
+# -----------------------------------------------------------------------------
+ROMS_CoSiNE15.tar
+/miniforge3/
+/output/
+
+/ROMS_CoSiNE15/Inputfiles/
+/ROMS_CoSiNE15/Data/
+/ROMS_CoSiNE15/plot/Data/
+/ROMS_CoSiNE15/output/
+/ROMS_CoSiNE15/Reference/
+/ROMS_CoSiNE15/Lib/**/data/
+/ROMS_CoSiNE15/test/**/Data/
+
+# Scientific datasets and generated model results
+*.nc
+*.nc4
+*.cdf
+*.grb
+*.grib
+*.grib2
+*.h5
+*.hdf5
+*.zarr/
+*.mat
+*.cst
+*.pdf
+*.ps
+*.ps.gz
+
+# Archives
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
+# -----------------------------------------------------------------------------
+# ROMS and local build products
+# -----------------------------------------------------------------------------
+/ROMS_CoSiNE15/Build*/
+/ROMS_CoSiNE15/bin_local/
+/ROMS_CoSiNE15/local_demo/
+oceanM
+oceanS
+
+/Local_Lab/bin/
+/Local_Lab/builds/
+
+*.o
+*.obj
+*.mod
+*.smod
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+MakeDepend
+
+# -----------------------------------------------------------------------------
+# Local_Lab run-time links and generated results
+# Keep input files (*.in), scripts, configs, and overlays trackable.
+# -----------------------------------------------------------------------------
+/Local_Lab/runs/**/Inputfiles
+/Local_Lab/runs/**/ROMS
+/Local_Lab/runs/**/output/
+/Local_Lab/runs/**/*.log
+/Local_Lab/runs/**/resource*.txt
+
+# Logs, scheduler output, profiling output, and crash dumps
+*.log
+*.out
+*.err
+core
+core.*
+gmon.out
+perf.data
+perf.data.old
+
+# -----------------------------------------------------------------------------
+# Tool caches, legacy metadata, and editor files
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+.svn/
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*~
+*.swp
+*.swo
+ROMS_CoSiNE15.tar

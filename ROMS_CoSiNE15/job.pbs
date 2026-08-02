@@ -1,0 +1,23 @@
+#!/bin/bash
+#PBS -N oceanM
+#PBS -l nodes=2:ppn=40
+#PBS -q gentai
+#PBS -l walltime=10000:00:00
+NP=cat'$PBS_NODEFILE|wc -l'
+export LD_LIBRARY_PATH=/opt/intel/icc/composer_xe_2013.3.163/compiler/lib/intel64:$LD_LIBRARY_PATH
+cd /home/qichengmeng/SGW_V844_2006_exp9beta_eraHi_dQdSST40_Meng20180609/
+# Clean case
+rm logGTbio_bye24_SGW72_2006.txt
+# copy files
+#cp Outputfiles/bye24/bye24_bio_bry_2006.nc ./bye24_bio_bry_2006.nc
+#cp Outputfiles/bye24/bye24_bio_ini_full.nc ./bye24_rst_0613b_y03.nc
+#cp Outputfiles/bye24/bye24_frc_7rivers2006bp_exp25beta.nc ./bye24_frc_7rivers2006bp_exp25beta.nc
+#cp Outputfiles/bye24/bye24_frc_dQdSST2006_era.nc ./bye24_frc_dQdSST2006_era.nc
+#cp Outputfiles/bye24/bye24_frc_shf2006_era.nc ./bye24_frc_shf2006_era.nc
+#cp Outputfiles/bye24/bye24_frc_swf2006_era.nc ./bye24_frc_swf2006_era.nc
+#cp Outputfiles/bye24/bye24_frc_swrad2006_era.nc ./bye24_frc_swrad2006_era.nc
+#cp Outputfiles/bye24/bye24_frc_tides_M2.nc   ./bye24_frc_tides.nc
+#cp Outputfiles/bye24/bye24_frc_wind2006_blend.nc ./bye24_frc_wind2006_blend.nc
+#cp Outputfiles/bye24/bye24_grd.nc ./bye24_grd.nc
+
+mpirun -np 80 ./oceanM ROMS/External/ocean_bye24_sgw72_bio13.in > logGTbio_bye24_SGW72_2006.txt
