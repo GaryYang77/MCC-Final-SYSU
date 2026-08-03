@@ -201,32 +201,62 @@ def finalize_report(
     inner_steps: int,
     tiles_i: int,
     tiles_j: int,
+    expect_profile: bool,
+    reference_run: Path | None,
 ) -> dict[str, object]:
     model_log = run_dir / "model.log"
     normal_end = model_log.is_file() and "ROMS/TOMS: DONE" in model_log.read_text(
         encoding="utf-8", errors="replace"
     )
     output_report = inspect_outputs(run_dir)
+    comparison = None
+    if reference_run is not None:
+        try:
+            from .valid_test import compare_output_directories
+        except ImportError:
+            from valid_test import compare_output_directories
+
+        result = compare_output_directories(
+            reference_run / "output", run_dir / "output"
+        )
+        comparison = {
+            "passed": result.passed,
+            "failures": list(result.failures),
+            "reference_run": str(reference_run),
+            "metrics": {
+                filename: {
+                    variable: {
+                        "rmse": metric.rmse,
+                        "max_abs": metric.max_abs,
+                        "passed": metric.passed,
+                    }
+                    for variable, metric in variables.items()
+                }
+                for filename, variables in result.metrics.items()
+            },
+        }
     profile_error = None
     profile_path = run_dir / "profile_report.json"
     csv_path = run_dir / "profile_records.csv"
-    try:
-        profile_records = parse_profile_lines(
-            model_log.read_text(encoding="utf-8", errors="replace").splitlines()
-        )
-        profile = build_report(profile_records, str(model_log))
-        profile_path.write_text(
-            json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
-        write_csv(profile_records, csv_path)
-    except (OSError, ValueError) as error:
-        profile_error = str(error)
+    if expect_profile:
+        try:
+            profile_records = parse_profile_lines(
+                model_log.read_text(encoding="utf-8", errors="replace").splitlines()
+            )
+            profile = build_report(profile_records, str(model_log))
+            profile_path.write_text(
+                json.dumps(profile, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+            write_csv(profile_records, csv_path)
+        except (OSError, ValueError) as error:
+            profile_error = str(error)
 
     passed = (
         job_status == 0
         and normal_end
         and bool(output_report["passed"])
         and profile_error is None
+        and (comparison is None or bool(comparison["passed"]))
     )
     report = {
         "schema_version": 1,
@@ -246,6 +276,8 @@ def finalize_report(
             "tiles_j": tiles_j,
         },
         "outputs": output_report,
+        "comparison": comparison,
+        "profile_expected": expect_profile,
         "profile_error": profile_error,
         "profile_report": str(profile_path) if profile_path.is_file() else None,
         "profile_csv": str(csv_path) if csv_path.is_file() else None,
@@ -264,12 +296,26 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--inner-steps", type=int, default=60)
     parser.add_argument("--tiles-i", type=int, default=8)
     parser.add_argument("--tiles-j", type=int, default=16)
+    parser.add_argument(
+        "--expect-profile",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="require PROFILE_RANK records (disable for overhead control builds)",
+    )
+    parser.add_argument(
+        "--reference-run",
+        type=Path,
+        help="compare the same 2x13 output contract against an earlier run",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     arguments = _arguments()
     binary = arguments.binary.resolve()
+    reference_run = arguments.reference_run.resolve() if arguments.reference_run else None
+    if reference_run is not None and not reference_run.is_dir():
+        raise SystemExit(f"reference run not found: {reference_run}")
     run_dir = stage_run(
         binary,
         label=arguments.label,
@@ -290,6 +336,8 @@ def main() -> int:
         inner_steps=arguments.inner_steps,
         tiles_i=arguments.tiles_i,
         tiles_j=arguments.tiles_j,
+        expect_profile=arguments.expect_profile,
+        reference_run=reference_run,
     )
     if report["passed"]:
         print(f"[profile128] PASS: {run_dir / 'run_report.json'}")

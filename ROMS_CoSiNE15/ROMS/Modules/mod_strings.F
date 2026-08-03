@@ -81,6 +81,9 @@
 !                (49) Message Passage: point data gathering            !
 !                (50) Message Passage: multi-model coupling            !
 !                                                                      !
+!  CPU timing is optional because frequent CPU_TIME calls perturb      !
+!  short MPI regions. Define PROFILE_CPU only for dual-clock studies.  !
+!                                                                      !
 !=======================================================================
 !
         implicit none

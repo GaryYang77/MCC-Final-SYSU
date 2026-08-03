@@ -51,7 +51,11 @@
 ** Turn ON/OFF time profiling.
 */
 
-#define PROFILE
+#ifdef MCC_NO_PROFILE
+# undef PROFILE
+#else
+# define PROFILE
+#endif
 
 /*
 ** Set default time-averaging filter for barotropic fields.

@@ -58,7 +58,11 @@
 !
       MyModel=MAX(1,model)
       Cstr(region,MyModel,ng)=my_wtime(wtime)
+#ifdef PROFILE_CPU
       Cstr_cpu(region,MyModel,ng)=my_ctime()
+#else
+      Cstr_cpu(region,MyModel,ng)=0.0_r8
+#endif
       IF ((region.eq.0).and.(proc(1,MyModel,ng).eq.0)) THEN
         DO iregion=1,Nregion
           Cend(iregion,MyModel,ng)=0.0_r8
@@ -159,7 +163,11 @@
 !
       MyModel=MAX(1,model)
       wall_now=my_wtime(wtime)
+#ifdef PROFILE_CPU
       cpu_now=my_ctime()
+#else
+      cpu_now=0.0_r8
+#endif
       IF (region.ne.0) THEN
         Cend(region,MyModel,ng)=Cend(region,MyModel,ng)+                &
      &                          (wall_now-                             &
