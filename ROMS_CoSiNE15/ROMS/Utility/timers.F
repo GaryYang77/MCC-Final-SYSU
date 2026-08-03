@@ -39,7 +39,7 @@
 
       real(r8), dimension(2) :: wtime
 
-      real(r8) :: my_wtime
+      real(r8) :: my_ctime, my_wtime
 !
 !-----------------------------------------------------------------------
 ! Initialize timing for all threads.
@@ -58,10 +58,13 @@
 !
       MyModel=MAX(1,model)
       Cstr(region,MyModel,ng)=my_wtime(wtime)
+      Cstr_cpu(region,MyModel,ng)=my_ctime()
       IF ((region.eq.0).and.(proc(1,MyModel,ng).eq.0)) THEN
         DO iregion=1,Nregion
           Cend(iregion,MyModel,ng)=0.0_r8
           Csum(iregion,MyModel,ng)=0.0_r8
+          Cend_cpu(iregion,MyModel,ng)=0.0_r8
+          Csum_cpu(iregion,MyModel,ng)=0.0_r8
         END DO
         proc(1,MyModel,ng)=1
         proc(0,MyModel,ng)=my_getpid()
@@ -113,14 +116,16 @@
 
       integer :: my_threadnum
 
-      real(r8) :: percent, sumcpu, sumper, total
+      real(r8) :: cpu_now, percent, sumcpu, sumper, sumwall
+      real(r8) :: total, totalcpu, wall_now
 
       real(r8), dimension(2) :: wtime
 
-      real(r8) :: my_wtime
+      real(r8) :: my_ctime, my_wtime
 
 #ifdef DISTRIBUTE
       real(r8), dimension(0:Nregion) :: buffer
+      real(r8), dimension(0:Nregion) :: cpu_buffer
 
       character (len= 3), dimension(0:Nregion) :: op_handle
 #endif
@@ -142,18 +147,26 @@
 !  indicate restart of the nonlinear model.
 !
       MyModel=MAX(1,model)
+      wall_now=my_wtime(wtime)
+      cpu_now=my_ctime()
       IF (region.ne.0) THEN
         Cend(region,MyModel,ng)=Cend(region,MyModel,ng)+                &
-     &                          (my_wtime(wtime)-                       &
+     &                          (wall_now-                             &
      &                           Cstr(region,MyModel,ng))
+        Cend_cpu(region,MyModel,ng)=Cend_cpu(region,MyModel,ng)+        &
+     &                              (cpu_now-                          &
+     &                               Cstr_cpu(region,MyModel,ng))
       END IF
 !
 !  Report elapsed wall time.
 !
       IF ((region.eq.0).and.(proc(1,MyModel,ng).eq.1)) THEN
         Cend(region,MyModel,ng)=Cend(region,MyModel,ng)+                &
-     &                          (my_wtime(wtime)-                       &
+     &                          (wall_now-                             &
      &                           Cstr(region,MyModel,ng))
+        Cend_cpu(region,MyModel,ng)=Cend_cpu(region,MyModel,ng)+        &
+     &                              (cpu_now-                          &
+     &                               Cstr_cpu(region,MyModel,ng))
         DO imodel=1,4
           proc(1,imodel,ng)=0
         END DO
@@ -166,14 +179,16 @@
         IF (ng.eq.1) THEN
 #ifdef DISTRIBUTE
           CALL mp_barrier (ng)
-          WRITE (stdout,10) ' Node   #', MyRank, ' CPU:',               &
-     &                      Cend(region,MyModel,ng)
+          WRITE (stdout,10) ' Node   #', MyRank, ' Wall:',              &
+     &                      Cend(region,MyModel,ng), ' CPU:',           &
+     &                      Cend_cpu(region,MyModel,ng)
          CALL my_flush (stdout)
 #else
-         WRITE (stdout,10) ' Thread #', MyThread, ' CPU:',              &
-     &                     Cend(region,MyModel,ng)
+         WRITE (stdout,10) ' Thread #', MyThread, ' Wall:',             &
+     &                     Cend(region,MyModel,ng), ' CPU:',            &
+     &                     Cend_cpu(region,MyModel,ng)
 #endif
- 10      FORMAT (a,i3,a,f12.3)
+ 10      FORMAT (a,i3,a,f12.3,a,f12.3)
        END IF
 !
 ! Report elapsed time profile for each region of the code.
@@ -182,9 +197,13 @@
         DO imodel=1,4
           Csum(region,imodel,ng)=Csum(region,imodel,ng)+                &
      &                           Cend(region,imodel,ng)
+          Csum_cpu(region,imodel,ng)=Csum_cpu(region,imodel,ng)+        &
+     &                               Cend_cpu(region,imodel,ng)
           DO iregion=1,Nregion
             Csum(iregion,imodel,ng)=Csum(iregion,imodel,ng)+            &
      &                              Cend(iregion,imodel,ng)
+            Csum_cpu(iregion,imodel,ng)=                               &
+     &        Csum_cpu(iregion,imodel,ng)+Cend_cpu(iregion,imodel,ng)
           END DO
         END DO
         DO imodel=1,4
@@ -192,6 +211,8 @@
             DO iregion=1,Nregion
               Csum(region,imodel,ng)=Csum( region,imodel,ng)+           &
      &                               Csum(iregion,imodel,ng)
+              Csum_cpu(region,imodel,ng)=                              &
+     &          Csum_cpu(region,imodel,ng)+Csum_cpu(iregion,imodel,ng)
             END DO
           END IF
         END DO
@@ -202,21 +223,28 @@
           DO imodel=1,4
             DO iregion=0,Nregion
               buffer(iregion)=Csum(iregion,imodel,ng)
+              cpu_buffer(iregion)=Csum_cpu(iregion,imodel,ng)
             END DO
             CALL mp_reduce (ng, MyModel, Nregion+1, buffer(0:),         &
      &                      op_handle(0:))
+            CALL mp_reduce (ng, MyModel, Nregion+1, cpu_buffer(0:),     &
+     &                      op_handle(0:))
             DO iregion=0,Nregion
               Csum(iregion,imodel,ng)=buffer(iregion)
+              Csum_cpu(iregion,imodel,ng)=cpu_buffer(iregion)
             END DO
           END DO
 #endif
           IF (Master.and.(ng.eq.1)) THEN
             total=0.0_r8
+            totalcpu=0.0_r8
             DO imodel=1,4
               total=total+Csum(region,imodel,ng)
+              totalcpu=totalcpu+Csum_cpu(region,imodel,ng)
             END DO
-            WRITE (stdout,20) ' Total:', total
- 20         FORMAT (a,8x,f14.3)
+            WRITE (stdout,20) ' Total rank wall seconds:', total
+            WRITE (stdout,20) ' Total rank CPU  seconds:', totalcpu
+ 20         FORMAT (a,1x,f14.3)
           END IF
 #ifdef PROFILE
 !
@@ -229,10 +257,11 @@
           DO imodel=1,4
             IF (Master.and.(Csum(region,imodel,ng).gt.0.0_r8)) THEN
               WRITE (stdout,30) TRIM(label(imodel)),                    &
-     &                          'model elapsed time profile, Grid:',    &
+     &                          'model wall/CPU time profile, Grid:',   &
      &                          ng
  30           FORMAT (/,1x,a,1x,a,1x,i2.2/)
             END IF
+            sumwall=0.0_r8
             sumcpu=0.0_r8
             sumper=0.0_r8
             DO iregion=1,Mregion-1
@@ -241,15 +270,19 @@
      &                           Csum( region,MyModel,ng)
                 IF (Master) WRITE (stdout,40) Pregion(iregion),         &
      &                                        Csum(iregion,imodel,ng),  &
+     &                                        Csum_cpu(iregion,         &
+     &                                                 imodel,ng),      &
      &                                        percent
-                sumcpu=sumcpu+Csum(iregion,imodel,ng)
+                sumwall=sumwall+Csum(iregion,imodel,ng)
+                sumcpu=sumcpu+Csum_cpu(iregion,imodel,ng)
                 sumper=sumper+percent
               END IF
             END DO
- 40         FORMAT (2x,a,t53,f14.3,2x,'(',f7.4,' %)')
+ 40         FORMAT (2x,a,t53,'Wall:',f14.3,2x,'CPU:',f14.3,2x,         &
+     &              '(',f7.4,' %)')
             IF (Master.and.(Csum(region,imodel,ng).gt.0.0_r8)) THEN
-              WRITE (stdout,50) sumcpu, sumper
- 50           FORMAT (t47,'Total:',f14.3,2x,f8.4)
+              WRITE (stdout,50) sumwall, sumcpu, sumper
+ 50           FORMAT (t47,'Total Wall:',f14.3,2x,'CPU:',f14.3,2x,f8.4)
             END IF
           END DO
 # ifdef DISTRIBUTE
@@ -266,6 +299,7 @@
      &                          'model message Passage profile, Grid:', &
      &                          ng
             END IF
+            sumwall=0.0_r8
             sumcpu=0.0_r8
             sumper=0.0_r8
             IF (total.gt.0.0_r8) THEN
@@ -275,20 +309,25 @@
      &                             Csum( region,Mymodel,ng)
                   IF (Master) WRITE (stdout,40) Pregion(iregion),       &
      &                                          Csum(iregion,imodel,ng),&
+     &                                          Csum_cpu(iregion,       &
+     &                                                   imodel,ng),    &
      &                                          percent
-                  sumcpu=sumcpu+Csum(iregion,imodel,ng)
+                  sumwall=sumwall+Csum(iregion,imodel,ng)
+                  sumcpu=sumcpu+Csum_cpu(iregion,imodel,ng)
                   sumper=sumper+percent
                 END IF
               END DO
               IF (Master.and.(total.gt.0.0_r8)) THEN
-                WRITE (stdout,50) sumcpu, sumper
+                WRITE (stdout,50) sumwall, sumcpu, sumper
               END IF
             END IF
           END DO
 # endif
-          IF (Master) WRITE (stdout,60) Csum(region,MyModel,ng)
-  60      FORMAT (/,' All percentages are with respect to total time =',&
-     &            5x,f12.3,/)
+          IF (Master) WRITE (stdout,60) Csum(region,MyModel,ng),        &
+     &                                  Csum_cpu(region,MyModel,ng)
+  60      FORMAT (/,' All percentages use total wall time =',          &
+     &            5x,f12.3,' rank-seconds',/,                          &
+     &            ' Total CPU time =',20x,f12.3,' rank-seconds',/)
 #endif
         END IF
 !$OMP END CRITICAL (FINALIZE_WCLOCK)

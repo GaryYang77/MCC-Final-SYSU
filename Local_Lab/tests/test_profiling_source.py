@@ -1,0 +1,50 @@
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[2]
+MP_ROUTINES = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Utility" / "mp_routines.F"
+MOD_PARALLEL = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Modules" / "mod_parallel.F"
+TIMERS = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Utility" / "timers.F"
+
+
+def _source(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+def test_wall_clock_uses_elapsed_time_sources_not_cpu_time() -> None:
+    source = _source(MP_ROUTINES)
+    wall_clock = source.split("FUNCTION my_wtime", 1)[1].split(
+        "END FUNCTION my_wtime", 1
+    )[0]
+
+    assert "MPI_WTIME()" in wall_clock
+    assert "omp_get_wtime()" in wall_clock
+    assert "CALL system_clock" in wall_clock
+    assert "CALL cpu_time" not in wall_clock
+
+
+def test_cpu_clock_remains_available_as_an_independent_measurement() -> None:
+    source = _source(MP_ROUTINES)
+    cpu_clock = source.split("FUNCTION my_ctime", 1)[1].split(
+        "END FUNCTION my_ctime", 1
+    )[0]
+
+    assert "CALL cpu_time" in cpu_clock
+
+
+def test_profiling_allocates_separate_wall_and_cpu_accumulators() -> None:
+    source = _source(MOD_PARALLEL)
+
+    for name in ("Cstr_cpu", "Cend_cpu", "Csum_cpu"):
+        assert f"real(r8), allocatable :: {name}" in source
+        assert f"allocate ( {name}(0:Nregion,4,Ngrids) )" in source
+
+
+def test_timers_report_wall_and_cpu_measurements() -> None:
+    source = _source(TIMERS)
+
+    assert "my_ctime" in source
+    assert "Csum_cpu" in source
+    assert "Wall:" in source
+    assert "CPU:" in source
+    assert "total wall time" in source.lower()

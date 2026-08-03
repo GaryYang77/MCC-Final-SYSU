@@ -159,22 +159,46 @@
 !
       real(r8) :: wtime(2)
       real(r8) :: my_wtime
+#ifdef MPI
+      double precision :: MPI_WTIME
+
+      external MPI_WTIME
+#endif
 #ifdef _OPENMP
       real(r8) :: omp_get_wtime
 #endif
-#ifdef CRAYX1
       integer :: count, count_rate, count_max
-#endif
 
-#if defined _OPENMP
+#if defined MPI
+      my_wtime=REAL(MPI_WTIME(),r8)
+#elif defined _OPENMP
       my_wtime=omp_get_wtime()
-#elif defined CRAYX1
+#else
       CALL system_clock (count, count_rate, count_max)
       my_wtime=REAL(count,r8)/REAL(count_rate,r8)
-#else
-      CALL cpu_time (wtime(1))
-      my_wtime=wtime(1)
 #endif
+
+      wtime(1)=my_wtime
 
       RETURN
       END FUNCTION my_wtime
+!
+!-----------------------------------------------------------------------
+      FUNCTION my_ctime ()
+!-----------------------------------------------------------------------
+!
+!  Return CPU time consumed by the current process.  Keep this clock
+!  separate from my_wtime so blocked MPI and IO time remain visible in
+!  the elapsed wall-clock profile.
+!
+      USE mod_kinds
+!
+      implicit none
+!
+      real(r8) :: ctime, my_ctime
+
+      CALL cpu_time (ctime)
+      my_ctime=ctime
+
+      RETURN
+      END FUNCTION my_ctime
