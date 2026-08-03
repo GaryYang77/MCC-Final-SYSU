@@ -48,3 +48,25 @@ def test_timers_report_wall_and_cpu_measurements() -> None:
     assert "Wall:" in source
     assert "CPU:" in source
     assert "total wall time" in source.lower()
+
+
+def test_profiling_counts_completed_region_calls_locally() -> None:
+    parallel_source = _source(MOD_PARALLEL)
+    timer_source = _source(TIMERS)
+
+    assert "real(r8), allocatable :: Ccalls" in parallel_source
+    assert "allocate ( Ccalls(0:Nregion,4,Ngrids) )" in parallel_source
+    assert "Ccalls(region,MyModel,ng)=Ccalls(region,MyModel,ng)+1.0_r8" in (
+        timer_source.replace(" ", "")
+    )
+
+
+def test_rank_statistics_are_reduced_only_during_finalization() -> None:
+    source = _source(TIMERS)
+    hot_path, finalization = source.split("IF ((region.eq.0)", 1)
+
+    assert "CALL mp_reduce" not in hot_path
+    for operation in ("'MIN'", "'SUM'", "'MAX'"):
+        assert operation in finalization
+    assert "wall_max_rank" in finalization
+    assert "PROFILE_RANK" in finalization

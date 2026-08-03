@@ -65,6 +65,8 @@
           Csum(iregion,MyModel,ng)=0.0_r8
           Cend_cpu(iregion,MyModel,ng)=0.0_r8
           Csum_cpu(iregion,MyModel,ng)=0.0_r8
+          Ccalls(iregion,MyModel,ng)=0.0_r8
+          Csum_calls(iregion,MyModel,ng)=0.0_r8
         END DO
         proc(1,MyModel,ng)=1
         proc(0,MyModel,ng)=my_getpid()
@@ -116,8 +118,15 @@
 
       integer :: my_threadnum
 
-      real(r8) :: cpu_now, percent, sumcpu, sumper, sumwall
-      real(r8) :: total, totalcpu, wall_now
+      real(r8) :: cpu_now, imbalance, percent, sumcpu, sumper
+      real(r8) :: sumwall, total, totalcpu, wall_now, workers
+
+      real(r8), dimension(0:Nregion,4) :: calls_sum
+      real(r8), dimension(0:Nregion,4) :: cpu_max, cpu_mean
+      real(r8), dimension(0:Nregion,4) :: cpu_min
+      real(r8), dimension(0:Nregion,4) :: wall_max, wall_mean
+      real(r8), dimension(0:Nregion,4) :: wall_min
+      real(r8), dimension(0:Nregion,4) :: wall_max_rank
 
       real(r8), dimension(2) :: wtime
 
@@ -126,6 +135,7 @@
 #ifdef DISTRIBUTE
       real(r8), dimension(0:Nregion) :: buffer
       real(r8), dimension(0:Nregion) :: cpu_buffer
+      real(r8), dimension(0:Nregion) :: rank_buffer
 
       character (len= 3), dimension(0:Nregion) :: op_handle
 #endif
@@ -156,6 +166,7 @@
         Cend_cpu(region,MyModel,ng)=Cend_cpu(region,MyModel,ng)+        &
      &                              (cpu_now-                          &
      &                               Cstr_cpu(region,MyModel,ng))
+        Ccalls(region,MyModel,ng)=Ccalls(region,MyModel,ng)+1.0_r8
       END IF
 !
 !  Report elapsed wall time.
@@ -167,6 +178,7 @@
         Cend_cpu(region,MyModel,ng)=Cend_cpu(region,MyModel,ng)+        &
      &                              (cpu_now-                          &
      &                               Cstr_cpu(region,MyModel,ng))
+        Ccalls(region,MyModel,ng)=Ccalls(region,MyModel,ng)+1.0_r8
         DO imodel=1,4
           proc(1,imodel,ng)=0
         END DO
@@ -199,11 +211,15 @@
      &                           Cend(region,imodel,ng)
           Csum_cpu(region,imodel,ng)=Csum_cpu(region,imodel,ng)+        &
      &                               Cend_cpu(region,imodel,ng)
+          Csum_calls(region,imodel,ng)=                               &
+     &      Csum_calls(region,imodel,ng)+Ccalls(region,imodel,ng)
           DO iregion=1,Nregion
             Csum(iregion,imodel,ng)=Csum(iregion,imodel,ng)+            &
      &                              Cend(iregion,imodel,ng)
             Csum_cpu(iregion,imodel,ng)=                               &
      &        Csum_cpu(iregion,imodel,ng)+Cend_cpu(iregion,imodel,ng)
+            Csum_calls(iregion,imodel,ng)=                            &
+     &        Csum_calls(iregion,imodel,ng)+Ccalls(iregion,imodel,ng)
           END DO
         END DO
         DO imodel=1,4
@@ -213,27 +229,85 @@
      &                               Csum(iregion,imodel,ng)
               Csum_cpu(region,imodel,ng)=                              &
      &          Csum_cpu(region,imodel,ng)+Csum_cpu(iregion,imodel,ng)
+              Csum_calls(region,imodel,ng)=                           &
+     &          Csum_calls(region,imodel,ng)+                         &
+     &          Csum_calls(iregion,imodel,ng)
             END DO
           END IF
         END DO
         IF (thread_count.eq.NSUB) THEN
           thread_count=0
-#ifdef DISTRIBUTE
-          op_handle(0:Nregion)='SUM'
+          workers=REAL(numthreads,r8)
           DO imodel=1,4
             DO iregion=0,Nregion
-              buffer(iregion)=Csum(iregion,imodel,ng)
-              cpu_buffer(iregion)=Csum_cpu(iregion,imodel,ng)
+              wall_min(iregion,imodel)=Csum(iregion,imodel,ng)
+              wall_mean(iregion,imodel)=Csum(iregion,imodel,ng)
+              wall_max(iregion,imodel)=Csum(iregion,imodel,ng)
+              cpu_min(iregion,imodel)=Csum_cpu(iregion,imodel,ng)
+              cpu_mean(iregion,imodel)=Csum_cpu(iregion,imodel,ng)
+              cpu_max(iregion,imodel)=Csum_cpu(iregion,imodel,ng)
+              calls_sum(iregion,imodel)=                             &
+     &          Csum_calls(iregion,imodel,ng)
+              wall_max_rank(iregion,imodel)=REAL(MyRank,r8)
             END DO
+          END DO
+#ifdef DISTRIBUTE
+          DO imodel=1,4
+            op_handle(0:Nregion)='MIN'
+            buffer(0:Nregion)=wall_min(0:Nregion,imodel)
+            CALL mp_reduce (ng, MyModel, Nregion+1, buffer(0:),         &
+     &                      op_handle(0:))
+            wall_min(0:Nregion,imodel)=buffer(0:Nregion)
+            cpu_buffer(0:Nregion)=cpu_min(0:Nregion,imodel)
+            CALL mp_reduce (ng, MyModel, Nregion+1, cpu_buffer(0:),     &
+     &                      op_handle(0:))
+            cpu_min(0:Nregion,imodel)=cpu_buffer(0:Nregion)
+
+            op_handle(0:Nregion)='MAX'
+            buffer(0:Nregion)=wall_max(0:Nregion,imodel)
+            CALL mp_reduce (ng, MyModel, Nregion+1, buffer(0:),         &
+     &                      op_handle(0:))
+            wall_max(0:Nregion,imodel)=buffer(0:Nregion)
+            cpu_buffer(0:Nregion)=cpu_max(0:Nregion,imodel)
+            CALL mp_reduce (ng, MyModel, Nregion+1, cpu_buffer(0:),     &
+     &                      op_handle(0:))
+            cpu_max(0:Nregion,imodel)=cpu_buffer(0:Nregion)
+
+            DO iregion=0,Nregion
+              IF (wall_mean(iregion,imodel).eq.                       &
+     &            wall_max(iregion,imodel)) THEN
+                rank_buffer(iregion)=REAL(MyRank,r8)
+              ELSE
+                rank_buffer(iregion)=REAL(numthreads,r8)
+              END IF
+            END DO
+            op_handle(0:Nregion)='MIN'
+            CALL mp_reduce (ng, MyModel, Nregion+1, rank_buffer(0:),    &
+     &                      op_handle(0:))
+            wall_max_rank(0:Nregion,imodel)=rank_buffer(0:Nregion)
+
+            op_handle(0:Nregion)='SUM'
+            buffer(0:Nregion)=wall_mean(0:Nregion,imodel)
+            cpu_buffer(0:Nregion)=cpu_mean(0:Nregion,imodel)
+            rank_buffer(0:Nregion)=calls_sum(0:Nregion,imodel)
             CALL mp_reduce (ng, MyModel, Nregion+1, buffer(0:),         &
      &                      op_handle(0:))
             CALL mp_reduce (ng, MyModel, Nregion+1, cpu_buffer(0:),     &
      &                      op_handle(0:))
+            CALL mp_reduce (ng, MyModel, Nregion+1, rank_buffer(0:),    &
+     &                      op_handle(0:))
             DO iregion=0,Nregion
               Csum(iregion,imodel,ng)=buffer(iregion)
               Csum_cpu(iregion,imodel,ng)=cpu_buffer(iregion)
+              wall_mean(iregion,imodel)=buffer(iregion)/workers
+              cpu_mean(iregion,imodel)=cpu_buffer(iregion)/workers
+              calls_sum(iregion,imodel)=rank_buffer(iregion)
             END DO
           END DO
+#endif
+#ifndef DISTRIBUTE
+          wall_mean(0:Nregion,1:4)=wall_mean(0:Nregion,1:4)/workers
+          cpu_mean(0:Nregion,1:4)=cpu_mean(0:Nregion,1:4)/workers
 #endif
           IF (Master.and.(ng.eq.1)) THEN
             total=0.0_r8
@@ -260,7 +334,28 @@
      &                          'model wall/CPU time profile, Grid:',   &
      &                          ng
  30           FORMAT (/,1x,a,1x,a,1x,i2.2/)
+              DO iregion=0,Nregion
+                IF (wall_mean(iregion,imodel).gt.0.0_r8) THEN
+                  imbalance=wall_max(iregion,imodel)/                 &
+     &                      wall_mean(iregion,imodel)
+                  WRITE (stdout,35) ng, imodel, iregion,               &
+     &                              calls_sum(iregion,imodel),         &
+     &                              wall_min(iregion,imodel),          &
+     &                              wall_mean(iregion,imodel),         &
+     &                              wall_max(iregion,imodel),          &
+     &                              INT(wall_max_rank(iregion,imodel)),&
+     &                              cpu_min(iregion,imodel),           &
+     &                              cpu_mean(iregion,imodel),          &
+     &                              cpu_max(iregion,imodel), imbalance
+                END IF
+              END DO
             END IF
+ 35         FORMAT ('PROFILE_RANK grid=',i0,' model=',i0,              &
+     &              ' region=',i0,' calls=',f12.0,                    &
+     &              ' wall_min=',es15.7,' wall_mean=',es15.7,         &
+     &              ' wall_max=',es15.7,' wall_max_rank=',i0,         &
+     &              ' cpu_min=',es15.7,' cpu_mean=',es15.7,           &
+     &              ' cpu_max=',es15.7,' imbalance=',f10.6)
             sumwall=0.0_r8
             sumcpu=0.0_r8
             sumper=0.0_r8

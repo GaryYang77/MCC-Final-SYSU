@@ -80,6 +80,8 @@
 !    Cstr_cpu      Starting CPU time for program region.
 !    Cend_cpu      Accumulated CPU time for program region.
 !    Csum_cpu      CPU time summed over parallel workers.
+!    Ccalls        Completed calls to a program region.
+!    Csum_calls    Calls summed over parallel workers.
 !
       integer, allocatable :: proc(:,:,:)
 
@@ -89,9 +91,11 @@
       real(r8), allocatable :: Cstr_cpu(:,:,:)
       real(r8), allocatable :: Cend_cpu(:,:,:)
       real(r8), allocatable :: Csum_cpu(:,:,:)
+      real(r8), allocatable :: Ccalls(:,:,:)
+      real(r8), allocatable :: Csum_calls(:,:,:)
 
 !$OMP THREADPRIVATE (proc)
-!$OMP THREADPRIVATE (Cstr, Cend, Cstr_cpu, Cend_cpu)
+!$OMP THREADPRIVATE (Cstr, Cend, Cstr_cpu, Cend_cpu, Ccalls)
 
 #if defined DISTRIBUTE && defined PROFILE
 !
@@ -179,12 +183,18 @@
 
       allocate ( Cend_cpu(0:Nregion,4,Ngrids) )
       Cend_cpu(0:Nregion,1:4,1:Ngrids)=0.0_r8
+
+      allocate ( Ccalls(0:Nregion,4,Ngrids) )
+      Ccalls(0:Nregion,1:4,1:Ngrids)=0.0_r8
 !$OMP END PARALLEL
       allocate ( Csum(0:Nregion,4,Ngrids) )
       Csum(0:Nregion,1:4,1:Ngrids)=0.0_r8
 
       allocate ( Csum_cpu(0:Nregion,4,Ngrids) )
       Csum_cpu(0:Nregion,1:4,1:Ngrids)=0.0_r8
+
+      allocate ( Csum_calls(0:Nregion,4,Ngrids) )
+      Csum_calls(0:Nregion,1:4,1:Ngrids)=0.0_r8
 
 #if defined DISTRIBUTE && defined PROFILE
 !
