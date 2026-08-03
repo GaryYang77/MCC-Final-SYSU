@@ -351,7 +351,8 @@
                     region_kind='io_read'
                   ELSE IF (iregion.eq.8) THEN
                     region_kind='io_write'
-                  ELSE IF (iregion.ge.Mregion) THEN
+                  ELSE IF ((iregion.ge.Mregion).and.                   &
+     &                     (iregion.le.NregionMPI)) THEN
                     region_kind='mpi'
                   ELSE
                     region_kind='compute'
@@ -400,13 +401,48 @@
  50           FORMAT (t47,'Total Wall:',f14.3,2x,'CPU:',f14.3,2x,f8.4)
             END IF
           END DO
+!
+!  Report mutually exclusive nesting sections separately from the
+!  inclusive region 39 total above.
+!
+          DO imodel=1,4
+            total=0.0_r8
+            DO iregion=MregionNesting,Nregion
+              total=total+Csum(iregion,imodel,ng)
+            END DO
+            IF (Master.and.(total.gt.0.0_r8)) THEN
+              WRITE (stdout,30) TRIM(label(imodel)),                    &
+     &                          'model nesting section profile, Grid:',&
+     &                          ng
+            END IF
+            sumwall=0.0_r8
+            sumcpu=0.0_r8
+            sumper=0.0_r8
+            DO iregion=MregionNesting,Nregion
+              IF (Csum(iregion,imodel,ng).gt.0.0_r8) THEN
+                percent=100.0_r8*Csum(iregion,imodel,ng)/               &
+     &                           Csum(39,imodel,ng)
+                IF (Master) WRITE (stdout,40) Pregion(iregion),         &
+     &                                        Csum(iregion,imodel,ng),  &
+     &                                        Csum_cpu(iregion,         &
+     &                                                 imodel,ng),      &
+     &                                        percent
+                sumwall=sumwall+Csum(iregion,imodel,ng)
+                sumcpu=sumcpu+Csum_cpu(iregion,imodel,ng)
+                sumper=sumper+percent
+              END IF
+            END DO
+            IF (Master.and.(total.gt.0.0_r8)) THEN
+              WRITE (stdout,50) sumwall, sumcpu, sumper
+            END IF
+          END DO
 # ifdef DISTRIBUTE
 !
 !  Report elapsed time for message passage communications.
 !
           DO imodel=1,4
             total=0.0_r8
-            DO iregion=Mregion,Nregion
+            DO iregion=Mregion,NregionMPI
               total=total+Csum(iregion,imodel,ng)
             END DO
             IF (Master.and.(total.gt.0.0_r8)) THEN
@@ -418,7 +454,7 @@
             sumcpu=0.0_r8
             sumper=0.0_r8
             IF (total.gt.0.0_r8) THEN
-              DO iregion=Mregion,Nregion
+              DO iregion=Mregion,NregionMPI
                 IF (Csum(iregion,imodel,ng).gt.0.0_r8) THEN
                   percent=100.0_r8*Csum(iregion, imodel,ng)/            &
      &                             Csum( region,Mymodel,ng)

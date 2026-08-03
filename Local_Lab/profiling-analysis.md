@@ -40,6 +40,12 @@ clock、rank 统计、调用次数、机器可读输出、合法 128-rank 运行
 - `imbalance = wall_max / wall_mean`；
 - `cpu_min/mean/max`：仅在编译时定义 `PROFILE_CPU` 时有效，否则为 0。
 
+Nesting 另有互斥子阶段：region 51 `nzwgt/z_weights`、52 mask weights、53
+`ngetD` donor extraction、54 `nputD` receiver interpolation、55 `n2way`
+fine-to-coarse coupling、56 其余 section。region 39 是这些阶段的 inclusive 总计；JSON
+中的 `nesting_coverage` 会检查 51--56 的调用数之和是否与 region 39 完全一致，并给出
+子阶段 wall time 对 nesting 总时间的覆盖率。
+
 统计只在模型结束时做 MPI reduction，不在热点路径中增加 collective。region 39、MPI
 区域和许多计算区域可能互相嵌套，所以 JSON 报告明确标记为 `inclusive`；分类占比和
 hotspot 占比不能相加来构造 100% 的互斥时间线。
@@ -71,6 +77,23 @@ hotspot 占比不能相加来构造 100% 的互斥时间线。
 inclusive 的：MPI gather 发生在 nesting 内部，不能与 region 39 相加。它们把下一轮
 目标进一步收敛到 Grid 2 nesting 路径和 Grid 1 point-data gathering。
 
+加入 51--56 子阶段后的最终 128-rank 运行 `118494857` 给出了更具体的 nesting
+分解：
+
+| 网格 | Nesting 子阶段 | 占 region 39 wall time |
+| --- | --- | ---: |
+| Grid 1 | `ngetD` donor extraction，region 53 | 83.77% |
+| Grid 1 | vertical weights，region 51 | 15.65% |
+| Grid 2 | `n2way` fine-to-coarse coupling，region 55 | 58.12% |
+| Grid 2 | vertical weights，region 51 | 31.40% |
+| Grid 2 | remaining sections，region 56 | 5.78% |
+| Grid 2 | `nputD` receiver interpolation，region 54 | 4.69% |
+
+Grid 1/2 的子阶段调用覆盖率分别为 99.9996% 和 99.9967%，调用数均与 region 39
+完全一致。由此可见，后续不应笼统地“优化 nesting”：Grid 1 应先进入 `ngetD` 及其
+point gather 路径，Grid 2 应先进入 `n2way/fine2coarse` 及 data gather 路径；vertical
+weights 是两个网格共同的第二候选。
+
 ## 使用方法
 
 先通过服务器 demo 门禁得到当前源码的干净二进制，然后做 128-rank 缩时 profiling：
@@ -91,7 +114,7 @@ python Local_Lab/profile_128.py \
 
 - `model.log`、`resource.log` 和 Slurm stdout/stderr；
 - `profile_report.json`：分类、可读 region 名、hotspots 和 per-call 代价；
-- `profile_records.csv`：所有 region 记录；
+- `profile_records.csv`：所有 region 记录及可读 `region_name`；
 - `run_report.json`：二进制哈希、配置、正常结束和 NaN/Inf 检查。
 
 决赛的 128 ranks 要求每个网格满足 `NtileI*NtileJ == 128`。原输入中的 `4*8`
@@ -117,11 +140,12 @@ python Local_Lab/profile_overhead.py \
 ```
 
 双时钟原型的一次同节点配对结果为 261.83 s 对 248.56 s，即 `+5.34%`。这促使默认
-模式改为 wall-only。wall-only 的正序 `on-off` 为 244.48/235.95 s（`+3.62%`），
-反序 `off-on` 为 237.70/243.93 s（`-2.55%`）；一正一反配对比值的几何平均为
-`+0.48%`。符号随顺序翻转说明短任务的缓存/运行次序噪声约为数个百分点，因此不应
-把单次 overhead 当成精确常数。结论是默认 wall-only 的中心开销约 0.5%，适合热点
-排序；最终成绩计时仍使用 no-profile 二进制。
+模式改为 wall-only。最终 nesting 子阶段版本在同一节点组 `j01r2n[16-19]` 上完成了
+顺序互换的两组测量：`off-on` 为 241.75/235.97 s（`-2.39%`），`on-off` 为
+241.80/231.89 s（`+4.27%`）。两组 on/off 比值的几何平均为 `+0.89%`。符号随顺序
+翻转说明短任务的缓存/运行次序噪声约为数个百分点，因此不应把单次 overhead 当成
+精确常数。结论是默认 wall-only 的中心开销低于 1%，适合热点排序；最终成绩计时仍
+使用 no-profile 二进制。
 
 ## 验证记录
 
@@ -137,11 +161,17 @@ python Local_Lab/profile_overhead.py \
 | wall-only 同节点 overhead（on-off） | `118490435`，PASS，输出逐位一致，`+3.62%` |
 | wall-only 同节点 overhead（off-on） | `118492122`，PASS，输出逐位一致，`-2.55%` |
 | wall-only 顺序平衡中心估计 | 两组配对比值几何平均，约 `+0.48%` |
+| nesting 51--56 初始门禁 | `118493091`，PASS，26 组指标全零误差 |
+| nesting 51--56 最终门禁 | `118493856`，PASS，26 组指标全零误差 |
+| nesting 子阶段 128-rank 诊断 / overhead（off-on） | `118494857`，PASS，输出逐位一致，调用覆盖率大于 99.996%，`-2.39%` |
+| nesting 子阶段 overhead（on-off） | `118495221`，作业及两个模型进程均正常退出，`+4.27%`；远程额度中断后未生成配对汇总 JSON |
+| nesting 子阶段顺序平衡中心估计 | 同一节点组两组比值的几何平均，约 `+0.89%` |
 
 ## 下一轮优化顺序
 
-1. 用半天或一天输入重复 3 次 profiling，确认 region 39、49、46 的稳定占比和最慢 rank。
-2. 结合 `calls_per_rank` 判断先减少 gather 调用频率，还是优化单次 payload/collective。
-3. 对照 `#861` 检查垂向权重是否在不必要地重复计算，但每次只移植一个可解释改动。
-4. 对照 `#747` 在昆山节点实测 gather/assemble 的 collective 方案，不凭实现直觉替换。
-5. 每个候选依次通过 1-rank 门禁、128-rank 缩时诊断、完整三天运行和官方 `vali.py`。
+1. 沿 Grid 1 region 53 进入 `ngetD` 与 region 49 point gather，区分调用频率、payload 和等待。
+2. 沿 Grid 2 region 55 进入 `n2way/fine2coarse` 与 region 46 data gather。
+3. 对照 `#861` 检查两个网格的 vertical weights 是否存在可证明的重复计算。
+4. 用半天或一天输入重复 3 次，确认上述排序、最慢 rank 和 imbalance 稳定。
+5. 对照 `#747` 在昆山节点实测 gather/assemble 的 collective 方案，不凭实现直觉替换。
+6. 每个候选依次通过 1-rank 门禁、128-rank 缩时诊断、完整三天运行和官方 `vali.py`。

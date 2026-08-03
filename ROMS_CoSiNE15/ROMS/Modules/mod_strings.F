@@ -80,6 +80,12 @@
 !                (48) Message Passage: boundary data gathering         !
 !                (49) Message Passage: point data gathering            !
 !                (50) Message Passage: multi-model coupling            !
+!                (51) Nesting: vertical interpolation weights          !
+!                (52) Nesting: mask interpolation weights              !
+!                (53) Nesting: extract donor data                      !
+!                (54) Nesting: interpolate receiver data               !
+!                (55) Nesting: two-way fine-to-coarse coupling         !
+!                (56) Nesting: remaining sections                      !
 !                                                                      !
 !  CPU timing is optional because frequent CPU_TIME calls perturb      !
 !  short MPI regions. Define PROFILE_CPU only for dual-clock studies.  !
@@ -92,7 +98,9 @@
         character (len=2048) :: Coptions
 
         integer, parameter :: Mregion = 40
-        integer, parameter :: Nregion = 50
+        integer, parameter :: NregionMPI = 50
+        integer, parameter :: MregionNesting = 51
+        integer, parameter :: Nregion = 56
 
         character (len=55), dimension(12) :: StateMsg =                 &
      &    (/'Read state initial conditions,               ',            &
@@ -158,7 +166,13 @@
      &      'Message Passage: data scattering..................',       &
      &      'Message Passage: boundary data gathering .........',       &
      &      'Message Passage: point data gathering ............',       &
-     &      'Message Passage: multi-model coupling ............'/)
+     &      'Message Passage: multi-model coupling ............',       &
+     &      'Nesting: vertical interpolation weights ..........',       &
+     &      'Nesting: mask interpolation weights ..............',       &
+     &      'Nesting: extract donor data ......................',       &
+     &      'Nesting: interpolate receiver data ...............',       &
+     &      'Nesting: two-way fine-to-coarse coupling .........',       &
+     &      'Nesting: remaining sections ......................'/)
 
         character (len=80) :: my_os = MY_OS
         character (len=80) :: my_cpu = MY_CPU

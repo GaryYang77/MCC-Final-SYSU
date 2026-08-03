@@ -171,13 +171,26 @@
       integer :: subs, tile, thread
       integer :: ngc
 # ifdef PROFILE
+      integer :: nest_region
 !
 !-----------------------------------------------------------------------
-!  Time the complete multiple-grid nesting operation.  MPI regions
-!  called below retain their own timers, so region 39 is inclusive.
+!  Time the complete multiple-grid nesting operation and its governing
+!  time-stepping section. MPI regions called below retain their own
+!  timers, so both nesting levels are inclusive.
 !-----------------------------------------------------------------------
 !
+      nest_region=56
+#  ifdef SOLVE3D
+      IF (isection.eq.nzwgt) nest_region=51
+#  endif
+#  if defined MASKING || defined WET_DRY
+      IF (isection.eq.nmask) nest_region=52
+#  endif
+      IF (isection.eq.ngetD) nest_region=53
+      IF (isection.eq.nputD) nest_region=54
+      IF (isection.eq.n2way) nest_region=55
       CALL wclock_on (ng, model, 39)
+      CALL wclock_on (ng, model, nest_region)
 # endif
 # ifdef SOLVE3D
 !
@@ -345,6 +358,7 @@
 
  10   CONTINUE
 # ifdef PROFILE
+      CALL wclock_off (ng, model, nest_region)
       CALL wclock_off (ng, model, 39)
 # endif
       RETURN

@@ -38,20 +38,35 @@ REGION_NAMES = {
     7: "global_information_integrals",
     8: "output_io_define_write_sync_close",
     9: "model_2d_kernel",
+    10: "lagrangian_float_trajectories",
+    11: "tidal_forcing",
     12: "2d_3d_coupling_vertical_metrics",
     13: "omega_vertical_velocity",
     14: "seawater_equation_of_state",
     15: "biology_source_sink",
+    16: "sediment_source_sink",
+    17: "atmosphere_ocean_bulk_flux",
+    18: "kpp_vertical_mixing",
     19: "gls_vertical_mixing",
+    20: "my25_vertical_mixing",
     21: "3d_equations_rhs",
     22: "3d_equations_predictor",
     23: "pressure_gradient",
     24: "harmonic_tracer_mixing_s_surfaces",
     25: "harmonic_tracer_mixing_geopotentials",
+    26: "harmonic_tracer_mixing_isopycnals",
+    27: "biharmonic_tracer_mixing_s_surfaces",
+    28: "biharmonic_tracer_mixing_geopotentials",
+    29: "biharmonic_tracer_mixing_isopycnals",
     30: "harmonic_stress_tensor_s_surfaces",
     31: "harmonic_stress_tensor_geopotentials",
+    32: "biharmonic_stress_tensor_s_surfaces",
+    33: "biharmonic_stress_tensor_geopotentials",
     34: "3d_momentum_corrector",
     35: "tracer_corrector",
+    36: "two_way_atmosphere_ocean_coupling",
+    37: "bottom_boundary_layer",
+    38: "gst_analysis_eigenproblem",
     39: "multiple_grid_nesting",
     40: "mpi_2d_halo_exchange",
     41: "mpi_3d_halo_exchange",
@@ -64,6 +79,12 @@ REGION_NAMES = {
     48: "mpi_boundary_data_gathering",
     49: "mpi_point_data_gathering",
     50: "mpi_multi_model_coupling",
+    51: "nesting_vertical_weights",
+    52: "nesting_mask_weights",
+    53: "nesting_get_donor_data",
+    54: "nesting_put_receiver_data",
+    55: "nesting_two_way_coupling",
+    56: "nesting_other_sections",
 }
 
 
@@ -82,6 +103,13 @@ class ProfileRecord:
     cpu_mean: float
     cpu_max: float
     imbalance: float
+
+
+def _record_payload(record: ProfileRecord) -> dict[str, object]:
+    return {
+        **asdict(record),
+        "region_name": REGION_NAMES.get(record.region, f"region_{record.region}"),
+    }
 
 
 def parse_profile_lines(lines: Iterable[str]) -> list[ProfileRecord]:
@@ -131,7 +159,9 @@ def _group_summary(records: list[ProfileRecord], top: int) -> list[dict[str, obj
             inclusive_sum = sum(
                 record.wall_mean
                 for record in group
-                if record.region != 0 and record.kind == kind
+                if record.region != 0
+                and not 51 <= record.region <= 56
+                and record.kind == kind
             )
             categories[kind] = {
                 "inclusive_wall_mean_sum": inclusive_sum,
@@ -140,19 +170,56 @@ def _group_summary(records: list[ProfileRecord], top: int) -> list[dict[str, obj
                 ),
             }
 
+        nesting_total = next(
+            (record for record in group if record.region == 39), None
+        )
+        nesting_records = sorted(
+            (record for record in group if 51 <= record.region <= 56),
+            key=lambda item: item.wall_mean,
+            reverse=True,
+        )
+        nesting_sections = [
+            {
+                **_record_payload(record),
+                "calls_per_rank": record.calls / workers,
+                "inclusive_percent_of_nesting": (
+                    100.0 * record.wall_mean / nesting_total.wall_mean
+                    if nesting_total and nesting_total.wall_mean
+                    else None
+                ),
+            }
+            for record in nesting_records
+        ]
+        nesting_coverage = None
+        if nesting_total is not None:
+            detail_calls = sum(record.calls for record in nesting_records)
+            detail_wall = sum(record.wall_mean for record in nesting_records)
+            nesting_coverage = {
+                "detail_calls": detail_calls,
+                "total_calls": nesting_total.calls,
+                "calls_match": detail_calls == nesting_total.calls,
+                "detail_wall_mean_sum": detail_wall,
+                "detail_percent_of_nesting": (
+                    100.0 * detail_wall / nesting_total.wall_mean
+                    if nesting_total.wall_mean
+                    else 0.0
+                ),
+            }
+
         hotspots = []
         for record in sorted(
-            (item for item in group if item.region != 0),
+            (
+                item
+                for item in group
+                if item.region != 0 and not 51 <= item.region <= 56
+            ),
             key=lambda item: item.wall_mean,
             reverse=True,
         )[:top]:
             calls_per_rank = record.calls / workers
             hotspots.append(
                 {
-                    **asdict(record),
-                    "region_name": REGION_NAMES.get(
-                        record.region, f"region_{record.region}"
-                    ),
+                    **_record_payload(record),
                     "calls_per_rank": calls_per_rank,
                     "wall_mean_per_call": (
                         record.wall_mean / calls_per_rank if calls_per_rank else None
@@ -172,6 +239,8 @@ def _group_summary(records: list[ProfileRecord], top: int) -> list[dict[str, obj
                 "workers": workers,
                 "total": asdict(total),
                 "categories": categories,
+                "nesting_sections": nesting_sections,
+                "nesting_coverage": nesting_coverage,
                 "hotspots": hotspots,
             }
         )
@@ -189,19 +258,21 @@ def build_report(
         "accounting": "inclusive",
         "accounting_note": (
             "Region timers can be nested; category and hotspot percentages are "
-            "inclusive and are not expected to sum to 100%."
+            "inclusive and are not expected to sum to 100%. Nesting detail "
+            "regions 51-56 are excluded from top-level categories and hotspots "
+            "and reported separately under nesting_sections."
         ),
         "groups": _group_summary(records, top),
-        "records": [asdict(record) for record in records],
+        "records": [_record_payload(record) for record in records],
     }
 
 
 def write_csv(records: list[ProfileRecord], path: Path) -> None:
-    fieldnames = list(ProfileRecord.__dataclass_fields__)
+    fieldnames = [*ProfileRecord.__dataclass_fields__, "region_name"]
     with path.open("w", encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerows(asdict(record) for record in records)
+        writer.writerows(_record_payload(record) for record in records)
 
 
 def _arguments() -> argparse.Namespace:

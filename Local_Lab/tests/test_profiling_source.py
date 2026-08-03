@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 MP_ROUTINES = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Utility" / "mp_routines.F"
 MOD_PARALLEL = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Modules" / "mod_parallel.F"
+MOD_STRINGS = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Modules" / "mod_strings.F"
 TIMERS = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Utility" / "timers.F"
 
 
@@ -90,4 +91,21 @@ def test_nesting_region_39_wraps_all_exit_paths() -> None:
 
     assert "CALL wclock_on (ng, model, 39)" in main_routine
     assert "CALL wclock_off (ng, model, 39)" in main_routine
+    assert "CALL wclock_on (ng, model, nest_region)" in main_routine
+    assert "CALL wclock_off (ng, model, nest_region)" in main_routine
+    for region in range(51, 57):
+        assert f"nest_region={region}" in main_routine
     assert main_routine.count("GO TO 10") == 4
+
+
+def test_nesting_detail_regions_do_not_expand_the_mpi_region_range() -> None:
+    strings = _source(MOD_STRINGS)
+    timers = _source(TIMERS)
+
+    assert "integer, parameter :: NregionMPI = 50" in strings
+    assert "integer, parameter :: MregionNesting = 51" in strings
+    assert "integer, parameter :: Nregion = 56" in strings
+    assert "iregion.le.NregionMPI" in timers
+    assert "DO iregion=Mregion,NregionMPI" in timers
+    assert "DO iregion=MregionNesting,Nregion" in timers
+    assert "model nesting section profile" in timers

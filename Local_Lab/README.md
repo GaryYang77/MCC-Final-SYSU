@@ -190,21 +190,22 @@ Master/ocean.h
 
 本项目已经启用 ROMS 的 `PROFILE`，正常结束时会在模型日志尾部输出各计算区域耗时。现有服务器 1-rank、4/20 步 demo 只能说明代码确实执行了 2D 模式、GLS、三维预测/校正、tracer 混合和 biology 等区域，不能代表 128 核通信瓶颈。
 
-当前老版本 profiler 还有两个重要盲区：
+上游 2017 版本 profiler 原本有两个重要盲区：
 
-- `mod_strings.F` 虽然定义了 `Multiple-grid nesting processing`，但当前 `nesting.F` 没有完整的对应计时包围。
+- `mod_strings.F` 虽然定义了 `Multiple-grid nesting processing`，但 `nesting.F` 没有完整的对应计时包围。
 - `mp_assemble` 等操作被归入较粗的通信区域，难以分辨接触点汇聚、完整场聚合和等待分别占多少。
 
-因此第一个源码实验宜先细分以下计时区域：
+当前分支已经补上 region 39 总计时、51--56 nesting 子阶段，以及 region 46/49 的
+gather/point-gather rank 统计。对应关系如下：
 
 ```text
-ngetD
-nputD
-nzwgt / z_weights
-n2way
-mp_assemble
-mp_aggregate2d / mp_aggregate3d
-MPI barrier 或 collective 等待
+ngetD                         -> region 53
+nputD                         -> region 54
+nzwgt / z_weights             -> region 51
+n2way                         -> region 55
+mp_aggregate2d / 3d gather    -> region 46
+mp_assemble point gather      -> region 49
+collective / rank waiting     -> wall min/mean/max 与 imbalance
 ```
 
 集群运行时同时记录外部 wall time。示例：
