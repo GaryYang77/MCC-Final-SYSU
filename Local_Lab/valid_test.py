@@ -1,6 +1,6 @@
-"""Local correctness gate for the MCC ROMS-CoSiNE15 optimization workflow.
+"""Correctness gate for the MCC ROMS-CoSiNE15 optimization workflow.
 
-Public commands (run inside WSL)::
+Public commands (run inside Linux/WSL or a Slurm compute allocation)::
 
     python Local_Lab/valid_test.py baseline
     pytest -s Local_Lab/valid_test.py
@@ -15,8 +15,10 @@ from datetime import datetime, timezone
 import hashlib
 import json
 import os
+import platform
 from pathlib import Path
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -47,6 +49,9 @@ OUTPUT_FILES = ("SCS_avg_0001.nc", "Dongsha60_avg_0001.nc")
 TOLERANCE = 1.0e-5
 MIN_AVAILABLE_MEMORY_BYTES = 8 * 1024**3
 COMMAND_TIMEOUT_SECONDS = 30 * 60
+LOCAL_PROFILE = "local-gfortran"
+CLUSTER_PROFILE = "cluster-intel"
+PROFILE_ENVIRONMENT_VARIABLE = "MCC_VALIDATION_PROFILE"
 
 LAB_ROOT = Path(__file__).resolve().parent
 REPOSITORY_ROOT = LAB_ROOT.parent
@@ -203,6 +208,30 @@ def _source_state() -> dict[str, str]:
     }
 
 
+def _validation_profile() -> str:
+    profile = os.environ.get(PROFILE_ENVIRONMENT_VARIABLE, LOCAL_PROFILE)
+    if profile not in (LOCAL_PROFILE, CLUSTER_PROFILE):
+        raise RuntimeError(
+            f"unsupported {PROFILE_ENVIRONMENT_VARIABLE}={profile!r}; "
+            f"expected {LOCAL_PROFILE!r} or {CLUSTER_PROFILE!r}"
+        )
+    return profile
+
+
+def _toolchain_metadata() -> dict[str, str]:
+    profile = _validation_profile()
+    compiler_name = "ifort" if profile == CLUSTER_PROFILE else "gfortran"
+    return {
+        "validation_profile": profile,
+        "platform": platform.platform(),
+        "hostname": platform.node(),
+        "compiler": shutil.which(compiler_name) or compiler_name,
+        "mpi_launcher": shutil.which("mpirun") or "mpirun",
+        "nf_config": shutil.which("nf-config") or "nf-config",
+        "slurm_job_id": os.environ.get("SLURM_JOB_ID", ""),
+    }
+
+
 def _available_memory_bytes() -> int:
     meminfo = Path("/proc/meminfo")
     if not meminfo.is_file():
@@ -215,7 +244,7 @@ def _available_memory_bytes() -> int:
 
 def _check_environment() -> None:
     if os.name != "posix":
-        raise RuntimeError("run this workflow from the Ubuntu WSL terminal")
+        raise RuntimeError("run this workflow on Linux/WSL")
     missing = [
         path
         for path in (ROMS_ROOT, CANONICAL_INPUT, ROMS_ROOT / "Inputfiles")
@@ -293,27 +322,40 @@ def _terminate_process_group(process: subprocess.Popen[str]) -> None:
         process.wait()
 
 
-def _build_model(run_id: str, artifact_dir: Path) -> tuple[Path, float, Path]:
-    build_dir = VALIDATION_BUILDS_ROOT / run_id
-    binary_dir = artifact_dir / "bin"
-    build_dir.mkdir(parents=True, exist_ok=False)
-    binary_dir.mkdir(parents=True, exist_ok=False)
-    build_log = artifact_dir / "build.log"
-
-    command = [
+def _build_command(build_dir: Path, binary_dir: Path) -> list[str]:
+    profile = _validation_profile()
+    common = [
         "make",
         "-j1",
         "ROMS_APPLICATION=BYE24BIO15",
+        f"SCRATCH_DIR={build_dir}",
+        f"BINDIR={binary_dir}",
+        "USE_MPI=on",
+        "USE_NETCDF4=on",
+    ]
+    if profile == CLUSTER_PROFILE:
+        nf_config = shutil.which("nf-config")
+        if not nf_config:
+            raise RuntimeError("cluster-intel profile requires nf-config from the NetCDF module")
+        required = ("ifort", "mpif90", "mpirun")
+        missing = [name for name in required if not shutil.which(name)]
+        if missing:
+            raise RuntimeError(
+                "cluster-intel profile is missing loaded tools: " + ", ".join(missing)
+            )
+        return common + [
+            "FORT=ifort",
+            "USE_MPIF90=on",
+            f"NF_CONFIG={nf_config}",
+        ]
+
+    return common + [
         "FORT=gfortran",
         "FC=/usr/bin/gfortran",
-        "USE_MPI=on",
         "USE_MPIF90=",
-        "USE_NETCDF4=on",
         "NF_CONFIG=/usr/bin/nf-config",
         "NETCDF_INCDIR=/usr/include",
         "NETCDF_LIBDIR=/usr/lib/x86_64-linux-gnu",
-        f"SCRATCH_DIR={build_dir}",
-        f"BINDIR={binary_dir}",
         "LD=/usr/bin/gfortran",
         (
             "FFLAGS=-frepack-arrays -O2 -ffast-math "
@@ -322,9 +364,22 @@ def _build_model(run_id: str, artifact_dir: Path) -> tuple[Path, float, Path]:
         ),
         "LIBS=-L/usr/lib/x86_64-linux-gnu -lnetcdff -lnetcdf -lmpichfort -lmpich",
     ]
+
+
+def _build_model(run_id: str, artifact_dir: Path) -> tuple[Path, float, Path]:
+    build_dir = VALIDATION_BUILDS_ROOT / run_id
+    binary_dir = artifact_dir / "bin"
+    build_dir.mkdir(parents=True, exist_ok=False)
+    binary_dir.mkdir(parents=True, exist_ok=False)
+    build_log = artifact_dir / "build.log"
+
+    command = _build_command(build_dir, binary_dir)
     environment = os.environ.copy()
     for name in ("NETCDF", "NETCDF_INCDIR", "NETCDF_LIBDIR", "NF_CONFIG", "NC_CONFIG"):
         environment.pop(name, None)
+    build_home = artifact_dir / "build_home"
+    build_home.mkdir()
+    environment["HOME"] = str(build_home)
     build_seconds = _run_logged(
         command,
         cwd=ROMS_ROOT,
@@ -428,6 +483,7 @@ def create_baseline() -> Path:
         "generated_input_sha256": _sha256(run.input_file),
         "binary_sha256": _sha256(run.binary),
         "timing": asdict(run.timing),
+        "toolchain": _toolchain_metadata(),
     }
     create_baseline_manifest(staging_dir, metadata)
     staging_dir.rename(BASELINE_ROOT)
@@ -461,6 +517,17 @@ def validate_candidate() -> tuple[ValidationReport, Path]:
     baseline_manifest = json.loads(
         (BASELINE_ROOT / "manifest.json").read_text(encoding="utf-8")
     )
+    baseline_profile = (
+        baseline_manifest.get("metadata", {})
+        .get("toolchain", {})
+        .get("validation_profile")
+    )
+    current_profile = _validation_profile()
+    if baseline_profile and baseline_profile != current_profile:
+        raise RuntimeError(
+            f"baseline profile {baseline_profile!r} does not match "
+            f"current profile {current_profile!r}"
+        )
     baseline_seconds = float(
         baseline_manifest["metadata"]["timing"]["model_wall_seconds"]
     )
@@ -472,6 +539,7 @@ def validate_candidate() -> tuple[ValidationReport, Path]:
         "passed": report.passed,
         "tolerance": TOLERANCE,
         "source": _source_state(),
+        "toolchain": _toolchain_metadata(),
         "timing": {
             "baseline_model_wall_seconds": baseline_seconds,
             "candidate_model_wall_seconds": candidate_seconds,

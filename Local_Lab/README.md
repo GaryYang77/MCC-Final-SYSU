@@ -1,8 +1,29 @@
-# MCC ROMS-CoSiNE 优化手册与本地正确性门禁
+# MCC ROMS-CoSiNE 优化手册与服务器正确性门禁
 
 这份文档用于在每次调优前快速恢复项目上下文，并规定修改、计时、验证和提交的固定流程。比赛规则与不可修改边界以 [`../AGENTS.md`](../AGENTS.md) 为准。
 
 最终目标是在不改变物理计算方案、初始场、边界场和强迫场，并通过主办方精度验证的前提下，缩短完整三天双向嵌套模拟的运行时间。
+
+## 服务器为准的日常流程
+
+本地 WSL 只负责编辑、diff 审查和快速单元测试。编译、demo 运行、精度比较和候选性能记录均以昆山服务器为准。
+
+```bash
+# WSL：同步代码，不覆盖服务器基线和运行产物
+bash Local_Lab/sync_to_cluster.sh
+
+# 服务器登录节点：提交到 kshcexclu06 并等待 PASS/FAIL
+cd /public/home/fangxihong/MCC-Final-SYSU
+bash Local_Lab/run_cluster_gate.sh validate
+```
+
+服务器初始部署时且仅在基线缺失、源码干净和团队明确要求时运行：
+
+```bash
+bash Local_Lab/run_cluster_gate.sh baseline
+```
+
+远程工作区是 `/public/home/fangxihong/MCC-Final-SYSU`，输入数据通过符号链接复用 `/public/home/fangxihong/ROMS_CoSiNE15/Inputfiles`。同步脚本保护远程 `Local_Lab/baselines/`、`runs/`、`builds/` 和 `cluster_logs/`。
 
 ## 每次开始调优前先检查
 
@@ -11,8 +32,8 @@
   -> 确认 MPI ranks 与两个网格的 NtileI*NtileJ 一致
   -> 写下本次唯一的优化假设
   -> 记录未优化基准 wall time
-  -> 修改、干净编译
-  -> 本地 4/20 步正确性门禁
+  -> 修改并运行本地快速单元测试
+  -> 同步服务器，在计算节点干净编译并执行 4/20 步正确性门禁
   -> 集群缩时、多 rank 性能验证
   -> 重复计时并提交单一优化
   -> 完整三天运行和官方 vali.py
@@ -50,7 +71,8 @@ perf/tiling-128            只比较 MPI 分块和绑核
 git diff --stat
 git diff -- ROMS_CoSiNE15
 python -m pytest -q Local_Lab/tests
-python Local_Lab/valid_test.py validate
+bash Local_Lab/sync_to_cluster.sh
+# 随后在服务器工作区运行：bash Local_Lab/run_cluster_gate.sh validate
 git add <本次实际修改的文件>
 git commit -m "perf(nesting): reuse vertical interpolation weights"
 ```
@@ -88,7 +110,7 @@ NtileI(ng) * NtileJ(ng) == MPI ranks
 
 这些只是待测候选，不是预先确定的最优配置。粗、细网格尺寸及接触点分布不同，允许分别选择方向，但每个网格的乘积都要与实际 ranks 一致。启动后还要检查日志中的 `Parallel Nodes` 和 `Tiling`，确认程序实际采用了预期配置。若比赛最终固定为 64 核，则 `mpirun -np` 和两个网格的 tile 乘积都应同时改为 64。
 
-本地门禁会自动生成 `1*1` 分块并使用一个 MPI rank，不受上述 128 核配置影响。
+服务器 demo 门禁会自动生成 `1*1` 分块并使用一个 MPI rank，不受上述 128 核配置影响。
 
 ## 从编译到时间步的代码调用链
 
@@ -163,7 +185,7 @@ Master/ocean.h
 
 ## Profiling：先回答时间花在哪里
 
-本项目已经启用 ROMS 的 `PROFILE`，正常结束时会在模型日志尾部输出各计算区域耗时。现有本地 1-rank、4/20 步基线只能说明代码确实执行了 2D 模式、GLS、三维预测/校正、tracer 混合和 biology 等区域，不能代表 128 核通信瓶颈。
+本项目已经启用 ROMS 的 `PROFILE`，正常结束时会在模型日志尾部输出各计算区域耗时。现有服务器 1-rank、4/20 步 demo 只能说明代码确实执行了 2D 模式、GLS、三维预测/校正、tracer 混合和 biology 等区域，不能代表 128 核通信瓶颈。
 
 当前老版本 profiler 还有两个重要盲区：
 
@@ -227,7 +249,7 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
 环境：commit、编译器、flags、节点、ranks、tile、绑核
 任务：4/20 步、半天、一天或完整三天
 性能：每次 wall time、中位数、相对基线加速
-正确性：本地 validation_report.json、集群缩时检查、官方 vali.py
+正确性：服务器 demo validation_report.json、集群缩时检查、官方 vali.py
 结论：保留、继续调查或放弃，以及原因
 ```
 
@@ -236,8 +258,8 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
 ```text
 定位瓶颈
   -> 一次只实现一个优化
-  -> 干净编译
-  -> 本地 4/20 步门禁
+  -> 同步服务器并干净编译
+  -> 服务器 4/20 步门禁
   -> 集群半天/一天多 rank 调试
   -> 重复性能测量
   -> 单独 commit
@@ -245,15 +267,15 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
   -> 官方 vali.py
 ```
 
-本地短任务适合发现结果错误，不适合直接决定比赛排名；MPI、分块、通信或同步优化必须以昆山集群多 rank 结果为准。
+服务器单 rank 短任务适合发现结果错误，不适合直接决定比赛排名；MPI、分块、通信或同步优化必须以昆山集群多 rank 结果为准。
 
-## 本地正确性门禁概览
+## 服务器 demo 正确性门禁概览
 
-这套流程用于在本机修改 ROMS-CoSiNE15 源码后，固定执行：
+这套流程用于在本地修改 ROMS-CoSiNE15 源码后，将代码同步到官方服务器并固定执行：
 
 ```text
 干净编译 BYE24BIO15
-  -> 单 MPI 进程运行 4/20 步双向嵌套案例
+  -> 在 Slurm 计算节点单 MPI 进程运行 4/20 步双向嵌套案例
   -> 比较 SCS 与 Dongsha60 平均场
   -> 精度通过后记录运行时间
 ```
@@ -271,7 +293,7 @@ NAVG    == 4  20
 NDEFAVG == 4  20
 ```
 
-- `NtileI/NtileJ` 改成 `1/1`，与本地 `mpirun -np 1` 对应。
+- `NtileI/NtileJ` 改成 `1/1`，与计算节点上的 `mpirun -np 1` 对应。
 - `NTIMES=4/20` 让两个网格都模拟 400 秒。
 - 只缩短 `NAVG/NDEFAVG`，以便在 4/20 步结束时生成验证所需的平均场。
 - `DT`、物理/生态参数、初始场、边界场、强迫场均保持不变。
@@ -279,7 +301,7 @@ NDEFAVG == 4  20
 
 ## 基准
 
-已经封存的基准位于：
+正式封存基准位于服务器工作区的：
 
 ```text
 Local_Lab/baselines/mcc_4x20/
@@ -294,33 +316,37 @@ Local_Lab/baselines/mcc_4x20/
 墙钟时间、峰值内存，以及两份基准 NetCDF 的 SHA-256。验证前会重新计算 hash；
 基准被移动、删除或改写时，测试会直接失败。
 
-NetCDF 文件体积较大且被 `.gitignore` 排除，不会上传 Git。请另外备份
-`outputs_valid/`；`manifest.json` 和 `ocean_4x20.in` 可以提交。
+NetCDF 文件体积较大且被 `.gitignore` 排除，不会上传 Git。服务器同步脚本明确保护
+`outputs_valid/`、`manifest.json` 和历史运行结果。本地同名目录是迁移前的遗留基线，
+不能替代服务器基线，也不能用于正式接受候选。
 
 基准创建命令只用于基准不存在且 ROMS 源码树完全干净时：
 
 ```bash
-python Local_Lab/valid_test.py baseline
+# 只允许在服务器工作区执行
+bash Local_Lab/run_cluster_gate.sh baseline
 ```
 
 如果基准目录已经存在，命令会拒绝覆盖。
 
-## 每次优化后的固定测试
+## 每次优化后的固定门禁
 
-在 Ubuntu WSL 中，从仓库根目录执行：
-
-```bash
-cd /mnt/e/GaryYang77/MCC-Final-SYSU
-python -m pytest -s Local_Lab/valid_test.py
-```
-
-也可以使用等价的 CLI：
+在 Ubuntu WSL 仓库根目录同步：
 
 ```bash
-python Local_Lab/valid_test.py validate
+bash Local_Lab/sync_to_cluster.sh
 ```
 
-流程会创建全新的 build/run 目录，强制单任务干净编译当前源码，然后运行候选模型。
+登录服务器后提交到计算节点：
+
+```bash
+cd /public/home/fangxihong/MCC-Final-SYSU
+bash Local_Lab/run_cluster_gate.sh validate
+```
+
+`valid_test.py` 仍保留本地 profile 供工具开发诊断，但本地直接执行不属于正式门禁，
+不得据此接受优化候选。服务器流程会创建全新的 build/run 目录，使用官方 Intel/MPI
+工具链强制单任务干净编译当前源码，然后运行候选模型。
 候选输出不会覆盖基准。
 
 比较对象与主办方 `vali.py` 一致，为两个 `*_avg_0001.nc` 中的 13 个变量：
@@ -338,7 +364,7 @@ max_abs <= 1e-5
 ```
 
 任一文件/变量缺失、维度或 shape 不同、缺失值掩膜不同、出现 NaN/Inf，或任一误差
-超限，pytest 都会失败。详细结果保存在最新候选目录的
+超限，门禁都会失败。详细结果保存在最新候选目录的
 `validation_report.json`。
 
 报告中的性能字段包括：
@@ -354,7 +380,7 @@ candidate_max_rss_kib
 ```
 
 `saved_seconds > 0` 才表示候选运行更快。编译时间单独记录，不计入模型加速。
-4/20 步任务中初始化和 Windows 挂载盘 I/O 占比很高，单次墙钟波动只能用于初筛；
+4/20 步任务中初始化和共享文件系统 I/O 占比很高，单次墙钟波动只能用于初筛；
 确认性能改进时应重复运行，并最终在昆山集群的完整三天任务上计时、执行官方 `vali.py`。
 
 ## 快速单元测试

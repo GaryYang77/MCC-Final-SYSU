@@ -107,3 +107,17 @@ def test_baseline_creation_refuses_to_overwrite_an_existing_baseline(
 
     with pytest.raises(RuntimeError, match="will not be overwritten"):
         validation.create_baseline()
+
+
+def test_cluster_profile_uses_official_intel_mpi_toolchain(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv(validation.PROFILE_ENVIRONMENT_VARIABLE, validation.CLUSTER_PROFILE)
+    monkeypatch.setattr(validation.shutil, "which", lambda name: f"/tools/{name}")
+
+    command = validation._build_command(tmp_path / "build", tmp_path / "bin")
+
+    assert "FORT=ifort" in command
+    assert "USE_MPIF90=on" in command
+    assert "NF_CONFIG=/tools/nf-config" in command
+    assert not any(argument.startswith("FFLAGS=") for argument in command)
