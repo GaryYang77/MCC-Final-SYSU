@@ -140,6 +140,7 @@
       character (len= 3), dimension(0:Nregion) :: op_handle
 #endif
       character (len=14), dimension(4) :: label
+      character (len= 8) :: region_kind
 !
 !-----------------------------------------------------------------------
 !  Compute elapsed wall time for all threads.
@@ -336,9 +337,20 @@
  30           FORMAT (/,1x,a,1x,a,1x,i2.2/)
               DO iregion=0,Nregion
                 IF (wall_mean(iregion,imodel).gt.0.0_r8) THEN
+                  IF (iregion.eq.0) THEN
+                    region_kind='total'
+                  ELSE IF (iregion.eq.3) THEN
+                    region_kind='io_read'
+                  ELSE IF (iregion.eq.8) THEN
+                    region_kind='io_write'
+                  ELSE IF (iregion.ge.Mregion) THEN
+                    region_kind='mpi'
+                  ELSE
+                    region_kind='compute'
+                  END IF
                   imbalance=wall_max(iregion,imodel)/                 &
      &                      wall_mean(iregion,imodel)
-                  WRITE (stdout,35) ng, imodel, iregion,               &
+                  WRITE (stdout,35) ng, imodel, iregion, region_kind,  &
      &                              calls_sum(iregion,imodel),         &
      &                              wall_min(iregion,imodel),          &
      &                              wall_mean(iregion,imodel),         &
@@ -351,7 +363,7 @@
               END DO
             END IF
  35         FORMAT ('PROFILE_RANK grid=',i0,' model=',i0,              &
-     &              ' region=',i0,' calls=',f12.0,                    &
+     &              ' region=',i0,' kind=',a,' calls=',f12.0,         &
      &              ' wall_min=',es15.7,' wall_mean=',es15.7,         &
      &              ' wall_max=',es15.7,' wall_max_rank=',i0,         &
      &              ' cpu_min=',es15.7,' cpu_mean=',es15.7,           &

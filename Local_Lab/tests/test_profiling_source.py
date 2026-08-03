@@ -70,3 +70,12 @@ def test_rank_statistics_are_reduced_only_during_finalization() -> None:
         assert operation in finalization
     assert "wall_max_rank" in finalization
     assert "PROFILE_RANK" in finalization
+
+
+def test_machine_readable_profile_classifies_io_and_mpi_regions() -> None:
+    source = _source(TIMERS)
+
+    assert "region_kind='io_read'" in source
+    assert "region_kind='io_write'" in source
+    assert "region_kind='mpi'" in source
+    assert "' kind=',a" in source

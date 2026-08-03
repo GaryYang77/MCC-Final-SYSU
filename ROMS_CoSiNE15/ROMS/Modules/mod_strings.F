@@ -32,12 +32,12 @@
 !  Pregion     Model regions identifiers used for time profiling:      !
 !                ( 1) Allocation and array initialization              !
 !                ( 2) Ocean state initialization                       !
-!                ( 3) Reading of input data                            !
+!                ( 3) Input I/O: read and distribute data             !
 !                ( 4) Processing of input data                         !
 !                ( 5) Processing of output time averaged data          !
 !                ( 6) Computation of vertical boundary conditions      !
 !                ( 7) Computation of global information integrals      !
-!                ( 8) Writing of output data                           !
+!                ( 8) Output I/O: define, write, sync, and close       !
 !                ( 9) Model 2D kernel                                  !
 !                (10) Lagrangian floats trajectories                   !
 !                (11) Tidal forcing                                    !
@@ -108,12 +108,12 @@
         character (len=50), dimension(Nregion) :: Pregion =             &
      &    (/'Allocation and array initialization ..............',       &
      &      'Ocean state initialization .......................',       &
-     &      'Reading of input data ............................',       &
+     &      'Input I/O: read and distribute data ..............',       &
      &      'Processing of input data .........................',       &
      &      'Processing of output time averaged data ..........',       &
      &      'Computation of vertical boundary conditions ......',       &
      &      'Computation of global information integrals ......',       &
-     &      'Writing of output data ...........................',       &
+     &      'Output I/O: define, write, sync, close ...........',       &
      &      'Model 2D kernel ..................................',       &
      &      'Lagrangian floats trajectories ...................',       &
      &      'Tidal forcing ....................................',       &
