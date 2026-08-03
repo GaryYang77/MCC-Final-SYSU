@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "application": "BYE24BIO15",
+    "binary_sha256": "4ffc0edbf8eb3acae9bcbb7956664481713c687313dd49b27ca449c29f66923d",
+    "canonical_input_sha256": "e80a59934cedeeb828aaba6e1361eb8789712b1333ea32f8ecd07b83d388d602",
+    "created_utc": "2026-08-02T14:36:15.002341+00:00",
+    "generated_input_sha256": "4fdceaced250150ae835ee0f93331119f3dd18a1194bc62b22986464ab0376e8",
+    "mpi_ranks": 1,
+    "ntile_i": [
+      1,
+      1
+    ],
+    "ntile_j": [
+      1,
+      1
+    ],
+    "ntimes": [
+      4,
+      20
+    ],
+    "source": {
+      "commit": "0549812cce4fa1f26d026e1c978d858f09087ae9",
+      "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": ""
+    },
+    "timing": {
+      "build_seconds": 375.2171187470085,
+      "max_rss_kib": 5954944,
+      "model_cpu_seconds": 152.4,
+      "model_wall_seconds": 352.4452979429625
+    },
+    "tolerance": 1e-05
+  },
+  "outputs": {
+    "Dongsha60_avg_0001.nc": {
+      "sha256": "102228f1f4dec99944e20e070075f85197344e720a8529aed5ea2a02015b4149",
+      "size_bytes": 176265816
+    },
+    "SCS_avg_0001.nc": {
+      "sha256": "f773c1ccab94af4b35f21d8c9dddb224d0ac20fa5b92cf43affa4f9442ec8c8a",
+      "size_bytes": 356555252
+    }
+  },
+  "schema_version": 1
+}

@@ -68,6 +68,8 @@ MakeDepend
 /Local_Lab/runs/**/output/
 /Local_Lab/runs/**/*.log
 /Local_Lab/runs/**/resource*.txt
+/Local_Lab/runs/validation/
+/Local_Lab/baselines/.*.staging/
 
 # Logs, scheduler output, profiling output, and crash dumps
 *.log
