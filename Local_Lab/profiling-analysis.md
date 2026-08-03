@@ -128,6 +128,50 @@ comparison，不再需要到 off 目录寻找 RMSE/max_abs。旧报告仍可载�
 决赛的 128 ranks 要求每个网格满足 `NtileI*NtileJ == 128`。原输入中的 `4*8`
 只对应 32 ranks，不能直接用于 128-rank 任务；运行器会拒绝这种非法配置。
 
+## 完整三天的 1/2/4 节点 Scaling Sweep
+
+完整 scaling 使用同一个已通过门禁的 PROFILE 二进制，保持官方
+`NTIMES=2592/12960` 以及原始 `NRST/NHIS/NAVG` 输出节奏，依次运行：
+
+| 节点 | MPI ranks | `NtileI x NtileJ` |
+| ---: | ---: | ---: |
+| 1 | 32 | `4 x 8` |
+| 2 | 64 | `8 x 8` |
+| 4 | 128 | `8 x 16` |
+
+在服务器登录节点执行（脚本只负责提交 Slurm 作业，不在登录节点运行模型）：
+
+```bash
+bash Local_Lab/start_full_profile_scaling_sweep.sh \
+  Local_Lab/runs/validation/candidate_<timestamp>/bin/oceanM \
+  full-3day-scaling \
+  12:00:00
+```
+
+启动器在 `vali` 环境下用 `nohup` 运行，打印后台 PID 和日志路径，SSH 断开后继续工作。
+三个 Slurm allocation 严格顺序执行；某个 case 失败时仍会继续后续节点数，以保留一晚
+能取得的诊断信息。每个 case 的时限默认为 12 小时。
+
+结果位于：
+
+```text
+Local_Lab/runs/profile_scaling/full-3day-scaling_<timestamp>_<pid>/
+  sweep_report.json
+  bundles/
+    1node-32ranks_profile_bundle.json
+    2nodes-64ranks_profile_bundle.json
+    4nodes-128ranks_profile_bundle.json
+```
+
+`sweep_report.json` 记录各 case 的 job ID、实际 wall time、run 目录、comparison 和 bundle。
+第一个成功 case 作为后续 case 的数值 reference。当前自动 comparison 延续 2 个
+`*_avg_0001.nc`、13 个变量的门禁合同；它不是完整官方验收。4 节点完整任务正常结束后
+仍须单独运行主办方 `vali.py`。
+
+1/2/4 节点是不同 Slurm allocation，适合看强扩展趋势，但节点硬件状态和排队时间会带来
+噪声。64 ranks 的 `8x8` 是本 sweep 固定的中间分块；若它表现异常，应另测 `4x16`，
+不要把节点数效应与 tile 形状效应混为一谈。
+
 ## 测量 profiler 自身开销
 
 先构建只关闭 instrumentation 的控制二进制：

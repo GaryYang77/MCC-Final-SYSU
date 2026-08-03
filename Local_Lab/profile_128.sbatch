@@ -24,8 +24,18 @@ module load \
 run_dir=${MCC_PROFILE_RUN_DIR:?MCC_PROFILE_RUN_DIR is not set}
 cd "$run_dir"
 
+{
+  echo "slurm_job_id=${SLURM_JOB_ID:?}"
+  echo "slurm_job_nodelist=${SLURM_JOB_NODELIST:?}"
+  echo "slurm_job_num_nodes=${SLURM_JOB_NUM_NODES:?}"
+  echo "slurm_ntasks=${SLURM_NTASKS:?}"
+  echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+} > allocation.log
+
 /usr/bin/time -v mpirun -np "${SLURM_NTASKS:?}" \
   ./oceanM ocean_profile.in > model.log 2> resource.log
+
+echo "end_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> allocation.log
 
 if ! grep -q 'ROMS/TOMS: DONE' model.log; then
   echo "[profile128] FAIL: normal completion marker is missing" >&2

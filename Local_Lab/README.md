@@ -221,6 +221,20 @@ collective / rank waiting     -> wall min/mean/max 与 imbalance
 `profile_report.json` 或 `run_report.json` 也能单独打开，但旧报告从未采集的变量量值
 会显示为 unavailable，不能事后从 RMSE 推导。
 
+完整三天的 1/2/4 节点顺序 profiling 使用：
+
+```bash
+bash Local_Lab/start_full_profile_scaling_sweep.sh \
+  Local_Lab/runs/validation/candidate_<timestamp>/bin/oceanM \
+  full-3day-scaling \
+  12:00:00
+```
+
+该后台启动器保持官方 `2592/12960` 步和输出节奏，依次使用
+`1节点/32 ranks/4x8`、`2节点/64 ranks/8x8`、`4节点/128 ranks/8x16`，并把三份
+可视化 bundle 收集到 `Local_Lab/runs/profile_scaling/<sweep>/bundles/`。详细语义、
+结果目录和验证边界见 [`profiling-analysis.md`](profiling-analysis.md)。
+
 集群运行时同时记录外部 wall time。示例：
 
 ```bash

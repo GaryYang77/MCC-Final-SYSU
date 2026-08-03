@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage, submit, and verify a shortened 128-rank ROMS profiling run."""
+"""Stage, submit, and verify a configurable distributed ROMS profiling run."""
 
 from __future__ import annotations
 
@@ -49,6 +49,9 @@ ELAPSED_PATTERN = re.compile(
     r"Elapsed \(wall clock\) time \(h:mm:ss or m:ss\):\s*(\S+)"
 )
 PROFILE_BUNDLE_NAME = "profile_bundle.json"
+CORES_PER_NODE = 32
+FULL_OUTER_STEPS = 2592
+FULL_INNER_STEPS = 12960
 
 
 def render_profile_input(
@@ -58,14 +61,20 @@ def render_profile_input(
     inner_steps: int,
     tiles_i: int,
     tiles_j: int,
+    preserve_output_cadence: bool = False,
 ) -> str:
     replacements = {
         "NtileI": f"{tiles_i}  {tiles_i}",
         "NtileJ": f"{tiles_j}  {tiles_j}",
         "NTIMES": f"{outer_steps}  {inner_steps}",
-        "NAVG": f"{outer_steps}  {inner_steps}",
-        "NDEFAVG": f"{outer_steps}  {inner_steps}",
     }
+    if not preserve_output_cadence:
+        replacements.update(
+            {
+                "NAVG": f"{outer_steps}  {inner_steps}",
+                "NDEFAVG": f"{outer_steps}  {inner_steps}",
+            }
+        )
     rendered = source
     for key, value in replacements.items():
         pattern = re.compile(rf"^(\s*{re.escape(key)}\s*==)[^!\r\n]*(.*)$", re.MULTILINE)
@@ -81,16 +90,36 @@ def render_profile_input(
 
 
 def validate_configuration(
-    outer_steps: int, inner_steps: int, tiles_i: int, tiles_j: int
+    outer_steps: int,
+    inner_steps: int,
+    tiles_i: int,
+    tiles_j: int,
+    *,
+    nodes: int = 4,
+    ranks: int = 128,
+    preserve_output_cadence: bool = False,
 ) -> None:
-    values = (outer_steps, inner_steps, tiles_i, tiles_j)
+    values = (outer_steps, inner_steps, tiles_i, tiles_j, nodes, ranks)
     if any(value <= 0 for value in values):
-        raise ValueError("steps and tile dimensions must be positive")
+        raise ValueError("steps, tile dimensions, nodes, and ranks must be positive")
     if inner_steps != 5 * outer_steps:
         raise ValueError("nested-grid steps must preserve the 1:5 outer/inner ratio")
-    if tiles_i * tiles_j != 128:
+    if ranks % nodes != 0 or ranks // nodes > CORES_PER_NODE:
         raise ValueError(
-            f"128-rank profiling requires tiles_i * tiles_j == 128, got {tiles_i * tiles_j}"
+            f"ranks must divide evenly across nodes with at most {CORES_PER_NODE} "
+            f"ranks per node, got nodes={nodes} ranks={ranks}"
+        )
+    if tiles_i * tiles_j != ranks:
+        raise ValueError(
+            f"profiling requires tiles_i * tiles_j == ranks, got "
+            f"{tiles_i * tiles_j} tiles for {ranks} ranks"
+        )
+    if preserve_output_cadence and (
+        outer_steps != FULL_OUTER_STEPS or inner_steps != FULL_INNER_STEPS
+    ):
+        raise ValueError(
+            "preserving official output cadence is only valid for the complete "
+            f"{FULL_OUTER_STEPS}/{FULL_INNER_STEPS}-step simulation"
         )
 
 
@@ -148,6 +177,20 @@ def resource_summary(resource_log: Path) -> dict[str, float | int | str | None]:
     }
 
 
+def allocation_summary(allocation_log: Path) -> dict[str, str]:
+    """Parse the exact Slurm allocation recorded by the batch script."""
+    try:
+        lines = allocation_log.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return {}
+    return {
+        key: value
+        for line in lines
+        if "=" in line
+        for key, value in (line.split("=", 1),)
+    }
+
+
 def write_profile_bundle(
     run_dir: Path,
     *,
@@ -191,8 +234,19 @@ def stage_run(
     inner_steps: int,
     tiles_i: int,
     tiles_j: int,
+    nodes: int = 4,
+    ranks: int = 128,
+    preserve_output_cadence: bool = False,
 ) -> Path:
-    validate_configuration(outer_steps, inner_steps, tiles_i, tiles_j)
+    validate_configuration(
+        outer_steps,
+        inner_steps,
+        tiles_i,
+        tiles_j,
+        nodes=nodes,
+        ranks=ranks,
+        preserve_output_cadence=preserve_output_cadence,
+    )
     if not binary.is_file():
         raise FileNotFoundError(f"validated ROMS binary not found: {binary}")
     if not (ROMS_ROOT / "Inputfiles").is_dir():
@@ -212,23 +266,42 @@ def stage_run(
         inner_steps=inner_steps,
         tiles_i=tiles_i,
         tiles_j=tiles_j,
+        preserve_output_cadence=preserve_output_cadence,
     )
     (run_dir / "ocean_profile.in").write_text(rendered, encoding="utf-8")
     return run_dir
 
 
-def submit(run_dir: Path) -> tuple[str, int]:
+def submit(
+    run_dir: Path,
+    *,
+    nodes: int = 4,
+    ranks: int = 128,
+    time_limit: str | None = None,
+    job_name: str = "mcc-profile",
+) -> tuple[str, int]:
+    tasks_per_node = ranks // nodes
     command = [
         "sbatch",
         "--wait",
         "--parsable",
+        "--nodes",
+        str(nodes),
+        "--ntasks",
+        str(ranks),
+        "--ntasks-per-node",
+        str(tasks_per_node),
+        "--job-name",
+        job_name,
         f"--export=ALL,MCC_PROFILE_RUN_DIR={run_dir}",
         "-o",
         str(run_dir / "slurm_%j.out"),
         "-e",
         str(run_dir / "slurm_%j.err"),
-        str(SBATCH_SCRIPT),
     ]
+    if time_limit is not None:
+        command.extend(("--time", time_limit))
+    command.append(str(SBATCH_SCRIPT))
     completed = subprocess.run(
         command,
         cwd=REPOSITORY_ROOT,
@@ -282,6 +355,9 @@ def finalize_report(
     tiles_j: int,
     expect_profile: bool,
     reference_run: Path | None,
+    nodes: int = 4,
+    ranks: int = 128,
+    preserve_output_cadence: bool = False,
 ) -> dict[str, object]:
     model_log = run_dir / "model.log"
     normal_end = model_log.is_file() and "ROMS/TOMS: DONE" in model_log.read_text(
@@ -344,14 +420,16 @@ def finalize_report(
         "binary_source": str(binary_source),
         "binary_sha256": _sha256(run_dir / "oceanM"),
         "configuration": {
-            "nodes": 4,
-            "ranks": 128,
+            "nodes": nodes,
+            "ranks": ranks,
             "outer_steps": outer_steps,
             "inner_steps": inner_steps,
             "tiles_i": tiles_i,
             "tiles_j": tiles_j,
+            "preserve_output_cadence": preserve_output_cadence,
         },
         "resources": resource_summary(run_dir / "resource.log"),
+        "allocation": allocation_summary(run_dir / "allocation.log"),
         "outputs": output_report,
         "comparison": comparison,
         "profile_expected": expect_profile,
@@ -375,6 +453,17 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--inner-steps", type=int, default=60)
     parser.add_argument("--tiles-i", type=int, default=8)
     parser.add_argument("--tiles-j", type=int, default=16)
+    parser.add_argument("--nodes", type=int, default=4)
+    parser.add_argument("--ranks", type=int, default=128)
+    parser.add_argument(
+        "--time-limit",
+        help="Slurm wall-time limit overriding the sbatch default, for example 12:00:00",
+    )
+    parser.add_argument(
+        "--preserve-output-cadence",
+        action="store_true",
+        help="keep canonical NAVG/NDEFAVG; allowed only for full 2592/12960 steps",
+    )
     parser.add_argument(
         "--expect-profile",
         action=argparse.BooleanOptionalAction,
@@ -402,9 +491,18 @@ def main() -> int:
         inner_steps=arguments.inner_steps,
         tiles_i=arguments.tiles_i,
         tiles_j=arguments.tiles_j,
+        nodes=arguments.nodes,
+        ranks=arguments.ranks,
+        preserve_output_cadence=arguments.preserve_output_cadence,
     )
     print(f"[profile128] run_dir={run_dir}")
-    job_id, status = submit(run_dir)
+    job_id, status = submit(
+        run_dir,
+        nodes=arguments.nodes,
+        ranks=arguments.ranks,
+        time_limit=arguments.time_limit,
+        job_name=f"mcc-prof-{arguments.nodes}n",
+    )
     print(f"[profile128] job_id={job_id} exit_status={status}")
     report = finalize_report(
         run_dir,
@@ -417,6 +515,9 @@ def main() -> int:
         tiles_j=arguments.tiles_j,
         expect_profile=arguments.expect_profile,
         reference_run=reference_run,
+        nodes=arguments.nodes,
+        ranks=arguments.ranks,
+        preserve_output_cadence=arguments.preserve_output_cadence,
     )
     if report["passed"]:
         print(f"[profile128] PASS: {run_dir / 'run_report.json'}")
