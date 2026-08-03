@@ -40,6 +40,13 @@ def test_comparison_rejects_a_pointwise_error_above_tolerance(tmp_path: Path) ->
 
     assert not report.passed
     assert report.metrics["SCS_avg_0001.nc"]["temp"].max_abs > 1.0e-5
+    metrics = report.metrics["SCS_avg_0001.nc"]["temp"]
+    assert metrics.reference.minimum == pytest.approx(1.0)
+    assert metrics.reference.mean == pytest.approx(1.5)
+    assert metrics.reference.maximum == pytest.approx(2.0)
+    assert metrics.candidate.minimum > metrics.reference.minimum
+    assert metrics.reference.valid_count == 2
+    assert metrics.reference.masked_count == 0
 
 
 def test_demo_input_keeps_unneeded_output_settings_at_official_values() -> None:

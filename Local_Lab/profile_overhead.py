@@ -5,35 +5,28 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import subprocess
 from pathlib import Path
 
 try:
-    from .profile_128 import REPOSITORY_ROOT, finalize_report, stage_run
+    from .profile_128 import (
+        REPOSITORY_ROOT,
+        elapsed_seconds,
+        finalize_report,
+        stage_run,
+        write_profile_bundle,
+    )
 except ImportError:
-    from profile_128 import REPOSITORY_ROOT, finalize_report, stage_run
+    from profile_128 import (
+        REPOSITORY_ROOT,
+        elapsed_seconds,
+        finalize_report,
+        stage_run,
+        write_profile_bundle,
+    )
 
 
 SBATCH_SCRIPT = REPOSITORY_ROOT / "Local_Lab" / "profile_overhead.sbatch"
-ELAPSED_PATTERN = re.compile(
-    r"Elapsed \(wall clock\) time \(h:mm:ss or m:ss\):\s*(\S+)"
-)
-
-
-def elapsed_seconds(resource_log: Path) -> float:
-    text = resource_log.read_text(encoding="utf-8", errors="replace")
-    match = ELAPSED_PATTERN.search(text)
-    if match is None:
-        raise ValueError(f"elapsed wall time missing from {resource_log}")
-    fields = match.group(1).split(":")
-    if len(fields) == 2:
-        minutes, seconds = fields
-        return 60.0 * float(minutes) + float(seconds)
-    if len(fields) == 3:
-        hours, minutes, seconds = fields
-        return 3600.0 * float(hours) + 60.0 * float(minutes) + float(seconds)
-    raise ValueError(f"unsupported elapsed time in {resource_log}: {match.group(1)}")
 
 
 def submit_pair(profile_run: Path, control_run: Path, order: str) -> tuple[str, int]:
@@ -77,6 +70,38 @@ def completed_job_status(job_id: str) -> tuple[bool, str]:
     states = [state for state in states if state]
     state = states[0] if states else "UNKNOWN"
     return completed.returncode == 0 and state == "COMPLETED", state
+
+
+def write_pair_bundle(
+    profile_run: Path,
+    control_run: Path,
+    profile_report: dict[str, object],
+    control_report: dict[str, object],
+    overhead_report: dict[str, object],
+) -> Path:
+    """Make the profile-on directory self-contained for local inspection."""
+    profile_report["comparison"] = control_report["comparison"]
+    profile_report["paired_control_run"] = str(control_run)
+    profile_report["passed"] = bool(
+        profile_report["passed"] and control_report["passed"]
+    )
+    (profile_run / "run_report.json").write_text(
+        json.dumps(profile_report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    profile_path = profile_run / "profile_report.json"
+    profile_data = (
+        json.loads(profile_path.read_text(encoding="utf-8"))
+        if profile_path.is_file()
+        else None
+    )
+    return write_profile_bundle(
+        profile_run,
+        run_report=profile_report,
+        profile=profile_data,
+        comparison=control_report["comparison"],
+        control_run=control_report,
+        overhead=overhead_report,
+    )
 
 
 def _arguments() -> argparse.Namespace:
@@ -170,11 +195,13 @@ def main() -> int:
         "control_seconds": control_seconds,
         "overhead_percent": overhead_percent,
         "same_allocation": True,
+        "comparison": control_report["comparison"],
     }
     output_path = profile_run / "overhead_report.json"
     output_path.write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    write_pair_bundle(profile_run, control_run, profile_report, control_report, report)
     if report["passed"]:
         print(
             f"[profile-overhead] PASS: profile={profile_seconds:.2f}s "

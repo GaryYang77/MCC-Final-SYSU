@@ -1,10 +1,16 @@
+import json
 from pathlib import Path
 import sys
 
 import pytest
 
 import Local_Lab.profile_128 as profile_128
-from Local_Lab.profile_128 import render_profile_input, validate_configuration
+from Local_Lab.profile_128 import (
+    resource_summary,
+    render_profile_input,
+    validate_configuration,
+    write_profile_bundle,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -42,6 +48,49 @@ def test_128_rank_configuration_requires_128_tiles_and_nested_step_ratio() -> No
         validate_configuration(12, 60, 4, 8)
     with pytest.raises(ValueError, match="1:5"):
         validate_configuration(12, 59, 8, 16)
+
+
+def test_resource_summary_exposes_dashboard_measurements(tmp_path: Path) -> None:
+    resource_log = tmp_path / "resource.log"
+    resource_log.write_text(
+        "User time (seconds): 120.5\n"
+        "System time (seconds): 7.25\n"
+        "Elapsed (wall clock) time (h:mm:ss or m:ss): 4:01.80\n"
+        "Maximum resident set size (kbytes): 784868\n",
+        encoding="utf-8",
+    )
+
+    summary = resource_summary(resource_log)
+
+    assert summary == {
+        "elapsed_wall_seconds": pytest.approx(241.8),
+        "user_seconds": pytest.approx(120.5),
+        "system_seconds": pytest.approx(7.25),
+        "max_rss_kib": 784868,
+        "error": None,
+    }
+
+
+def test_profile_bundle_is_one_self_describing_json_file(tmp_path: Path) -> None:
+    run = {"passed": True, "comparison": None}
+    profile = {"groups": [], "records": []}
+    comparison = {"passed": True, "metrics": {}}
+
+    path = write_profile_bundle(
+        tmp_path,
+        run_report=run,
+        profile=profile,
+        comparison=comparison,
+        overhead={"overhead_percent": 0.89},
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    assert path.name == "profile_bundle.json"
+    assert payload["kind"] == "mcc_roms_profile_bundle"
+    assert payload["run"] == run
+    assert payload["profile"] == profile
+    assert payload["comparison"] == comparison
+    assert payload["overhead"]["overhead_percent"] == pytest.approx(0.89)
 
 
 def test_no_profile_control_build_only_disables_instrumentation() -> None:

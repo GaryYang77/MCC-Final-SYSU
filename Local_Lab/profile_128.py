@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -44,6 +45,10 @@ VARIABLES = (
     "TIC",
 )
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
+ELAPSED_PATTERN = re.compile(
+    r"Elapsed \(wall clock\) time \(h:mm:ss or m:ss\):\s*(\S+)"
+)
+PROFILE_BUNDLE_NAME = "profile_bundle.json"
 
 
 def render_profile_input(
@@ -95,6 +100,80 @@ def _sha256(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def elapsed_seconds(resource_log: Path) -> float:
+    """Return GNU time's elapsed wall clock measurement in seconds."""
+    text = resource_log.read_text(encoding="utf-8", errors="replace")
+    match = ELAPSED_PATTERN.search(text)
+    if match is None:
+        raise ValueError(f"elapsed wall time missing from {resource_log}")
+    fields = match.group(1).split(":")
+    if len(fields) == 2:
+        minutes, seconds = fields
+        return 60.0 * float(minutes) + float(seconds)
+    if len(fields) == 3:
+        hours, minutes, seconds = fields
+        return 3600.0 * float(hours) + 60.0 * float(minutes) + float(seconds)
+    raise ValueError(f"unsupported elapsed time in {resource_log}: {match.group(1)}")
+
+
+def resource_summary(resource_log: Path) -> dict[str, float | int | str | None]:
+    """Extract the resource fields used by the local dashboard."""
+    try:
+        text = resource_log.read_text(encoding="utf-8", errors="replace")
+        wall_seconds = elapsed_seconds(resource_log)
+    except (OSError, ValueError) as error:
+        return {
+            "elapsed_wall_seconds": None,
+            "user_seconds": None,
+            "system_seconds": None,
+            "max_rss_kib": None,
+            "error": str(error),
+        }
+
+    def number(pattern: str) -> float | None:
+        match = re.search(pattern, text)
+        return float(match.group(1)) if match else None
+
+    user_seconds = number(r"User time \(seconds\):\s*([0-9.]+)")
+    system_seconds = number(r"System time \(seconds\):\s*([0-9.]+)")
+    rss = number(r"Maximum resident set size \(kbytes\):\s*(\d+)")
+    return {
+        "elapsed_wall_seconds": wall_seconds,
+        "user_seconds": user_seconds,
+        "system_seconds": system_seconds,
+        "max_rss_kib": int(rss) if rss is not None else None,
+        "error": None,
+    }
+
+
+def write_profile_bundle(
+    run_dir: Path,
+    *,
+    run_report: dict[str, object],
+    profile: dict[str, object] | None,
+    comparison: dict[str, object] | None = None,
+    control_run: dict[str, object] | None = None,
+    overhead: dict[str, object] | None = None,
+) -> Path:
+    """Write the single JSON artifact consumed by the offline dashboard."""
+    bundle = {
+        "schema_version": 1,
+        "kind": "mcc_roms_profile_bundle",
+        "run": run_report,
+        "profile": profile,
+        "comparison": (
+            comparison if comparison is not None else run_report.get("comparison")
+        ),
+        "control_run": control_run,
+        "overhead": overhead,
+    }
+    bundle_path = run_dir / PROFILE_BUNDLE_NAME
+    bundle_path.write_text(
+        json.dumps(bundle, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    return bundle_path
 
 
 def _run_id(label: str) -> str:
@@ -225,17 +304,14 @@ def finalize_report(
             "reference_run": str(reference_run),
             "metrics": {
                 filename: {
-                    variable: {
-                        "rmse": metric.rmse,
-                        "max_abs": metric.max_abs,
-                        "passed": metric.passed,
-                    }
+                    variable: asdict(metric)
                     for variable, metric in variables.items()
                 }
                 for filename, variables in result.metrics.items()
             },
         }
     profile_error = None
+    profile = None
     profile_path = run_dir / "profile_report.json"
     csv_path = run_dir / "profile_records.csv"
     if expect_profile:
@@ -275,16 +351,19 @@ def finalize_report(
             "tiles_i": tiles_i,
             "tiles_j": tiles_j,
         },
+        "resources": resource_summary(run_dir / "resource.log"),
         "outputs": output_report,
         "comparison": comparison,
         "profile_expected": expect_profile,
         "profile_error": profile_error,
         "profile_report": str(profile_path) if profile_path.is_file() else None,
         "profile_csv": str(csv_path) if csv_path.is_file() else None,
+        "profile_bundle": str(run_dir / PROFILE_BUNDLE_NAME),
     }
     (run_dir / "run_report.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    write_profile_bundle(run_dir, run_report=report, profile=profile)
     return report
 
 

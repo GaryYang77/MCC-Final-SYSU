@@ -72,10 +72,21 @@ DEMO_PARAMETERS = {
 
 
 @dataclass(frozen=True)
+class ValueStatistics:
+    minimum: float
+    mean: float
+    maximum: float
+    valid_count: int
+    masked_count: int
+
+
+@dataclass(frozen=True)
 class VariableMetrics:
     rmse: float
     max_abs: float
     passed: bool
+    reference: ValueStatistics
+    candidate: ValueStatistics
 
 
 @dataclass(frozen=True)
@@ -651,6 +662,11 @@ def compare_output_directories(
                 valid = ~reference_mask
                 reference_values = np.asarray(reference_data.data[valid], dtype=np.float64)
                 candidate_values = np.asarray(candidate_data.data[valid], dtype=np.float64)
+                valid_count = int(reference_values.size)
+                masked_count = int(reference_mask.size - valid_count)
+                if valid_count == 0:
+                    failures.append(f"{filename}:{variable_name}: no valid values")
+                    continue
                 if not np.all(np.isfinite(reference_values)) or not np.all(np.isfinite(candidate_values)):
                     failures.append(f"{filename}:{variable_name}: contains NaN or infinity")
                     continue
@@ -659,7 +675,27 @@ def compare_output_directories(
                 rmse = float(np.sqrt(np.mean(np.square(difference))))
                 max_abs = float(np.max(np.abs(difference)))
                 passed = rmse <= tolerance and max_abs <= tolerance
-                file_metrics[variable_name] = VariableMetrics(rmse, max_abs, passed)
+                reference_stats = ValueStatistics(
+                    minimum=float(np.min(reference_values)),
+                    mean=float(np.mean(reference_values)),
+                    maximum=float(np.max(reference_values)),
+                    valid_count=valid_count,
+                    masked_count=masked_count,
+                )
+                candidate_stats = ValueStatistics(
+                    minimum=float(np.min(candidate_values)),
+                    mean=float(np.mean(candidate_values)),
+                    maximum=float(np.max(candidate_values)),
+                    valid_count=valid_count,
+                    masked_count=masked_count,
+                )
+                file_metrics[variable_name] = VariableMetrics(
+                    rmse,
+                    max_abs,
+                    passed,
+                    reference_stats,
+                    candidate_stats,
+                )
                 if not passed:
                     failures.append(
                         f"{filename}:{variable_name}: RMSE={rmse:.8e}, "

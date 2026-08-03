@@ -115,7 +115,15 @@ python Local_Lab/profile_128.py \
 - `model.log`、`resource.log` 和 Slurm stdout/stderr；
 - `profile_report.json`：分类、可读 region 名、hotspots 和 per-call 代价；
 - `profile_records.csv`：所有 region 记录及可读 `region_name`；
-- `run_report.json`：二进制哈希、配置、正常结束和 NaN/Inf 检查。
+- `run_report.json`：二进制哈希、配置、资源摘要、正常结束和 NaN/Inf 检查；有 reference
+  时还包含每个变量两侧的 min/mean/max、有效/掩膜点数、RMSE 和 max_abs；
+- `profile_bundle.json`：把 run、profile、comparison 和可选 overhead 合并成一个本地可视化输入。
+
+将 `profile_bundle.json` 下载到本地，用浏览器打开
+`Local_Lab/profile_dashboard.html` 并拖入文件。页面完全离线；热点类型、nesting 分解、
+rank 离散和变量物理量范围都在同一页展示。Overhead 配对 bundle 会在顶层携带 on/off
+comparison，不再需要到 off 目录寻找 RMSE/max_abs。旧报告仍可载入，但不会伪造当时
+没有采集的变量范围。
 
 决赛的 128 ranks 要求每个网格满足 `NtileI*NtileJ == 128`。原输入中的 `4*8`
 只对应 32 ranks，不能直接用于 128-rank 任务；运行器会拒绝这种非法配置。

@@ -1,9 +1,14 @@
+import json
 from pathlib import Path
 
 import pytest
 
 import Local_Lab.profile_overhead as profile_overhead
-from Local_Lab.profile_overhead import completed_job_status, elapsed_seconds
+from Local_Lab.profile_overhead import (
+    completed_job_status,
+    elapsed_seconds,
+    write_pair_bundle,
+)
 
 
 @pytest.mark.parametrize(
@@ -35,3 +40,35 @@ def test_completed_job_status_requires_completed_primary_state(monkeypatch) -> N
 
     monkeypatch.setattr(profile_overhead.subprocess, "run", lambda *args, **kwargs: Result())
     assert completed_job_status("123") == (True, "COMPLETED")
+
+
+def test_pair_bundle_promotes_comparison_into_profile_run(tmp_path: Path) -> None:
+    profile_run = tmp_path / "on"
+    control_run = tmp_path / "off"
+    profile_run.mkdir()
+    control_run.mkdir()
+    (profile_run / "profile_report.json").write_text(
+        '{"groups": [], "records": []}\n', encoding="utf-8"
+    )
+    profile_report = {"passed": True, "comparison": None}
+    comparison = {"passed": True, "metrics": {"output.nc": {}}}
+    control_report = {"passed": True, "comparison": comparison}
+    overhead = {"passed": True, "overhead_percent": 0.89}
+
+    bundle_path = write_pair_bundle(
+        profile_run,
+        control_run,
+        profile_report,
+        control_report,
+        overhead,
+    )
+
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    promoted_run = json.loads(
+        (profile_run / "run_report.json").read_text(encoding="utf-8")
+    )
+    assert promoted_run["comparison"] == comparison
+    assert promoted_run["paired_control_run"] == str(control_run)
+    assert bundle["comparison"] == comparison
+    assert bundle["control_run"] == control_report
+    assert bundle["overhead"] == overhead

@@ -208,6 +208,19 @@ mp_assemble point gather      -> region 49
 collective / rank waiting     -> wall min/mean/max 与 imbalance
 ```
 
+每次新 profiling 运行还会生成 `profile_bundle.json`。把它下载到本地后，直接用浏览器
+打开 [`profile_dashboard.html`](profile_dashboard.html)，拖入这一份 JSON，即可离线查看：
+
+- 外部 wall time、节点/rank/tile、正常结束和数值比较状态；
+- Grid 1/2 的 compute、MPI、读/写 I/O 分类和 hotspot；
+- region 51--56 nesting 分解以及 rank min/mean/max、最慢 rank、imbalance；
+- reference/candidate 每个验证变量的 min/mean/max、有效/掩膜点数、RMSE 和 max_abs；
+- 可搜索的完整 region 表及常用函数提示。
+
+页面不上传文件、不访问网络，也不需要在集群上启动 Web 服务。旧的
+`profile_report.json` 或 `run_report.json` 也能单独打开，但旧报告从未采集的变量量值
+会显示为 unavailable，不能事后从 RMSE 推导。
+
 集群运行时同时记录外部 wall time。示例：
 
 ```bash

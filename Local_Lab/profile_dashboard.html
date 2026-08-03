@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ROMS Profile Deck</title>
+  <style>
+    :root {
+      --abyss: #061015;
+      --deep: #0a1a21;
+      --panel: #0d222a;
+      --panel-hi: #112c35;
+      --line: #21434d;
+      --ink: #e7f2ed;
+      --muted: #88a8a8;
+      --compute: #48b8ff;
+      --mpi: #ff9f43;
+      --io-read: #c38cff;
+      --io-write: #58d68d;
+      --nesting: #3fe0c5;
+      --ok: #70e69a;
+      --warn: #ffd166;
+      --bad: #ff6577;
+      --paper: #d9e9e4;
+    }
+
+    * { box-sizing: border-box; }
+    html { color-scheme: dark; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 85% 5%, rgba(63, 224, 197, .11), transparent 28rem),
+        linear-gradient(rgba(72, 184, 255, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(72, 184, 255, .025) 1px, transparent 1px),
+        var(--abyss);
+      background-size: auto, 32px 32px, 32px 32px, auto;
+      font-family: "Bahnschrift", "Aptos Narrow", "Segoe UI", sans-serif;
+    }
+
+    button, input { font: inherit; }
+    .shell { width: min(1560px, calc(100% - 40px)); margin: 0 auto; padding: 28px 0 64px; }
+    .masthead {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+      padding: 8px 0 20px;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow, .section-kicker, .mono {
+      font-family: "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+    }
+    .eyebrow { color: var(--nesting); letter-spacing: .16em; font-size: 12px; text-transform: uppercase; }
+    h1 { margin: 4px 0 0; font-size: clamp(32px, 5vw, 68px); line-height: .92; letter-spacing: -.055em; font-weight: 760; }
+    h1 span { color: var(--muted); font-weight: 300; }
+    .mast-meta { color: var(--muted); max-width: 440px; text-align: right; line-height: 1.5; font-size: 13px; }
+
+    .drop-zone {
+      margin: 26px 0;
+      min-height: 148px;
+      border: 1px dashed #3b7280;
+      background: linear-gradient(135deg, rgba(63, 224, 197, .06), rgba(72, 184, 255, .025));
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .18s, background .18s, transform .18s;
+    }
+    .drop-zone::before {
+      content: "";
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      border: 1px solid rgba(63, 224, 197, .25);
+      border-radius: 50%;
+      right: -54px;
+      top: -70px;
+      box-shadow: 0 0 0 24px rgba(63, 224, 197, .025), 0 0 0 48px rgba(63, 224, 197, .018);
+    }
+    .drop-zone.drag { border-color: var(--nesting); background: rgba(63, 224, 197, .1); transform: translateY(-2px); }
+    .drop-title { font-size: 18px; font-weight: 650; }
+    .drop-note { margin-top: 7px; color: var(--muted); font-size: 13px; }
+    #fileInput { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .file-chip { color: var(--nesting); }
+
+    .notice {
+      display: none;
+      margin: 16px 0;
+      padding: 13px 16px;
+      border-left: 3px solid var(--warn);
+      background: rgba(255, 209, 102, .08);
+      color: #f7e7b8;
+      line-height: 1.5;
+    }
+    .notice.show { display: block; }
+    .notice.bad { border-color: var(--bad); background: rgba(255, 101, 119, .08); color: #ffd1d6; }
+    .dashboard { display: none; }
+    .dashboard.ready { display: block; animation: surface-in .45s ease both; }
+    @keyframes surface-in { from { opacity: 0; transform: translateY(9px); } }
+
+    .summary-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin: 22px 0; }
+    .summary-card {
+      min-height: 116px;
+      padding: 15px;
+      background: linear-gradient(150deg, rgba(17, 44, 53, .96), rgba(10, 26, 33, .96));
+      border: 1px solid var(--line);
+      position: relative;
+    }
+    .summary-card::after { content: ""; position: absolute; left: 14px; bottom: 0; width: 32px; height: 2px; background: var(--accent, var(--compute)); }
+    .summary-label { color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+    .summary-value { margin-top: 12px; font-size: clamp(20px, 2.3vw, 32px); line-height: 1; font-weight: 720; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .summary-detail { margin-top: 9px; color: var(--muted); font-size: 12px; }
+    .state-ok { color: var(--ok); }
+    .state-warn { color: var(--warn); }
+    .state-bad { color: var(--bad); }
+
+    .legend, .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .legend { margin: 12px 0 24px; color: var(--muted); font-size: 12px; }
+    .legend-dot { width: 8px; height: 8px; display: inline-block; margin-right: 5px; border-radius: 50%; background: var(--dot); }
+    .accounting-note { margin-left: auto; color: var(--warn); }
+
+    .section { margin-top: 32px; }
+    .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
+    .section-kicker { font-size: 11px; letter-spacing: .15em; color: var(--nesting); text-transform: uppercase; }
+    h2 { margin: 3px 0 0; font-size: 26px; letter-spacing: -.025em; }
+    .section-note { color: var(--muted); font-size: 12px; max-width: 620px; text-align: right; }
+
+    .grid-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .panel { border: 1px solid var(--line); background: rgba(10, 26, 33, .9); padding: 18px; min-width: 0; }
+    .panel-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 18px; }
+    .panel-title strong { font-size: 20px; }
+    .panel-title span { color: var(--muted); font-size: 12px; }
+    .category-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin-bottom: 18px; }
+    .category-cell { border-top: 2px solid var(--kind); background: rgba(255,255,255,.025); padding: 8px; min-width: 0; }
+    .category-cell b { display: block; margin-top: 4px; font-size: 16px; }
+    .category-cell small { color: var(--muted); text-transform: uppercase; font-size: 9px; letter-spacing: .08em; }
+
+    .hot-row { display: grid; grid-template-columns: minmax(130px, 1.3fr) minmax(150px, 2fr) 68px; gap: 10px; align-items: center; margin: 9px 0; }
+    .hot-label { min-width: 0; }
+    .hot-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+    .hot-fn { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 10px; margin-top: 2px; }
+    .bar-track { height: 12px; background: #071318; position: relative; overflow: hidden; }
+    .bar-fill { height: 100%; width: var(--w); background: var(--kind); transform-origin: left; animation: grow .55s ease both; }
+    @keyframes grow { from { transform: scaleX(0); } }
+    .hot-value { text-align: right; font-family: "Cascadia Mono", Consolas, monospace; font-size: 11px; }
+
+    .nest-stack { height: 32px; display: flex; overflow: hidden; background: #071318; margin: 8px 0 12px; }
+    .nest-part { width: var(--w); background: var(--shade); min-width: 1px; position: relative; transition: filter .15s; }
+    .nest-part:hover { filter: brightness(1.35); }
+    .nest-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 14px; }
+    .nest-item { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 11px; }
+    .nest-item b { color: var(--ink); }
+
+    .imbalance-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(160px, 2fr) 68px; gap: 12px; align-items: center; margin: 11px 0; font-size: 12px; }
+    .range { height: 14px; position: relative; background: #071318; }
+    .range-line { position: absolute; top: 6px; height: 2px; left: var(--left); width: var(--width); background: var(--compute); }
+    .range-min, .range-max, .range-mean { position: absolute; top: 2px; width: 2px; height: 10px; background: var(--paper); left: var(--x); }
+    .range-mean { width: 7px; height: 7px; top: 3px; transform: translateX(-3px) rotate(45deg); background: var(--warn); }
+    .imbalance-value { text-align: right; color: var(--ok); }
+    .imbalance-value.warn { color: var(--warn); }
+    .imbalance-value.bad { color: var(--bad); }
+
+    .toolbar { justify-content: space-between; margin-bottom: 12px; }
+    .search {
+      width: min(360px, 100%);
+      color: var(--ink);
+      background: var(--deep);
+      border: 1px solid var(--line);
+      padding: 9px 11px;
+      outline: none;
+    }
+    .search:focus { border-color: var(--nesting); box-shadow: 0 0 0 2px rgba(63,224,197,.1); }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); max-height: 620px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+    th { position: sticky; top: 0; z-index: 1; background: #10262e; color: var(--muted); text-align: left; letter-spacing: .06em; font-size: 10px; text-transform: uppercase; }
+    th, td { padding: 10px 11px; border-bottom: 1px solid rgba(33, 67, 77, .68); white-space: nowrap; }
+    tr:hover td { background: rgba(72,184,255,.035); }
+    .num { text-align: right; font-family: "Cascadia Mono", Consolas, monospace; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; border: 1px solid currentColor; padding: 2px 6px; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+    .badge.compute { color: var(--compute); }
+    .badge.mpi { color: var(--mpi); }
+    .badge.io_read { color: var(--io-read); }
+    .badge.io_write { color: var(--io-write); }
+    .badge.pass { color: var(--ok); }
+    .badge.fail { color: var(--bad); }
+    .badge.na { color: var(--warn); }
+    .file-heading td { background: #0f252d; color: var(--nesting); font-size: 12px; font-weight: 700; letter-spacing: .05em; }
+    .footer { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--muted); display: flex; justify-content: space-between; gap: 20px; font-size: 11px; }
+
+    @media (max-width: 1120px) {
+      .summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid-panels { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .shell { width: min(100% - 22px, 1560px); padding-top: 16px; }
+      .masthead { align-items: flex-start; flex-direction: column; }
+      .mast-meta { text-align: left; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .category-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .section-note { text-align: left; }
+      .hot-row, .imbalance-row { grid-template-columns: minmax(110px, 1fr) minmax(100px, 1.4fr) 58px; }
+      .nest-list { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div>
+        <div class="eyebrow">MCC 2026 · ROMS-CoSiNE15</div>
+        <h1>PROFILE <span>// DECK</span></h1>
+      </div>
+      <div class="mast-meta">离线性能剖析台。文件只在当前浏览器中读取，不上传、不联网。推荐载入新生成的 <span class="file-chip mono">profile_bundle.json</span>。</div>
+    </header>
+
+    <label class="drop-zone" id="dropZone" for="fileInput" tabindex="0" role="button" aria-label="选择 profiling JSON 文件">
+      <input id="fileInput" type="file" accept="application/json,.json">
+      <div>
+        <div class="drop-title">拖入一个 JSON，或点击选择</div>
+        <div class="drop-note">完整体验：profile_bundle.json · 兼容：profile_report.json / run_report.json</div>
+      </div>
+    </label>
+
+    <div id="notice" class="notice" role="status"></div>
+
+    <div id="dashboard" class="dashboard">
+      <section id="summary" class="summary-grid" aria-label="运行摘要"></section>
+
+      <div class="legend">
+        <span><i class="legend-dot" style="--dot:var(--compute)"></i>Compute</span>
+        <span><i class="legend-dot" style="--dot:var(--mpi)"></i>MPI</span>
+        <span><i class="legend-dot" style="--dot:var(--io-read)"></i>Input I/O</span>
+        <span><i class="legend-dot" style="--dot:var(--io-write)"></i>Output I/O</span>
+        <span class="accounting-note">⚠ Region 为 inclusive 计时；顶层类别不能相加成 100%</span>
+      </div>
+
+      <section class="section" id="hotspotSection">
+        <div class="section-head">
+          <div><div class="section-kicker">01 / Locate</div><h2>热点与类型</h2></div>
+          <div class="section-note">条形长度按当前 Grid 的最大 region 归一化；百分比相对该 Grid 总 wall time，保持 inclusive 语义。</div>
+        </div>
+        <div id="gridPanels" class="grid-panels"></div>
+      </section>
+
+      <section class="section" id="nestingSection">
+        <div class="section-head">
+          <div><div class="section-kicker">02 / Nesting</div><h2>Nesting 子阶段</h2></div>
+          <div class="section-note">Region 51–56 是 region 39 内部的互斥 section，可安全按 region 39 归一化。</div>
+        </div>
+        <div id="nestingPanels" class="grid-panels"></div>
+      </section>
+
+      <section class="section" id="imbalanceSection">
+        <div class="section-head">
+          <div><div class="section-kicker">03 / Ranks</div><h2>Rank 离散与等待信号</h2></div>
+          <div class="section-note">线段为 rank wall min→max，菱形为 mean。imbalance = max / mean。</div>
+        </div>
+        <div id="imbalancePanels" class="grid-panels"></div>
+      </section>
+
+      <section class="section" id="variablesSection">
+        <div class="section-head">
+          <div><div class="section-kicker">04 / Physics sanity</div><h2>输出变量量值与误差</h2></div>
+          <div class="section-note"><span id="variableContext"></span>min/mean/max 只统计未掩膜有限值。先检查物理量范围，再检查差异。</div>
+        </div>
+        <div class="toolbar">
+          <input id="variableSearch" class="search" type="search" placeholder="搜索文件或变量，例如 temp / oxygen">
+          <span id="variableCount" class="mono section-note"></span>
+        </div>
+        <div class="table-wrap"><table id="variableTable"></table></div>
+      </section>
+
+      <section class="section" id="recordsSection">
+        <div class="section-head">
+          <div><div class="section-kicker">05 / Drill down</div><h2>Region 明细</h2></div>
+          <div class="section-note">搜索 region、函数提示或 compute/MPI/I/O 类型。</div>
+        </div>
+        <div class="toolbar">
+          <input id="recordSearch" class="search" type="search" placeholder="搜索 ngetD / gather / mpi / region 53">
+          <span id="recordCount" class="mono section-note"></span>
+        </div>
+        <div class="table-wrap"><table id="recordTable"></table></div>
+      </section>
+
+      <footer class="footer"><span>ROMS Profile Deck · local-only artifact viewer</span><span id="loadedFile" class="mono"></span></footer>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const KIND_COLORS = {
+      compute: "var(--compute)", mpi: "var(--mpi)",
+      io_read: "var(--io-read)", io_write: "var(--io-write)"
+    };
+    const NEST_COLORS = ["#3fe0c5", "#48b8ff", "#ff9f43", "#c38cff", "#58d68d", "#6f8790"];
+    const FUNCTION_HINTS = {
+      3: "get_data / input distribution", 8: "def/wrt/sync output",
+      9: "step2d", 12: "set_depth / coupling", 13: "omega",
+      15: "biology", 19: "gls_corstep", 21: "rhs3d", 22: "step3d_uv predictor",
+      23: "pressure gradient", 34: "step3d_uv corrector", 35: "step3d_t corrector",
+      39: "nesting", 40: "mp_exchange2d", 41: "mp_exchange3d",
+      42: "mp_exchange4d", 43: "mp_bcasti", 44: "mp_bcastf",
+      45: "mp_collect", 46: "mp_aggregate2d / mp_aggregate3d",
+      47: "mp_scatter", 48: "boundary gather", 49: "mp_assemble point gather",
+      50: "multi-model coupling", 51: "nesting(nzwgt / z_weights)",
+      52: "nesting(nmask)", 53: "nesting(ngetD)", 54: "nesting(nputD)",
+      55: "nesting(n2way / fine2coarse)", 56: "nesting(other section)"
+    };
+
+    let state = null;
+    const el = id => document.getElementById(id);
+    const esc = value => String(value ?? "")
+      .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+    const finite = value => typeof value === "number" && Number.isFinite(value);
+    const fmt = (value, digits = 3) => {
+      if (!finite(value)) return "—";
+      const abs = Math.abs(value);
+      if ((abs > 0 && abs < 1e-3) || abs >= 1e5) return value.toExponential(3);
+      return value.toLocaleString(undefined, { maximumFractionDigits: digits });
+    };
+    const seconds = value => finite(value) ? `${fmt(value, 2)} s` : "—";
+    const percent = value => finite(value) ? `${fmt(value, 2)}%` : "—";
+    const basename = value => String(value || "").split(/[\\/]/).filter(Boolean).pop() || "unknown";
+    const fnHint = record => FUNCTION_HINTS[Number(record.region)] || record.region_name || `region ${record.region}`;
+    const kindColor = kind => KIND_COLORS[kind] || "var(--compute)";
+
+    function normalize(raw) {
+      if (raw?.kind === "mcc_roms_profile_bundle") return raw;
+      if (Array.isArray(raw?.groups) && Array.isArray(raw?.records)) {
+        return { kind: "legacy_profile_report", run: null, profile: raw, comparison: null, control_run: null, overhead: null };
+      }
+      if (raw?.configuration && raw?.outputs) {
+        return { kind: "legacy_run_report", run: raw, profile: null, comparison: raw.comparison || null, control_run: null, overhead: null };
+      }
+      throw new Error("无法识别 JSON：请选择 profile_bundle.json、profile_report.json 或 run_report.json");
+    }
+
+    function comparisonState(comparison) {
+      if (!comparison) return { label: "NOT COMPARED", klass: "state-warn", detail: "没有 reference/candidate 比较" };
+      if (!comparison.passed) return { label: "FAIL", klass: "state-bad", detail: `${comparison.failures?.length || 0} 个失败项` };
+      const metrics = Object.values(comparison.metrics || {}).flatMap(file => Object.values(file));
+      const exact = metrics.length > 0 && metrics.every(metric => metric.rmse === 0 && metric.max_abs === 0);
+      return { label: exact ? "EXACT" : "WITHIN TOL", klass: exact ? "state-ok" : "state-warn", detail: `${metrics.length} 个变量比较通过` };
+    }
+
+    function card(label, value, detail, accent = "var(--compute)", klass = "") {
+      return `<article class="summary-card" style="--accent:${accent}">
+        <div class="summary-label">${esc(label)}</div>
+        <div class="summary-value ${klass}">${esc(value)}</div>
+        <div class="summary-detail">${esc(detail)}</div>
+      </article>`;
+    }
+
+    function renderSummary(bundle) {
+      const run = bundle.run || {};
+      const cfg = run.configuration || {};
+      const validation = comparisonState(bundle.comparison || run.comparison);
+      const wall = run.resources?.elapsed_wall_seconds ?? bundle.overhead?.profile_seconds;
+      const endState = run.normal_end === true ? ["YES", "state-ok"] : run.normal_end === false ? ["NO", "state-bad"] : ["UNKNOWN", "state-warn"];
+      const finiteState = run.outputs?.passed === true ? ["YES", "state-ok"] : run.outputs?.passed === false ? ["NO", "state-bad"] : ["UNKNOWN", "state-warn"];
+      const overhead = bundle.overhead?.overhead_percent;
+      el("summary").innerHTML = [
+        card("Elapsed wall", seconds(wall), "GNU time · 整个 MPI 作业", "var(--nesting)"),
+        card("Allocation", finite(cfg.ranks) ? `${cfg.ranks} ranks` : "—", finite(cfg.nodes) ? `${cfg.nodes} nodes · tiles ${cfg.tiles_i}×${cfg.tiles_j}` : "配置不可用"),
+        card("Normal end", endState[0], run.job_id ? `Slurm ${run.job_id}` : "无作业编号", endState[1] === "state-ok" ? "var(--ok)" : "var(--bad)", endState[1]),
+        card("Outputs finite", finiteState[0], run.outputs?.failures?.length ? run.outputs.failures[0] : "文件、变量与 NaN/Inf", finiteState[1] === "state-ok" ? "var(--ok)" : "var(--warn)", finiteState[1]),
+        card("Numerical match", validation.label, validation.detail, validation.klass === "state-ok" ? "var(--ok)" : "var(--warn)", validation.klass),
+        card("Profiler overhead", finite(overhead) ? `${overhead >= 0 ? "+" : ""}${percent(overhead)}` : "—", bundle.overhead?.same_allocation ? `same allocation · ${bundle.overhead.order}` : "无配对数据", "var(--mpi)")
+      ].join("");
+    }
+
+    function categoryCells(group) {
+      const labels = { compute: "Compute", mpi: "MPI", io_read: "Input I/O", io_write: "Output I/O" };
+      return Object.entries(labels).map(([kind, label]) => {
+        const value = group.categories?.[kind]?.inclusive_percent_of_total;
+        return `<div class="category-cell" style="--kind:${kindColor(kind)}"><small>${label}</small><b>${percent(value)}</b></div>`;
+      }).join("");
+    }
+
+    function renderHotspots(profile) {
+      const groups = profile?.groups || [];
+      el("hotspotSection").style.display = groups.length ? "block" : "none";
+      el("gridPanels").innerHTML = groups.map(group => {
+        const rows = (group.hotspots || []).slice(0, 10);
+        const max = Math.max(...rows.map(row => row.wall_mean || 0), 1e-12);
+        return `<article class="panel">
+          <div class="panel-title"><strong>Grid ${esc(group.grid)}</strong><span>Model ${esc(group.model)} · ${esc(group.workers)} workers</span></div>
+          <div class="category-strip">${categoryCells(group)}</div>
+          ${rows.map(row => `<div class="hot-row" title="region ${esc(row.region)} · imbalance ${esc(fmt(row.imbalance))}">
+            <div class="hot-label"><div class="hot-name">R${esc(row.region)} · ${esc(row.region_name)}</div><div class="hot-fn">${esc(fnHint(row))}</div></div>
+            <div class="bar-track"><div class="bar-fill" style="--w:${Math.max(1, 100 * row.wall_mean / max)}%;--kind:${kindColor(row.kind)}"></div></div>
+            <div class="hot-value">${seconds(row.wall_mean)}<br>${percent(row.inclusive_percent_of_total)}</div>
+          </div>`).join("") || `<div class="section-note">没有 hotspot 数据</div>`}
+        </article>`;
+      }).join("");
+    }
+
+    function renderNesting(profile) {
+      const groups = (profile?.groups || []).filter(group => group.nesting_sections?.length);
+      el("nestingSection").style.display = groups.length ? "block" : "none";
+      el("nestingPanels").innerHTML = groups.map(group => {
+        const sections = group.nesting_sections;
+        const coverage = group.nesting_coverage;
+        return `<article class="panel">
+          <div class="panel-title"><strong>Grid ${esc(group.grid)}</strong><span>coverage ${percent(coverage?.detail_percent_of_nesting)} · calls ${coverage?.calls_match ? "match" : "mismatch"}</span></div>
+          <div class="nest-stack">${sections.map((row, i) => `<div class="nest-part" title="${esc(row.region_name)} ${percent(row.inclusive_percent_of_nesting)}" style="--w:${Math.max(0, row.inclusive_percent_of_nesting || 0)}%;--shade:${NEST_COLORS[i % NEST_COLORS.length]}"></div>`).join("")}</div>
+          <div class="nest-list">${sections.map((row, i) => `<div class="nest-item"><span><i class="legend-dot" style="--dot:${NEST_COLORS[i % NEST_COLORS.length]}"></i>${esc(fnHint(row))}</span><b>${percent(row.inclusive_percent_of_nesting)}</b></div>`).join("")}</div>
+        </article>`;
+      }).join("");
+    }
+
+    function imbalanceClass(value) { return value >= 1.2 ? "bad" : value >= 1.05 ? "warn" : ""; }
+    function renderImbalance(profile) {
+      const groups = profile?.groups || [];
+      el("imbalanceSection").style.display = groups.length ? "block" : "none";
+      el("imbalancePanels").innerHTML = groups.map(group => {
+        const rows = (group.hotspots || []).slice(0, 10);
+        const scale = Math.max(...rows.map(row => row.wall_max || 0), 1e-12);
+        return `<article class="panel">
+          <div class="panel-title"><strong>Grid ${esc(group.grid)}</strong><span>min / mean / max wall</span></div>
+          ${rows.map(row => {
+            const min = 100 * (row.wall_min || 0) / scale;
+            const mean = 100 * (row.wall_mean || 0) / scale;
+            const max = 100 * (row.wall_max || 0) / scale;
+            return `<div class="imbalance-row"><div title="${esc(row.region_name)}">R${esc(row.region)} · ${esc(fnHint(row))}</div>
+              <div class="range" title="min ${seconds(row.wall_min)} · mean ${seconds(row.wall_mean)} · max ${seconds(row.wall_max)} · slow rank ${esc(row.wall_max_rank)}">
+                <i class="range-line" style="--left:${min}%;--width:${Math.max(0, max-min)}%"></i>
+                <i class="range-min" style="--x:${min}%"></i><i class="range-mean" style="--x:${mean}%"></i><i class="range-max" style="--x:${max}%"></i>
+              </div><div class="imbalance-value ${imbalanceClass(row.imbalance)}">×${fmt(row.imbalance)}</div></div>`;
+          }).join("")}
+        </article>`;
+      }).join("");
+    }
+
+    function variableRows(comparison) {
+      const rows = [];
+      for (const [filename, variables] of Object.entries(comparison?.metrics || {})) {
+        for (const [name, metric] of Object.entries(variables || {})) rows.push({ filename, name, ...metric });
+      }
+      return rows;
+    }
+
+    function renderVariables(query = "") {
+      const rows = variableRows(state?.comparison || state?.run?.comparison);
+      const needle = query.trim().toLowerCase();
+      const filtered = rows.filter(row => `${row.filename} ${row.name}`.toLowerCase().includes(needle));
+      el("variablesSection").style.display = rows.length ? "block" : "none";
+      el("variableCount").textContent = `${filtered.length} / ${rows.length} variables`;
+      const header = `<thead><tr><th>File / variable</th><th class="num">Ref min</th><th class="num">Ref mean</th><th class="num">Ref max</th><th class="num">Candidate min</th><th class="num">Candidate mean</th><th class="num">Candidate max</th><th class="num">Valid / masked</th><th class="num">RMSE</th><th class="num">Max abs</th><th>Status</th></tr></thead>`;
+      let lastFile = null;
+      const body = filtered.map(row => {
+        const fileRow = row.filename !== lastFile ? `<tr class="file-heading"><td colspan="11">${esc(row.filename)}</td></tr>` : "";
+        lastFile = row.filename;
+        const ref = row.reference || {};
+        const candidate = row.candidate || {};
+        const rangesAvailable = finite(ref.minimum) && finite(candidate.minimum);
+        return `${fileRow}<tr><td><b>${esc(row.name)}</b></td>
+          <td class="num">${fmt(ref.minimum, 5)}</td><td class="num">${fmt(ref.mean, 5)}</td><td class="num">${fmt(ref.maximum, 5)}</td>
+          <td class="num">${fmt(candidate.minimum, 5)}</td><td class="num">${fmt(candidate.mean, 5)}</td><td class="num">${fmt(candidate.maximum, 5)}</td>
+          <td class="num">${rangesAvailable ? `${esc(ref.valid_count)} / ${esc(ref.masked_count)}` : "—"}</td>
+          <td class="num">${fmt(row.rmse, 5)}</td><td class="num">${fmt(row.max_abs, 5)}</td>
+          <td><span class="badge ${rangesAvailable ? (row.passed ? "pass" : "fail") : "na"}">${rangesAvailable ? (row.passed ? "pass" : "fail") : "legacy"}</span></td></tr>`;
+      }).join("");
+      el("variableTable").innerHTML = header + `<tbody>${body}</tbody>`;
+    }
+
+    function renderRecords(query = "") {
+      const rows = state?.profile?.records || [];
+      const needle = query.trim().toLowerCase();
+      const filtered = rows.filter(row => `${row.region} ${row.region_name} ${row.kind} ${fnHint(row)}`.toLowerCase().includes(needle));
+      el("recordsSection").style.display = rows.length ? "block" : "none";
+      el("recordCount").textContent = `${filtered.length} / ${rows.length} records`;
+      el("recordTable").innerHTML = `<thead><tr><th>Grid</th><th>Region</th><th>Function / phase</th><th>Kind</th><th class="num">Calls</th><th class="num">Wall min</th><th class="num">Wall mean</th><th class="num">Wall max</th><th class="num">Slow rank</th><th class="num">Imbalance</th></tr></thead><tbody>${filtered.map(row => `<tr>
+        <td>G${esc(row.grid)} / M${esc(row.model)}</td><td>R${esc(row.region)} · ${esc(row.region_name)}</td><td>${esc(fnHint(row))}</td><td><span class="badge ${esc(row.kind)}">${esc(row.kind)}</span></td>
+        <td class="num">${fmt(row.calls, 0)}</td><td class="num">${seconds(row.wall_min)}</td><td class="num">${seconds(row.wall_mean)}</td><td class="num">${seconds(row.wall_max)}</td><td class="num">${esc(row.wall_max_rank)}</td><td class="num">×${fmt(row.imbalance)}</td></tr>`).join("")}</tbody>`;
+    }
+
+    function showNotice(message, bad = false) {
+      el("notice").textContent = message;
+      el("notice").className = `notice show${bad ? " bad" : ""}`;
+    }
+
+    function render(bundle, filename) {
+      state = bundle;
+      const comparison = bundle.comparison || bundle.run?.comparison;
+      const reference = comparison?.reference_run ? basename(comparison.reference_run) : "unavailable";
+      const candidate = bundle.control_run?.run_dir
+        ? basename(bundle.control_run.run_dir)
+        : bundle.run?.run_dir ? basename(bundle.run.run_dir) : "unavailable";
+      el("variableContext").textContent = `Reference: ${reference} · Candidate: ${candidate} · `;
+      renderSummary(bundle);
+      renderHotspots(bundle.profile);
+      renderNesting(bundle.profile);
+      renderImbalance(bundle.profile);
+      renderVariables(el("variableSearch").value);
+      renderRecords(el("recordSearch").value);
+      el("loadedFile").textContent = filename;
+      el("dashboard").classList.add("ready");
+      if (bundle.kind !== "mcc_roms_profile_bundle") {
+        showNotice("已载入旧式单报告。页面只显示该文件实际包含的数据；完整运行状态、热点和变量量值请使用新生成的 profile_bundle.json。", false);
+      } else if (!bundle.comparison) {
+        showNotice("这份 bundle 没有 reference/candidate comparison；变量量值与 RMSE 区域不可用。", false);
+      } else {
+        el("notice").className = "notice";
+      }
+    }
+
+    async function loadFile(file) {
+      if (!file) return;
+      try {
+        const raw = JSON.parse(await file.text());
+        render(normalize(raw), file.name);
+      } catch (error) {
+        el("dashboard").classList.remove("ready");
+        showNotice(error instanceof Error ? error.message : String(error), true);
+      }
+    }
+
+    const dropZone = el("dropZone");
+    el("fileInput").addEventListener("change", event => loadFile(event.target.files[0]));
+    el("variableSearch").addEventListener("input", event => renderVariables(event.target.value));
+    el("recordSearch").addEventListener("input", event => renderRecords(event.target.value));
+    dropZone.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); el("fileInput").click(); } });
+    ["dragenter", "dragover"].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add("drag"); }));
+    ["dragleave", "drop"].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove("drag"); }));
+    dropZone.addEventListener("drop", event => loadFile(event.dataTransfer.files[0]));
+  </script>
+</body>
+</html>
