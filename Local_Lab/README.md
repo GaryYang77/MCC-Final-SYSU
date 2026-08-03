@@ -185,6 +185,9 @@ Master/ocean.h
 
 ## Profiling：先回答时间花在哪里
 
+本仓库已实现的 rank 统计、128-rank 运行方法、overhead 对照和实测热点见
+[`profiling-analysis.md`](profiling-analysis.md)。
+
 本项目已经启用 ROMS 的 `PROFILE`，正常结束时会在模型日志尾部输出各计算区域耗时。现有服务器 1-rank、4/20 步 demo 只能说明代码确实执行了 2D 模式、GLS、三维预测/校正、tracer 混合和 biology 等区域，不能代表 128 核通信瓶颈。
 
 当前老版本 profiler 还有两个重要盲区：

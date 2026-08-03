@@ -27,6 +27,44 @@ FLOAT_FIELDS = {
     "imbalance",
 }
 REQUIRED_FIELDS = INTEGER_FIELDS | FLOAT_FIELDS | {"kind"}
+REGION_NAMES = {
+    0: "total",
+    1: "allocation_and_array_initialization",
+    2: "ocean_state_initialization",
+    3: "input_io_read_and_distribute",
+    4: "input_data_processing",
+    5: "output_average_processing",
+    6: "vertical_boundary_conditions",
+    7: "global_information_integrals",
+    8: "output_io_define_write_sync_close",
+    9: "model_2d_kernel",
+    12: "2d_3d_coupling_vertical_metrics",
+    13: "omega_vertical_velocity",
+    14: "seawater_equation_of_state",
+    15: "biology_source_sink",
+    19: "gls_vertical_mixing",
+    21: "3d_equations_rhs",
+    22: "3d_equations_predictor",
+    23: "pressure_gradient",
+    24: "harmonic_tracer_mixing_s_surfaces",
+    25: "harmonic_tracer_mixing_geopotentials",
+    30: "harmonic_stress_tensor_s_surfaces",
+    31: "harmonic_stress_tensor_geopotentials",
+    34: "3d_momentum_corrector",
+    35: "tracer_corrector",
+    39: "multiple_grid_nesting",
+    40: "mpi_2d_halo_exchange",
+    41: "mpi_3d_halo_exchange",
+    42: "mpi_4d_halo_exchange",
+    43: "mpi_lateral_boundary_exchange",
+    44: "mpi_broadcast",
+    45: "mpi_reduction",
+    46: "mpi_data_gathering",
+    47: "mpi_data_scattering",
+    48: "mpi_boundary_data_gathering",
+    49: "mpi_point_data_gathering",
+    50: "mpi_multi_model_coupling",
+}
 
 
 @dataclass(frozen=True)
@@ -112,6 +150,9 @@ def _group_summary(records: list[ProfileRecord], top: int) -> list[dict[str, obj
             hotspots.append(
                 {
                     **asdict(record),
+                    "region_name": REGION_NAMES.get(
+                        record.region, f"region_{record.region}"
+                    ),
                     "calls_per_rank": calls_per_rank,
                     "wall_mean_per_call": (
                         record.wall_mean / calls_per_rank if calls_per_rank else None
@@ -140,9 +181,11 @@ def _group_summary(records: list[ProfileRecord], top: int) -> list[dict[str, obj
 def build_report(
     records: list[ProfileRecord], source_log: str, top: int = 15
 ) -> dict[str, object]:
+    cpu_timing = "enabled" if any(record.cpu_max > 0.0 for record in records) else "disabled"
     return {
         "schema_version": SCHEMA_VERSION,
         "source_log": source_log,
+        "cpu_timing": cpu_timing,
         "accounting": "inclusive",
         "accounting_note": (
             "Region timers can be nested; category and hotspot percentages are "

@@ -170,6 +170,15 @@
       logical :: LputFsur
       integer :: subs, tile, thread
       integer :: ngc
+# ifdef PROFILE
+!
+!-----------------------------------------------------------------------
+!  Time the complete multiple-grid nesting operation.  MPI regions
+!  called below retain their own timers, so region 39 is inclusive.
+!-----------------------------------------------------------------------
+!
+      CALL wclock_on (ng, model, 39)
+# endif
 # ifdef SOLVE3D
 !
 !-----------------------------------------------------------------------
@@ -182,7 +191,7 @@
           CALL z_weights (ng, model, tile)
         END DO
 !$OMP BARRIER
-        RETURN
+        GO TO 10
       END IF
 # endif
 
@@ -199,7 +208,7 @@
           CALL mask_hweights (ng, model, tile)
         END DO
 !$OMP BARRIER
-        RETURN
+        GO TO 10
       END IF
 # endif
 !
@@ -280,7 +289,7 @@
             CALL fine2coarse (ng, model, r2dvar, tile)
           END DO
 !$OMP BARRIER
-          IF (exit_flag.ne.NoError) RETURN
+          IF (exit_flag.ne.NoError) GO TO 10
 
 #  ifdef SOLVE3D
 !
@@ -299,7 +308,7 @@
             CALL fine2coarse (ng, model, r3dvar, tile)
           END DO
 !$OMP BARRIER
-          IF (exit_flag.ne.NoError) RETURN
+          IF (exit_flag.ne.NoError) GO TO 10
 #  endif
 # else
 !
@@ -334,6 +343,10 @@
 
       END IF
 
+ 10   CONTINUE
+# ifdef PROFILE
+      CALL wclock_off (ng, model, 39)
+# endif
       RETURN
       END SUBROUTINE nesting
 !

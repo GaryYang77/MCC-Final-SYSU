@@ -29,9 +29,11 @@ def test_report_derives_workers_categories_and_per_call_cost() -> None:
     group = report["groups"][0]
 
     assert report["accounting"] == "inclusive"
+    assert report["cpu_timing"] == "enabled"
     assert group["workers"] == 128
     assert group["categories"]["io_write"]["inclusive_wall_mean_sum"] == 2.0
     assert group["hotspots"][0]["region"] == 15
+    assert group["hotspots"][0]["region_name"] == "biology_source_sink"
     assert group["hotspots"][0]["calls_per_rank"] == 10.0
     assert group["hotspots"][0]["wall_mean_per_call"] == pytest.approx(1.2)
 

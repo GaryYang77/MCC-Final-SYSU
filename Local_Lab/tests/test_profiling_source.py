@@ -40,7 +40,7 @@ def test_profiling_allocates_separate_wall_and_cpu_accumulators() -> None:
         assert f"allocate ( {name}(0:Nregion,4,Ngrids) )" in source
 
 
-def test_timers_report_wall_and_cpu_measurements() -> None:
+def test_timers_default_to_wall_clock_with_optional_cpu_measurements() -> None:
     source = _source(TIMERS)
 
     assert "my_ctime" in source
@@ -48,6 +48,7 @@ def test_timers_report_wall_and_cpu_measurements() -> None:
     assert "Wall:" in source
     assert "CPU:" in source
     assert "total wall time" in source.lower()
+    assert source.count("#ifdef PROFILE_CPU") >= 2
 
 
 def test_profiling_counts_completed_region_calls_locally() -> None:
@@ -79,3 +80,14 @@ def test_machine_readable_profile_classifies_io_and_mpi_regions() -> None:
     assert "region_kind='io_write'" in source
     assert "region_kind='mpi'" in source
     assert "' kind=',a" in source
+
+
+def test_nesting_region_39_wraps_all_exit_paths() -> None:
+    source = _source(
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "nesting.F"
+    )
+    main_routine = source.split("END SUBROUTINE nesting", 1)[0]
+
+    assert "CALL wclock_on (ng, model, 39)" in main_routine
+    assert "CALL wclock_off (ng, model, 39)" in main_routine
+    assert main_routine.count("GO TO 10") == 4
