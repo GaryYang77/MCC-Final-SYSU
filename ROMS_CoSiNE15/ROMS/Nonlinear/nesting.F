@@ -4534,7 +4534,7 @@
           END IF
         END DO
         Npts=Klen*Npoints
-        CALL mp_assemble (dg, model, Npts, 0.0_r8, Fsum)
+        CALL mp_assemble (dg, model, Npts, 0.0_r8, Fsum, BlockOwner)
         IF (exit_flag.ne.NoError) RETURN
         IF (Ncross.gt.0) THEN
           Npts=BlockLen*Klen*Ncross
