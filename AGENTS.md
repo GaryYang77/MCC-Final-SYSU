@@ -48,6 +48,12 @@
 - 当前可复用的服务器 profiling reference 是
   `Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。详细数字和
   region 解释见 `Local_Lab/profiling-analysis.md`。
+- 仓库根目录已提交三份可直接载入 `Local_Lab/profile_dashboard.html` 的证据 bundle：
+  `profile_bundle.json` 是 4 节点、128-rank、60/300 步日常 demo 基线；
+  `2nodes-64ranks_profile_bundle.json` 和 `4nodes-128ranks_profile_bundle.json` 是完整三天
+  scaling 结果。下一位工程师必须先读这些 bundle 和 `profiling-analysis.md` 再选择热点，
+  不得脱离证据凭直觉优化。完整任务 bundle 只用于确认热点代表性，不能替代服务器上的
+  2 节点、64-rank、60/300 步 `--reference-run` 输出目录。
 - 日常优化固定只跑一次 2 节点、64 ranks、`8x8`、60/300 步 profiling demo。首次优化
   前用 accepted 二进制生成一次同配置 reference；以后每个新 accepted commit 产生的
   profiling run 直接成为下一项优化的 reference。4 节点 reference 只保留作历史对照，
