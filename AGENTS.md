@@ -43,7 +43,8 @@
   `MPI_Bcast/MPI_ERR_TRUNCATE`；不得把该失败结果用于 scaling 结论，也不要默认其他
   32-rank tile 形状可用。
 - 60/300 步 demo 与完整 4 节点任务的热点排序和占比接近。日常候选可先用固定
-  60/300 步、128-rank profiling 筛选；最终性能结论仍必须来自完整三天重复实测。
+  60/300 步、128-rank profiling 筛选；只有最终累计候选才至少运行一次完整三天，时间
+  允许时再重复测量。
 - 当前可复用的服务器 profiling reference 是
   `Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。详细数字和
   region 解释见 `Local_Lab/profiling-analysis.md`。
@@ -91,8 +92,8 @@
    将打印出的完整 SHA 写入实验记录，不能只依赖会随终端消失的 shell 变量。先从
    baseline bundle 写下一个可证伪假设、目标 region、预期变化和不应变化的数值行为；
    区分计算、MPI 通信/等待和 I/O，避免凭直觉改动。
-2. 一次只做一个可解释的等价实现优化，保留可审查的 diff；修改过程中不要 commit，
-   直到正确性和候选 profiling 都通过。
+2. 一次只做一个可解释的等价实现优化，保留可审查的 diff。普通实验 commit 的硬门禁
+   只有本地测试和服务器 demo 正确性；不要求先跑完整三天或官方 `vali.py`。
 3. 在 Ubuntu WSL 的仓库根目录运行代码级快速测试：
 
    ```bash
@@ -112,8 +113,11 @@
    ```
 
    不得只运行本地单元测试或在登录节点直接运行模型后就宣称优化有效。
-5. 仅在三个条件同时满足时进入性能测试：包装命令退出码为 0、终端明确显示
-   `[validate] PASS`、最新 `validation_report.json` 的 `passed` 为 `true`。记录新的
+5. 仅在三个条件同时满足时允许形成实验 commit：包装命令退出码为 0、终端明确显示
+   `[validate] PASS`、最新 `validation_report.json` 的 `passed` 为 `true`。提交前运行
+   `git diff --check`、审查 `git diff -- ROMS_CoSiNE15 Local_Lab`，只用明确文件列表
+   `git add`；禁止 `git add .`。commit 信息应描述被 demo 验证的单一优化。
+6. 实验 commit 形成后再做性能 profiling，判断它是否值得保留或继续。记录新的
    candidate 目录以及上一个已接受 candidate 的二进制路径。candidate 路径必须来自
    本次 `run_cluster_gate.sh validate` 输出，不能用 `ls ... | head` 猜“最新”目录。运行
    profiling 前检查本次报告和二进制，并记录 SHA-256：
@@ -152,8 +156,8 @@
    慢 1% 以上；否则标为 inconclusive 并增加配对重复，不能宣称加速。还要比较 total
    wall、目标 region wall/调用次数、rank imbalance 和非目标热点；inclusive region
    不得相加成 100%。
-6. 正确性或 profiling comparison 失败时，当前设计立即作废。先保留失败 run 路径和
-   报告用于诊断，然后恢复到 `accepted_commit` 的代码状态并重新设计：
+7. demo 正确性失败时不得 commit。先保留失败 run 路径和报告用于诊断，然后恢复到
+   `accepted_commit` 的代码状态并重新设计：
 
    ```bash
    git status --short
@@ -165,18 +169,21 @@
    `git restore` 不处理本次新增的未跟踪文件。用 `git status --short` 和实验开始时的
    文件清单识别它们，逐个移动到 `/tmp/<experiment>-failed/` 留档；禁止使用宽泛的
    `git clean`。只有确认工作树中没有其他人的无关修改时才能恢复文件；禁止使用
-   `git reset --hard`。如果失败候选已经被提交，使用 `git revert <bad-commit>`，不要
-   改写共享历史。恢复后确认源码 diff 和本次新增文件都已清除，再重新同步并让 demo
+   `git reset --hard`。如果实验 commit 后的多-rank profiling 出现数值 comparison 失败，
+   或证明该优化无效/显著变慢，使用 `git revert <experiment-commit>` 回到上一个已接受
+   状态，不要改写共享历史。若只是性能结果受噪声影响，则保留实验记录并增加短测，不要
+   因此运行完整三天。恢复后确认源码 diff 和本次新增文件都已清除，再重新同步并让 demo
    门禁 PASS，才能开始下一种设计。
    不得通过提高容差、减少变量、修改输入、重建基线或跳过计算来挽救失败候选。
-7. 候选只有在 demo 和 128-rank profiling 都通过且性能方向有效后才能 commit。提交前
-   运行 `git diff --check`、审查 `git diff -- ROMS_CoSiNE15 Local_Lab`，只用明确文件
-   列表 `git add`；禁止 `git add .`。commit 信息应描述被验证的单一优化。
-8. 服务器 1-rank、`4/20` 步 demo 是严格正确性门禁，不是 128 核性能结论。涉及 MPI、
+8. profiling 显示性能方向有效后，才把该实验 commit 标记为新的 accepted commit，并把
+   下一项实验的 accepted/control 二进制更新到该版本。profiling 是保留决策，不是普通
+   commit 的前置门禁。
+9. 服务器 1-rank、`4/20` 步 demo 是严格正确性门禁，不是 128 核性能结论。涉及 MPI、
    分块、通信或同步的改动，还必须完成 128-rank 缩时诊断，检查正常结束、输出齐全、
-   NaN/Inf 和同配置 13 变量 comparison。
-9. 进入决赛候选阶段后，在昆山集群重复测量 128-rank 完整三天任务。完整任务正常结束
-   后再运行主办方 `vali.py`；只有完整任务和官方验证都通过，才能报告最终成绩。
+   NaN/Inf 和同配置 13 变量 comparison，才能判断是否保留该实验 commit。
+10. 只有团队选出的少数累计版本进入决赛候选阶段，才运行 128-rank 完整三天任务和
+   主办方 `vali.py`。这两项绝不是每个 commit 的门禁；至少一个最终提交候选必须完成，
+   时间允许时再重复测量。只有完整任务和官方验证都通过，才能报告最终成绩。
 
 `valid_test.py` 在服务器 Slurm 计算节点上使用官方 Intel 2017.5.239、HPC-X 2.7.4 和 NetCDF 4.4.1 环境进行干净编译，以 1 个 MPI rank 运行固定 `4/20` 步双向嵌套样例，并对以下两个文件中的 13 个变量进行比较：
 
@@ -284,10 +291,10 @@ bash Local_Lab/run_cluster_gate.sh validate
   ```
 
   记录该命令打印的 exact `run_dir`，后续 `full_run` 必须指向这里，不能用通配符猜目录。
-  最终候选至少在独立 allocation 重复 3 次；每次 `run_report.json` 都必须满足
-  `passed=true`、`normal_end=true`、`comparison.passed=true`，最终报告 3 次 wall time 的
-  中位数，不能挑最快一次。每次仍只运行 4 节点 case，不重新运行 scaling sweep；三次
-  结果分别执行下面的官方 `vali.py` 检查。
+  这一步只用于团队挑出的最终累计版本，不属于普通 commit 流程。至少完成一次；若比赛
+  时间和机时允许，可在独立 allocation 重复并报告中位数。每次 `run_report.json` 都必须
+  满足 `passed=true`、`normal_end=true`、`comparison.passed=true`，且分别执行下面的
+  官方 `vali.py` 检查。每次只运行 4 节点 case，不重新运行 scaling sweep。
 - 完整三天运行成功并生成最终输出后，在集群执行主办方验证。官方脚本当前没有命令行
   参数，且 `dir_test` 是占位路径；不得修改共享的 `/public/share/.../vali.py` 本体。
   复制脚本到候选 run 目录，只替换这一行，并用 `diff` 确认其余逻辑未变：

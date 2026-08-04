@@ -68,8 +68,8 @@ hotspot 占比不能相加来构造 100% 的互斥时间线。
 计时用于确认这些通信在完整 nesting 路径中的权重。I/O 仍需保留观察，但目前是第二
 优先级。
 
-注意：上述是缩时诊断，不是完整三天性能结论。完整任务仍需重复测量并执行官方
-`vali.py`。
+注意：上述是缩时诊断，不是完整三天性能结论。只有团队选出的最终累计候选才至少运行
+一次完整任务并执行官方 `vali.py`；时间允许时再重复测量。
 
 最终 wall-only 候选的 60/300 步运行进一步直接量出了 region 39：Grid 1 nesting
 为 34.07 s / 242.01 s（14.08%），Grid 2 为 114.89 s / 242.03 s（47.47%）。
@@ -96,9 +96,10 @@ weights 是两个网格共同的第二候选。
 
 ## 使用方法
 
-先通过服务器 demo 门禁得到当前源码的干净候选二进制。正式接受候选时，使用
+先通过服务器 demo 门禁得到当前源码的干净候选二进制；demo PASS 后即可形成单一实验
+commit，不要求完整三天或官方 `vali.py`。commit 后使用
 `profile_overhead.py` 将候选与上一个已接受二进制放在同一 allocation 内执行 60/300 步
-配对 profiling，并交换顺序；完整命令和接受判据以 `AGENTS.md` 的固定流程为准。
+配对 profiling 并交换顺序，用于决定保留还是 revert；完整命令和判据以 `AGENTS.md` 为准。
 
 下面的单独运行方式只适合进一步探索热点，不具备同 allocation 性能对照，因此不能单独
 作为候选加速证据。若用于正确性 comparison，必须显式提供同配置 reference：
@@ -171,8 +172,8 @@ Local_Lab/runs/profile_scaling/full-3day-scaling_<timestamp>_<pid>/
 
 `sweep_report.json` 记录各 case 的 job ID、实际 wall time、run 目录、comparison 和 bundle。
 第一个成功 case 作为后续 case 的数值 reference。当前自动 comparison 延续 2 个
-`*_avg_0001.nc`、13 个变量的门禁合同；它不是完整官方验收。4 节点完整任务正常结束后
-仍须单独运行主办方 `vali.py`。
+`*_avg_0001.nc`、13 个变量的门禁合同；它不是完整官方验收。只有当这次 4 节点结果被
+选为最终累计候选时，才需要单独运行主办方 `vali.py`。
 
 1/2/4 节点是不同 Slurm allocation，适合看强扩展趋势，但节点硬件状态和排队时间会带来
 噪声。64 ranks 的 `8x8` 是本 sweep 固定的中间分块；若它表现异常，应另测 `4x16`，
@@ -260,6 +261,7 @@ python Local_Lab/profile_overhead.py \
 1. 沿 Grid 1 region 53 进入 `ngetD` 与 region 49 point gather，区分调用频率、payload 和等待。
 2. 沿 Grid 2 region 55 进入 `n2way/fine2coarse` 与 region 46 data gather。
 3. 对照 `#861` 检查两个网格的 vertical weights 是否存在可证明的重复计算。
-4. 用半天或一天输入重复 3 次，确认上述排序、最慢 rank 和 imbalance 稳定。
+4. 对准备保留的实验 commit 使用 60/300 步配对 profiling；结果接近噪声时再增加重复。
 5. 对照 `#747` 在昆山节点实测 gather/assemble 的 collective 方案，不凭实现直觉替换。
-6. 每个候选依次通过 1-rank 门禁、128-rank 缩时诊断、完整三天运行和官方 `vali.py`。
+6. 每个普通 commit 只强制本地测试和 1-rank demo；只有团队选出的最终累计候选才运行
+   完整三天和官方 `vali.py`。

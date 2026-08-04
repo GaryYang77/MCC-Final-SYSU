@@ -34,9 +34,9 @@ bash Local_Lab/run_cluster_gate.sh baseline
   -> 记录未优化基准 wall time
   -> 修改并运行本地快速单元测试
   -> 同步服务器，在计算节点干净编译并执行 4/20 步正确性门禁
-  -> 集群缩时、多 rank 性能验证
-  -> 重复计时并提交单一优化
-  -> 完整三天运行和官方 vali.py
+  -> demo PASS 后提交单一实验 commit
+  -> 集群缩时、多 rank profiling 决定保留或 revert
+  -> 只有最终累计候选才运行完整三天和官方 vali.py
 ```
 
 不要同时修改算法、编译参数和 MPI 分块，否则即使变快，也无法判断收益来自哪里。
@@ -79,9 +79,10 @@ bash Local_Lab/sync_to_cluster.sh
 # 随后在服务器工作区运行：bash Local_Lab/run_cluster_gate.sh validate
 ```
 
-只有后文的 demo、配对 profiling 和性能判据全部通过后，才执行显式 `git add` 和
-`git commit`。不要使用 `git add .` 把日志、输出或无关修改一起提交。失败实验也不要
-直接覆盖基线分支；先保留测量记录，再恢复已接受版本并重新设计。
+本地测试和服务器 demo 正确性全部通过后，就可以执行显式 `git add` 和 `git commit`，
+不需要为每个 commit 跑完整三天或官方 `vali.py`。不要使用 `git add .` 把日志、输出或
+无关修改一起提交。commit 后再做短 profiling，决定这个实验 commit 是否值得保留；失败
+实验不要覆盖 accepted 基线，先保留测量记录，再恢复已接受版本并重新设计。
 
 ### 可直接交接的单项优化闭环
 
@@ -89,15 +90,15 @@ bash Local_Lab/sync_to_cluster.sh
 
 ```text
 读取 baseline bundle，写下单一可证伪假设
-  -> 只实现该项等价优化（暂不 commit）
+  -> 只实现该项等价优化
   -> 本地 pytest
   -> sync_to_cluster.sh
   -> run_cluster_gate.sh validate
+  -> demo PASS 后形成单一实验 commit
   -> 使用该 candidate/bin/oceanM 做 128-rank 60/300 profiling
   -> 检查数值 comparison 和目标 region
-  -> 重复性能测量确认收益超过噪声
-  -> 显式 git add 文件并 commit
-  -> 有潜力的候选再跑完整三天和官方 vali.py
+  -> 有效则成为新的 accepted commit；无效则 revert 并重新设计
+  -> 只有最终累计候选才跑完整三天和官方 vali.py
 ```
 
 服务器 demo PASS 后，把刚生成的候选二进制与上一个已接受二进制放在同一个 allocation
@@ -124,8 +125,8 @@ comparison 通过，且候选的 `profile_report.json` 存在。`overhead_percen
 不得慢 1% 以上；否则结果为 inconclusive，应增加配对重复，不能宣称加速。还要确认目标
 region 改善且没有把时间明显转移到其他热点。inclusive 百分比不能相加为 100%。
 
-若 demo、NaN/Inf、13 变量 comparison 或 profiling 任一失败，禁止 commit。先记录失败
-run，再把本次明确修改的文件恢复到开始时记录的 `accepted_commit`：
+若 demo 失败，禁止 commit。先记录失败 run，再把本次明确修改的文件恢复到开始时记录的
+`accepted_commit`：
 
 ```bash
 git status --short
@@ -137,9 +138,10 @@ python -m pytest -q Local_Lab/tests
 `git restore` 不处理本次新增的未跟踪文件；必须先用 `git status --short` 找出它们，按
 本次实验的明确文件清单逐个移动到 `/tmp/<experiment>-failed/` 留档，不能使用宽泛的
 `git clean`。不要在有无关未提交改动时恢复文件，也不要使用 `git reset --hard`。如果
-失败候选已经 commit，则使用 `git revert <bad-commit>`。恢复后确认源码 diff 为空，重新
-同步并让服务器 demo PASS，再从新的实现思路开始；不得放宽阈值、减少变量、重建基线或
-修改输入来绕过失败。
+实验 commit 后若多-rank comparison 失败，或 profiling 证明它无效/显著变慢，则使用
+`git revert <experiment-commit>` 回到 accepted 状态。恢复后确认源码 diff 为空，重新同步
+并让服务器 demo PASS，再从新的实现思路开始；不得放宽阈值、减少变量、重建基线或修改
+输入来绕过失败。
 
 ## 128 核运行配置必须先对齐
 
@@ -321,7 +323,7 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
 - 每个网格、nesting 和 biology 等区域的耗时。
 - collective 通信耗时，以及最快/最慢 rank 的差距。
 - 节点数、ranks、tile、绑核、编译器和 flags。
-- 同一配置至少 3 次，优先比较中位数；缓存和共享文件系统会造成单次波动。
+- 准备宣称稳定性能收益时再做同配置重复并比较中位数；这不是普通 commit 的前置条件。
 
 ## 老版本 tickets 的建议顺序
 
@@ -345,7 +347,7 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
 环境：commit、编译器、flags、节点、ranks、tile、绑核
 任务：4/20 步、半天、一天或完整三天
 性能：每次 wall time、中位数、相对基线加速
-正确性：服务器 demo validation_report.json、集群缩时检查、官方 vali.py
+正确性：每个 commit 记录服务器 demo validation_report.json；只有最终候选记录官方 vali.py
 结论：保留、继续调查或放弃，以及原因
 ```
 
@@ -356,11 +358,9 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
   -> 一次只实现一个优化
   -> 同步服务器并干净编译
   -> 服务器 4/20 步门禁
-  -> 集群半天/一天多 rank 调试
-  -> 重复性能测量
-  -> 单独 commit
-  -> 完整三天运行
-  -> 官方 vali.py
+  -> demo PASS 后单独 commit
+  -> 128-rank 60/300 步 profiling 决定保留或 revert
+  -> 仅最终累计候选：完整三天运行和官方 vali.py
 ```
 
 服务器单 rank 短任务适合发现结果错误，不适合直接决定比赛排名；MPI、分块、通信或同步优化必须以昆山集群多 rank 结果为准。
@@ -476,8 +476,9 @@ candidate_max_rss_kib
 ```
 
 `saved_seconds > 0` 才表示候选运行更快。编译时间单独记录，不计入模型加速。
-4/20 步任务中初始化和共享文件系统 I/O 占比很高，单次墙钟波动只能用于初筛；
-确认性能改进时应重复运行，并最终在昆山集群的完整三天任务上计时、执行官方 `vali.py`。
+4/20 步任务中初始化和共享文件系统 I/O 占比很高，单次墙钟波动只能用于初筛。普通
+commit 不要求完整任务；只有团队选出的最终累计候选才至少在昆山集群运行一次完整三天
+并执行官方 `vali.py`，时间允许时再重复测量。
 
 ## 快速单元测试
 
