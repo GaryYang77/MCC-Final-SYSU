@@ -156,6 +156,14 @@
       real(r8), allocatable :: Fine3dMask(:,:)
 !$OMP THREADPRIVATE (Fine3dMask)
 !
+!  Fine-grid wet counts for interior three-dimensional fine-to-coarse
+!  donor blocks and raw masks for blocks crossing tile boundaries.
+!  Consecutive tracers share both arrays.
+!
+      real(r8), allocatable :: Fine3dCount(:)
+      real(r8), allocatable :: Fine3dCrossMask(:,:)
+!$OMP THREADPRIVATE (Fine3dCount, Fine3dCrossMask)
+!
 !  Refined time-steps counter with respect the coarse grid (ng=1)
 !  single time-step.
 !
