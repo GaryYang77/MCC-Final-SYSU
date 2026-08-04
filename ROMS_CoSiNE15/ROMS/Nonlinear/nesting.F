@@ -199,7 +199,7 @@
 !  depth.
 !-----------------------------------------------------------------------
 !
-      IF (isection.eq.nzwgt) THEN
+      IF ((isection.eq.nzwgt).and.get_Vweights) THEN
         DO tile=last_tile(ng),first_tile(ng),-1
           CALL z_weights (ng, model, tile)
         END DO
