@@ -2,12 +2,11 @@
 
 ## 目标与环境
 
-- 目标：在结果通过精度验证的前提下，缩短 ROMS-CoSiNE15 完整三天模拟的运行时间。
-- 当前公开基准：`01:50:06`。
-- 决赛环境：华东一区（昆山），队列 `kshcexclu06`；每队最多 4 节点、每节点 32 核，共 128 CPU 核；不使用 DCU。
-- 主办方决赛根目录：`/public/share/mcc2026_final/`。本仓库模型源码位于 `ROMS_CoSiNE15/`。
+- 目标：在结果通过精度验证的前提下，缩短 ROMS-CoSiNE15 完整三天模拟的运行时间。公开基准 `01:50:06`。
+- 决赛环境：华东一区（昆山），队列 `kshcexclu06`；最多 4 节点 × 32 核 = 128 CPU 核；不使用 DCU。
+- 主办方决赛根目录 `/public/share/mcc2026_final/`；本仓库模型源码位于 `ROMS_CoSiNE15/`。
 
-## 决赛服务器访问
+## 服务器访问
 
 - 从 WSL 仓库环境连接登录节点：
 
@@ -15,108 +14,56 @@
   ssh -i ~/.ssh/fangxihong_key -p 65023 fangxihong@cancon.hpccube.com
   ```
 
-- 已确认该连接可登录到账号的 `/public/home/fangxihong`。默认只做读操作探查；上传源码、修改远程文件、提交/取消作业或运行官方验证前，先确认当前实验目标和作业范围。
-- 连接后必须通过 Slurm 向 `kshcexclu06` 申请计算节点；不要用登录节点的 `lscpu` 结果代替计算节点实测配置。
-- 服务器门禁工作区：`/public/home/fangxihong/MCC-Final-SYSU`。本地代码通过 `Local_Lab/sync_to_cluster.sh` 同步；服务器的基线、runs、builds 和日志不得被本地同步覆盖。
+- 工作区 `/public/home/fangxihong/MCC-Final-SYSU`。本地代码经 `Local_Lab/sync_to_cluster.sh` 同步；服务器的基线、runs、builds、日志不会被本地同步覆盖（已复测确认）。
+- 默认只读探查；上传源码、修改远程文件、提交/取消作业、运行官方验证前，先确认当前实验目标和作业范围。
+- 必须用 Slurm 向 `kshcexclu06` 申请计算节点；不要用登录节点的 `lscpu` 代替计算节点实测配置。
 
-### 已打通的服务器门禁状态
+## 已确认状态（无需重复验证）
 
-- 2026-08-03 已在 `kshcexclu06` 计算节点生成服务器原生基线：Slurm job `118468694`，状态 `COMPLETED`。
-- 随后使用全新构建独立验证：Slurm job `118469268`，状态 `COMPLETED`；两个输出文件的 13 个变量均为 `RMSE == 0`、`max_abs == 0`，最终日志显示 `PASS`。
-- 封存基线位于服务器的 `Local_Lab/baselines/mcc_4x20/`。日常调优只能运行 `validate`，不得重新运行 `baseline`；脚本会拒绝覆盖已有基线。
-- 已复测源码同步：远端基线、历史运行、构建和 Slurm 日志均会保留，不会被本地文件覆盖或删除。
+- 服务器原生基线已生成并封存于 `Local_Lab/baselines/mcc_4x20/`（job `118468694` COMPLETED）；独立全新构建验证通过（job `118469268`，13 变量 `RMSE==0`、`max_abs==0`，PASS）。
+- **日常只运行 `validate`，禁止重新运行 `baseline`**（脚本会拒绝覆盖；仅当基线缺失、源码树干净且团队明确要求时才可重建）。
+- profiling 基线（`feat-improve-profiling`，2026-08-04）：wall-only、per-rank min/mean/max、调用次数、I/O/MPI 分类、region 39 与子阶段 51–56、JSON/CSV、HTML dashboard。默认 profiler 同节点顺序平衡开销约 `+0.89%`。
+- 4 节点 128 ranks `8x16` 完整三天 profiling：job `118507345`，wall `9589 s`，官方 `vali.py` 已通过。注意：`9589 s` 与公开基准 `01:50:06` 不是同一边界/二进制，**不得直接算 speedup**；最终成绩以 no-profile 二进制对齐。
+- 2 节点 64 ranks `8x8` 完整三天：job `118500776`，wall `10588 s`，输出与 4 节点逐位一致——仅用于 scaling 诊断。
+- 1 节点 32 ranks `4x8` 在首次 nesting 通信处触发 `MPI_Bcast/MPI_ERR_TRUNCATE`：**该结果不得用于任何 scaling 结论，也不要默认其他 32-rank tile 形状可用**。
 
-### 已验证的 profiling 基线（2026-08-04）
+### 优化前必读证据
 
-- `feat-improve-profiling` 已完成 wall-only、per-rank min/mean/max、调用次数、I/O/MPI 分类、
-  nesting region 39 与子阶段 51--56、JSON/CSV 报告、离线 HTML dashboard 和 128-rank
-  运行器。默认 profiler 同节点顺序平衡开销中心估计约 `+0.89%`。
-- 4 节点、128 ranks、`8x16`、完整 `2592/12960` 步 profiling：job `118507345`，
-  `ROMS/TOMS: DONE`，wall `9589 s`，团队已确认官方 `vali.py` 通过。
-- 公开基准 `01:50:06` 与本次 profiler runner 的 `9589 s` 不是同一次运行边界和二进制，
-  暂不得直接计算 speedup。wall-only instrumentation 的已测中心开销约 0.89%，不足以单独
-  解释该差距；日常只以同一 runner、输入/输出节奏、ranks/tiles 的 accepted reference
-  与 candidate 单次结果判断方向，最终再用 no-profile 完整任务对齐比赛计时。
-- 2 节点、64 ranks、`8x8`、完整任务：job `118500776`，wall `10588 s`；与 4 节点
-  两个平均场的 13 个变量逐位一致。它只用于 scaling 诊断，不是决赛目标配置。
-- 1 节点、32 ranks、`4x8` 在首次 nesting 通信处触发
-  `MPI_Bcast/MPI_ERR_TRUNCATE`；不得把该失败结果用于 scaling 结论，也不要默认其他
-  32-rank tile 形状可用。
-- 60/300 步 demo 与完整 4 节点任务的热点排序和占比接近。日常候选可先用固定
-  60/300 步、128-rank profiling 筛选；只有最终累计候选才至少运行一次完整三天，时间
-  允许时再重复测量。
-- 当前可复用的服务器 profiling reference 是
-  `Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。详细数字和
-  region 解释见 `Local_Lab/profiling-analysis.md`。
-- 仓库根目录已提交三份可直接载入 `Local_Lab/profile_dashboard.html` 的证据 bundle：
-  `profile_bundle.json` 是 4 节点、128-rank、60/300 步日常 demo 基线；
-  `2nodes-64ranks_profile_bundle.json` 和 `4nodes-128ranks_profile_bundle.json` 是完整三天
-  scaling 结果。下一位工程师必须先读这些 bundle 和 `profiling-analysis.md` 再选择热点，
-  不得脱离证据凭直觉优化。完整任务 bundle 只用于确认热点代表性，不能替代服务器上的
-  2 节点、64-rank、60/300 步 `--reference-run` 输出目录。
-- 日常优化固定只跑一次 2 节点、64 ranks、`8x8`、60/300 步 profiling demo。首次优化
-  前用 accepted 二进制生成一次同配置 reference；以后每个新 accepted commit 产生的
-  profiling run 直接成为下一项优化的 reference。4 节点 reference 只保留作历史对照，
-  不用于日常候选 comparison。
-- 第一项优化的 accepted 二进制是
-  `Local_Lab/runs/validation/candidate_20260803T105345Z_12953/bin/oceanM`，SHA-256 为
-  `a9b08b31478da2546ca9ba7dc25ad2401afee78e63457e646a1428d84973a3e5`。首次优化前用它
-  一次性生成 2 节点、64-rank、60/300 步 reference。每接受一个新优化后，该候选的
-  profiling run 直接成为下一项实验的 `--reference-run`，避免额外运行 control case。
+- 仓库根目录三份 bundle（可直接载入 `Local_Lab/profile_dashboard.html`）：`profile_bundle.json`（4 节点日常 demo 基线）、`2nodes-64ranks_profile_bundle.json`、`4nodes-128ranks_profile_bundle.json`（完整三天 scaling）。
+- 细节见 `Local_Lab/profiling-analysis.md`；服务器 profiling reference：`Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。
+- **必须先读 bundle 和分析文档再选热点，不得脱离证据凭直觉优化**；完整任务 bundle 只用于确认热点代表性，不替代日常 reference。
+
+### 日常配置常量（下文统一引用，不再重复拼写）
+
+- **DEMO**：2 节点、64 ranks、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。
+- **reference 规则**：每个新 accepted commit 的 DEMO profiling run 直接成为下一项实验的 `--reference-run`。首个 accepted 二进制为 `Local_Lab/runs/validation/candidate_20260803T105345Z_12953/bin/oceanM`（SHA-256 `a9b08b31478da2546ca9ba7dc25ad2401afee78e63457e646a1428d84973a3e5`），已用它生成一次性 2 节点 reference。4 节点 reference 仅作历史对照。
 
 ## 修改边界
 
-**禁止修改：**
+**禁止：**
 
-- 物理计算方案、模型方程及其科学含义。
-- 主办方提供的初始场、边界场、强迫场和比赛输入数据。
-- 为获得速度而跳过必需计算、缩短最终模拟时长，或放宽/绕过验证。
-- `Local_Lab/baselines/mcc_4x20/outputs_valid/` 及其 `manifest.json`。禁止在日常优化中运行 `baseline` 命令；只有基线缺失、源码树干净且团队明确要求时才可重建。
+- 物理计算方案、模型方程及其科学含义；主办方提供的初始场、边界场、强迫场和输入数据。
+- 为提速跳过必需计算、缩短最终模拟时长、放宽/绕过验证。
+- 修改 `Local_Lab/baselines/mcc_4x20/outputs_valid/` 及其 `manifest.json`；日常运行 `baseline`。
+- 用提高容差、减少变量、修改输入、重建基线、跳过计算来挽救失败候选。
 
-**允许修改：**
+**允许：**
 
-- 不改变物理方案的等价实现优化，例如消除可证明的冗余计算、改善循环/内存访问、减少临时量和数据复制。
-- MPI 分块、通信、缓存、同步、聚合及负载均衡优化。
-- 编译和运行配置优化，但每一种配置都必须单独验证，且不得依赖比赛禁用的硬件。
-- 调试时临时缩短 `NTIMES`；不得把缩短配置当作最终结果。
+- 不改变物理方案的等价实现优化（消除可证明的冗余、改善循环/内存访问、减少临时量与数据复制）。
+- MPI 分块、通信、缓存、同步、聚合、负载均衡优化。
+- 编译与运行配置优化（每种配置单独验证，不得依赖比赛禁用硬件）。
+- 调试时临时缩短 `NTIMES`，但缩短配置不得作为最终结果。
 
-边界不确定时，先停止修改并向团队确认。ROMS 后续版本的改动（例如相关 tickets）只能
-作为实现参考：普通 commit 仍须通过本地测试、1-rank 正确性 demo 和一次 2 节点、
-64-rank profiling demo；只有最终累计候选才运行完整三天和官方验证。不能因“官方已有”
-而默认正确。
+边界不确定时停止修改并向团队确认。ROMS 上游 tickets 只作实现参考，不能因"官方已有"默认正确。
 
 ## 每次优化的固定流程
 
-以下闭环是下一位工程师/Agent 的强制工作顺序。一个分支只处理一个主要性能假设；
-不得把算法改写、编译 flags、MPI 分块等多个变量混在同一次实验中。
+一个分支只处理一个主要性能假设；不得把算法改写、编译 flags、MPI 分块等多个变量混在同一次实验。
 
-1. 从已合并且通过门禁的干净 `main` 创建实验分支，记录回退锚点：
-
-   ```bash
-   git status --short
-   git switch main
-   git switch -c perf/<single-hypothesis>
-   accepted_commit=$(git rev-parse HEAD)
-   echo "accepted_commit=$accepted_commit"
-   ```
-
-   `git status --short` 必须为空，并确认 `main` 已包含 `Local_Lab/profile_128.py` 和
-   `Local_Lab/profile_dashboard.html`；否则说明 profiling 分支尚未合并，停止优化。
-   将打印出的完整 SHA 写入实验记录，不能只依赖会随终端消失的 shell 变量。先从
-   baseline bundle 写下一个可证伪假设、目标 region、预期变化和不应变化的数值行为；
-   区分计算、MPI 通信/等待和 I/O，避免凭直觉改动。
-2. 一次只做一个可解释的等价实现优化，保留可审查的 diff。在正确性 demo 和 profiling
-   demo 都完成前不要 commit。普通 commit 不要求完整三天或官方 `vali.py`。
-3. 在 Ubuntu WSL 的仓库根目录运行代码级快速测试：
-
-   ```bash
-   python -m pytest -q Local_Lab/tests
-   ```
-
-   若当前环境缺少依赖，先在专用 Python 环境中安装
-   `Local_Lab/requirements-validation.txt`，不要改动测试来规避环境问题。
-
-4. ROMS 源码、编译选项或运行语义有任何变化后，同步到服务器并运行 demo 正确性门禁：
+1. **开分支**：从干净 `main` 创建 `perf/<single-hypothesis>`，记录 `accepted_commit=$(git rev-parse HEAD)` 的完整 SHA 到实验记录（不要只依赖 shell 变量）。`git status --short` 必须为空；确认 `main` 已含 `Local_Lab/profile_128.py` 和 `Local_Lab/profile_dashboard.html`，否则停止。先从 bundle 写下可证伪假设：目标 region、预期变化、不应变化的数值行为；区分计算 / MPI 通信等待 / I/O。
+2. **改代码**：一次一个可解释的等价实现优化，保留可审查 diff；两层 demo 都完成前不 commit。
+3. **本地快测**（WSL 仓库根目录）：`python -m pytest -q Local_Lab/tests`。缺依赖时用专用环境装 `Local_Lab/requirements-validation.txt`，不得改测试规避环境问题。
+4. **正确性门禁**：同步后运行——
 
    ```bash
    bash Local_Lab/sync_to_cluster.sh
@@ -125,36 +72,15 @@
    bash Local_Lab/run_cluster_gate.sh validate
    ```
 
-   不得只运行本地单元测试或在登录节点直接运行模型后就宣称优化有效。
-5. 仅在三个条件同时满足时进入 profiling demo：包装命令退出码为 0、终端明确显示
-   `[validate] PASS`、最新 `validation_report.json` 的 `passed` 为 `true`。此时仍不要
-   commit。记录新的
-   candidate 目录以及上一个已接受 candidate 的二进制路径。candidate 路径必须来自
-   本次 `run_cluster_gate.sh validate` 输出，不能用 `ls ... | head` 猜“最新”目录。运行
-   profiling 前检查本次报告和二进制，并记录 SHA-256：
+   包装脚本会等待 Slurm 作业并把 stdout/stderr 打到终端；自动化调用必须检查退出码。不得只跑本地测试或在登录节点直接跑模型就宣称有效。
+5. **profiling demo**：仅当退出码 0、终端显示 `[validate] PASS`、`validation_report.json` 的 `passed=true` 三者同时满足才进入（此时仍不 commit）。candidate 目录必须取自本次 validate 输出，不能用 `ls | head` 猜。运行前验证二进制并记录 SHA-256：
 
    ```bash
    candidate_dir=Local_Lab/runs/validation/candidate_<exact-timestamp>
    python -c 'import json,sys; assert json.load(open(sys.argv[1]))["passed"] is True' \
      "$candidate_dir/validation_report.json"
-   test -x "$candidate_dir/bin/oceanM"
-   sha256sum "$candidate_dir/bin/oceanM"
-   ```
+   test -x "$candidate_dir/bin/oceanM" && sha256sum "$candidate_dir/bin/oceanM"
 
-   首次优化前如果尚无同配置 reference，只用 accepted 二进制生成一次；这是一次性准备，
-   不是每个候选的额外任务：
-
-   ```bash
-   python Local_Lab/profile_128.py \
-     --binary Local_Lab/runs/validation/candidate_20260803T105345Z_12953/bin/oceanM \
-     --label accepted-2n64-reference \
-     --outer-steps 60 --inner-steps 300 \
-     --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8
-   ```
-
-   之后每个候选只运行一次 2 节点、64 ranks、`8x8`、60/300 步 profiling demo：
-
-   ```bash
    source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
    conda activate vali
    python Local_Lab/profile_128.py \
@@ -165,129 +91,41 @@
      --reference-run Local_Lab/runs/profile128/<accepted-2n64-reference-run>
    ```
 
-   这一份 run 同时完成数值和性能诊断：`run_report.json` 必须满足 `passed=true`、
-   `normal_end=true`、`comparison.passed=true`，且存在 `profile_report.json`。检查 total
-   wall、目标 region wall/调用次数、rank imbalance 和非目标热点；inclusive region
-   不得相加成 100%。若热点或总时间没有显示有用方向，恢复并重新设计；不要求自动重复。
-6. 正确性 demo、profiling 数值 comparison 或性能判据任一失败时不得 commit。先保留
-   失败 run 路径和报告用于诊断，然后恢复到 `accepted_commit` 的代码状态并重新设计：
+   判据：`run_report.json` 满足 `passed=true`、`normal_end=true`、`comparison.passed=true`，且存在 `profile_report.json`。检查 total wall、目标 region wall/调用次数、rank imbalance 和非目标热点（inclusive region 不得相加成 100%）。无有用方向则恢复重设计，不自动重复。
+6. **失败恢复**：任一门禁失败不得 commit。保留失败 run 路径与报告后恢复：
 
    ```bash
-   git status --short
-   git diff -- ROMS_CoSiNE15 Local_Lab
-   git restore --source="$accepted_commit" -- <本次候选修改的明确文件列表>
+   git restore --source="$accepted_commit" -- <本次修改的明确文件列表>
    python -m pytest -q Local_Lab/tests
    ```
 
-   `git restore` 不处理本次新增的未跟踪文件。用 `git status --short` 和实验开始时的
-   文件清单识别它们，逐个移动到 `/tmp/<experiment>-failed/` 留档；禁止使用宽泛的
-   `git clean`。只有确认工作树中没有其他人的无关修改时才能恢复文件；禁止使用
-   `git reset --hard`。若 profiling 结果接近噪声，由团队决定是否额外复测；默认不自动
-   增加作业，更不能因此运行完整三天。恢复后确认源码 diff 和本次新增文件都已清除，
-   再重新同步并让两层短 demo PASS，才能开始下一种设计。若问题在 commit 后才被发现，使用
-   `git revert <bad-commit>`，不要改写共享历史。
-   不得通过提高容差、减少变量、修改输入、重建基线或跳过计算来挽救失败候选。
-7. 只有正确性 demo 和 2 节点、64-rank、60/300 步 profiling demo 都通过，且性能方向有效，才
-   运行 `git diff --check`、审查 `git diff -- ROMS_CoSiNE15 Local_Lab`，使用明确文件
-   列表 `git add` 并 commit；禁止 `git add .`。该 commit 随即成为新的 accepted commit，
-   本次 profiling run 随即成为下一项实验的 `--reference-run`。
-8. 所有普通优化都必须完成上述 2 节点、64-rank profiling demo。MPI、分块、通信或同步
-   改动尤其要检查正常结束、输出齐全、NaN/Inf、13 变量 comparison 和 rank 离散，才能
-   commit。
-9. 只有团队选出的少数累计版本进入决赛候选阶段，才运行 128-rank 完整三天任务和
-   主办方 `vali.py`。这两项绝不是每个 commit 的门禁；至少一个最终提交候选必须完成，
-   时间允许时再重复测量。只有完整任务和官方验证都通过，才能报告最终成绩。
+   `git restore` 不处理新增未跟踪文件：用 `git status --short` 对照实验开始时的文件清单，逐个移到 `/tmp/<experiment>-failed/` 留档。**禁止 `git clean`、禁止 `git reset --hard`**；确认工作树无他人修改才可恢复；commit 后才发现问题用 `git revert <bad-commit>`。恢复后确认 diff 与新增文件已清除，重新同步并让两层 demo PASS，才能开始下一设计。结果接近噪声由团队决定是否复测，默认不加作业。
+7. **commit**：两层 demo 通过且性能方向有效后，运行 `git diff --check`、审查 diff，用明确文件列表 `git add`（禁止 `git add .`）。该 commit 成为新 accepted commit，本次 profiling run 成为下一实验的 reference。MPI/分块/通信/同步类改动，commit 前额外检查正常结束、输出齐全、NaN/Inf、13 变量 comparison、rank 离散。
+8. **完整三天与官方验证不是普通 commit 的门禁**：只有团队选出的最终累计候选才运行（见下节），至少一个候选必须完成，时间允许再重复测量。
 
-`valid_test.py` 在服务器 Slurm 计算节点上使用官方 Intel 2017.5.239、HPC-X 2.7.4 和 NetCDF 4.4.1 环境进行干净编译，以 1 个 MPI rank 运行固定 `4/20` 步双向嵌套样例，并对以下两个文件中的 13 个变量进行比较：
+### 正确性门禁判定标准
 
-- `SCS_avg_0001.nc`、`Dongsha60_avg_0001.nc`
-- `temp salt u v zeta NO3 NH4 PO4 diatom microzooplankton detritus oxygen TIC`
+`valid_test.py` 在计算节点用官方 Intel 2017.5.239、HPC-X 2.7.4、NetCDF 4.4.1 干净编译，1 rank 跑固定 `4/20` 步双向嵌套样例，比较 `SCS_avg_0001.nc`、`Dongsha60_avg_0001.nc` 中 13 个变量（`temp salt u v zeta NO3 NH4 PO4 diatom microzooplankton detritus oxygen TIC`）：每变量 `RMSE <= 1e-5` 且 `max_abs <= 1e-5`，并检查文件、维度、shape、缺失值掩膜、NaN/Inf。使用服务器封存基线，不替代主办方完整三天 `vali.py`。
 
-服务器 demo 门禁要求每个变量的 `RMSE <= 1e-5` 且 `max_abs <= 1e-5`，并检查文件、维度、shape、缺失值掩膜及 NaN/Inf。它使用在官方服务器上重新生成和封存的基线，不使用 WSL 基线，也不替代主办方完整三天 `vali.py`。
+### 门禁管线速查
 
-## 服务器 demo 门禁的执行管线
+`sync_to_cluster.sh`（WSL 同步，排除输入大文件与远端基线/runs/builds/日志）→ `finalize_cluster_sync.sh`（检查输入、建 `Inputfiles` 软链、存源码快照）→ `run_cluster_gate.sh validate`（提交并等待 Slurm，透传退出码）→ `cluster_gate.sbatch`（队列/资源/官方环境）→ `valid_test.py`（编译、demo、比较、报告）。
 
-```text
-WSL 本地源码
-  -> sync_to_cluster.sh
-     -> rsync 到服务器工作区，并保护基线、运行记录、构建和日志
-     -> finalize_cluster_sync.sh 检查输入、建立软链接、记录源码快照
-  -> SSH 登录服务器工作区
-  -> run_cluster_gate.sh validate
-     -> sbatch --wait 提交 cluster_gate.sbatch
-  -> kshcexclu06 计算节点
-     -> 加载 Intel、MPI、NetCDF/HDF5 和 vali Python 环境
-     -> valid_test.py validate
-        -> 校验封存基线完整性和工具链类型
-        -> 创建独立构建目录并干净编译
-        -> 生成 1-rank、4/20 步 demo 输入
-        -> mpirun 运行 ROMS-CoSiNE15
-        -> 检查正常结束、输出文件和 NaN/Inf
-        -> 比较 2 个 NetCDF 文件中的 13 个变量
-        -> 写 validation_report.json 并输出 PASS/FAIL
-  -> run_cluster_gate.sh 打印 Slurm 日志并原样返回作业退出码
-```
-
-各脚本各自只承担一个主要职责：
-
-| 文件 | 运行位置 | 职责 |
-| --- | --- | --- |
-| `Local_Lab/sync_to_cluster.sh` | WSL | 把本地源码同步到固定服务器工作区；排除输入大文件、本地生成物以及远端基线、runs、builds 和日志。 |
-| `Local_Lab/finalize_cluster_sync.sh` | 服务器登录节点 | 检查共享输入，建立 `ROMS_CoSiNE15/Inputfiles` 软链接，并保存与本地提交/diff 对应的远端源码快照；不运行模型。 |
-| `Local_Lab/run_cluster_gate.sh` | 服务器登录节点 | 只允许 `baseline` 或 `validate`，提交并等待 Slurm 作业，汇总 stdout/stderr，并把 Slurm 状态转换成调用者可见的退出码；日常只用 `validate`。 |
-| `Local_Lab/cluster_gate.sbatch` | Slurm 计算节点 | 声明队列、节点、CPU、内存和时限，加载官方编译/运行环境，然后调用 `valid_test.py`。 |
-| `Local_Lab/valid_test.py` | Slurm 计算节点 | 真正执行编译、demo 运行、输出检查、数值比较和 JSON 报告生成，是正确性门禁核心。 |
-
-### 日常最短操作
-
-在 WSL 仓库根目录运行：
-
-```bash
-python -m pytest -q Local_Lab/tests
-bash Local_Lab/sync_to_cluster.sh
-ssh -i ~/.ssh/fangxihong_key -p 65023 fangxihong@cancon.hpccube.com
-```
-
-登录服务器后运行：
-
-```bash
-cd /public/home/fangxihong/MCC-Final-SYSU
-bash Local_Lab/run_cluster_gate.sh validate
-```
-
-无需手动查找 job ID 才能判断结果：包装脚本会等待 Slurm 作业结束，并把完整 stdout 和必要的 stderr 打到当前终端。自动化调用仍必须检查该命令的退出码。
-
-### 结果与故障定位
-
-- Slurm 包装日志：`Local_Lab/cluster_logs/mcc-demo-gate_<jobid>.out` 和 `.err`。
-- 每次验证的完整产物：`Local_Lab/runs/validation/candidate_*/`。
-- `build.log`：编译器、依赖或链接错误。
-- `model.log`：MPI 启动、ROMS 运行错误和正常结束标记。
-- `resource.log`：作业资源使用情况。
-- `validation_report.json`：基线完整性、工具链、两个文件的逐变量误差及最终 `passed` 状态。
-- 同步或输入链接失败先看同步脚本输出；编译失败看 `build.log`；模型异常看 `model.log` 和 `.err`；数值失败看 `validation_report.json`。不得通过放宽阈值或重建基线处理数值失败。
+故障定位：同步/输入链接失败看同步脚本输出；编译看 `build.log`；MPI/运行异常看 `model.log` 和 `cluster_logs/mcc-demo-gate_<jobid>.err`；数值失败看 `validation_report.json`；资源看 `resource.log`。产物目录 `Local_Lab/runs/validation/candidate_*/`。
 
 ## 决赛运行与最终验收
 
-- 配置文件：`ROMS_CoSiNE15/ROMS/External/ocean_SCS_Dongsha60_bio15.in`。`NTIMES` 的第一个数对应外层 `SCS` 网格，第二个数对应内层 `Dongsha60` 网格。
-- 完整三天：`NTIMES == 2592  12960`。
-- 一天调试：`NTIMES == 864  4320`。
-- 半天调试：`NTIMES == 432  2160`。
-- 缩短时长时两个网格按相同比例调整；最终提交前恢复完整三天配置并复查实际输入文件。
-- 以根目录 `sub.sh` 作为提交脚本起点，使用队列 `kshcexclu06`、4 节点和 128 CPU 核。调整 MPI rank 或 `NtileI/NtileJ` 前先理解嵌套网格的进程分配，并用缩时任务实测；不要假设单个网格的 tile 数必然等于总核数。
-- `start_full_profile_scaling_sweep.sh` 是节点 scaling 诊断工具，不是日常决赛候选入口；
-  它会包含已知失败的 1 节点 `4x8` case。正式候选只运行 4 节点、128 ranks。
-- profiler 用于定位热点，最终成绩计时使用相同源码的 no-profile 二进制。先构建并记录
-  `run_build_no_profile.sh` 输出的 exact binary 路径，再用 60/300 步同 allocation 配对
-  确认 profile/no-profile 输出 comparison 通过。下面每次命令只提交一个 4 节点 case，
-  不会触发 1/2 节点 sweep：
+- 配置文件 `ROMS_CoSiNE15/ROMS/External/ocean_SCS_Dongsha60_bio15.in`。`NTIMES` 第一个数对应外层 `SCS`，第二个对应内层 `Dongsha60`：完整三天 `2592  12960`；一天 `864  4320`；半天 `432  2160`。缩短时两网格同比例调整；最终提交前恢复完整三天并复查实际输入文件。
+- 以根目录 `sub.sh` 为提交脚本起点，队列 `kshcexclu06`、4 节点 128 核。调整 rank 或 `NtileI/NtileJ` 前先理解嵌套网格进程分配并用缩时任务实测；不要假设单网格 tile 数等于总核数。
+- `start_full_profile_scaling_sweep.sh` 是 scaling 诊断工具（含已知失败的 1 节点 case），**不是候选入口**；正式候选只跑 4 节点 128 ranks。
+- 最终成绩用相同源码的 **no-profile 二进制**计时。流程（每条命令只提交一个 4 节点 case，不触发 sweep）：
 
   ```bash
   bash Local_Lab/run_build_no_profile.sh
   no_profile_binary=Local_Lab/builds/profiling/<exact-build>/bin/oceanM
-  test -x "$no_profile_binary"
-  sha256sum "$no_profile_binary"
+  test -x "$no_profile_binary" && sha256sum "$no_profile_binary"
 
+  # 60/300 步同 allocation 配对，确认 profile/no-profile 输出 comparison 通过
   python Local_Lab/profile_overhead.py \
     --profile-binary Local_Lab/runs/validation/<accepted-candidate>/bin/oceanM \
     --control-binary "$no_profile_binary" \
@@ -303,14 +141,9 @@ bash Local_Lab/run_cluster_gate.sh validate
     --reference-run Local_Lab/runs/profile128/full-3day-scaling-4nodes-128ranks_20260803T172422Z_17347
   ```
 
-  记录该命令打印的 exact `run_dir`，后续 `full_run` 必须指向这里，不能用通配符猜目录。
-  这一步只用于团队挑出的最终累计版本，不属于普通 commit 流程。至少完成一次；若比赛
-  时间和机时允许，可在独立 allocation 重复并报告中位数。每次 `run_report.json` 都必须
-  满足 `passed=true`、`normal_end=true`、`comparison.passed=true`，且分别执行下面的
-  官方 `vali.py` 检查。每次只运行 4 节点 case，不重新运行 scaling sweep。
-- 完整三天运行成功并生成最终输出后，在集群执行主办方验证。官方脚本当前没有命令行
-  参数，且 `dir_test` 是占位路径；不得修改共享的 `/public/share/.../vali.py` 本体。
-  复制脚本到候选 run 目录，只替换这一行，并用 `diff` 确认其余逻辑未变：
+  记录命令打印的 exact `run_dir`（`full_run` 必须指向它，不能用通配符猜）。每次 `run_report.json` 必须 `passed=true`、`normal_end=true`、`comparison.passed=true`。至少完成一次；机时允许可在独立 allocation 重复并报告中位数。
+
+- 官方 `vali.py` 无命令行参数，`dir_test` 是占位路径；**不得修改 `/public/share/.../vali.py` 本体**。复制到 run 目录只替换一行，并用 `diff` 确认仅此处变化（`diff` 必须返回 1；返回 0 表示未替换，大于 1 表示命令错误，均停止）：
 
   ```bash
   source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
@@ -319,19 +152,12 @@ bash Local_Lab/run_cluster_gate.sh validate
   test "$(grep -c '^dir_test = ' /public/share/mcc2026_final/vali.py)" -eq 1
   cp /public/share/mcc2026_final/vali.py "$full_run/vali_official.py"
   sed -i "s|^dir_test = .*|dir_test = '$full_run/output/'|" "$full_run/vali_official.py"
-  set +e
-  diff -u /public/share/mcc2026_final/vali.py "$full_run/vali_official.py"
-  vali_diff_status=$?
-  set -e
+  set +e; diff -u /public/share/mcc2026_final/vali.py "$full_run/vali_official.py"; vali_diff_status=$?; set -e
   test "$vali_diff_status" -eq 1
   set -o pipefail
   python "$full_run/vali_official.py" 2>&1 | tee "$full_run/vali_official.log"
   ```
 
-  `grep` 先保证官方脚本恰好有一个 `dir_test` 定义；复制后只有该行会被 `sed` 替换。
-  `diff` 必须显示仅这一处变化并返回 1；返回 0 表示路径未替换，返回大于 1 表示命令
-  错误，两者都会停止。该脚本数值失败时不保证返回非零退出码，必须检查所有 RMSE 行
-  和最终文本
-  `最终判定：两组文件所有变量RMSE均在阈值范围内，优化结果无异常`。
+  该脚本数值失败时不保证非零退出码，必须检查所有 RMSE 行和最终文本 `最终判定：两组文件所有变量RMSE均在阈值范围内，优化结果无异常`。
 
-只有“完整任务正常结束 + 官方 `vali.py` 通过”的结果才可作为最终有效成绩。实验记录至少包含 commit/diff、编译器与 flags、节点/rank/分块、输入时长、wall time、重复次数、本地验证报告和官方验证结果。
+- 只有"完整任务正常结束 + 官方 `vali.py` 通过"才可作为最终成绩。实验记录至少包含：commit/diff、编译器与 flags、节点/rank/分块、输入时长、wall time、重复次数、本地验证报告、官方验证结果。
