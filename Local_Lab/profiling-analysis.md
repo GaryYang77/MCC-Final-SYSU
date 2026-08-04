@@ -96,7 +96,12 @@ weights 是两个网格共同的第二候选。
 
 ## 使用方法
 
-先通过服务器 demo 门禁得到当前源码的干净二进制，然后做 128-rank 缩时 profiling：
+先通过服务器 demo 门禁得到当前源码的干净候选二进制。正式接受候选时，使用
+`profile_overhead.py` 将候选与上一个已接受二进制放在同一 allocation 内执行 60/300 步
+配对 profiling，并交换顺序；完整命令和接受判据以 `AGENTS.md` 的固定流程为准。
+
+下面的单独运行方式只适合进一步探索热点，不具备同 allocation 性能对照，因此不能单独
+作为候选加速证据。若用于正确性 comparison，必须显式提供同配置 reference：
 
 ```bash
 bash Local_Lab/run_cluster_gate.sh validate
@@ -105,9 +110,10 @@ source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
 conda activate vali
 python Local_Lab/profile_128.py \
   --binary Local_Lab/runs/validation/candidate_<timestamp>/bin/oceanM \
-  --label nesting-profile \
-  --outer-steps 432 --inner-steps 2160 \
-  --tiles-i 8 --tiles-j 16
+  --label exploratory-profile \
+  --outer-steps 60 --inner-steps 300 \
+  --nodes 4 --ranks 128 --tiles-i 8 --tiles-j 16 \
+  --reference-run Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162
 ```
 
 运行目录会生成：
@@ -172,6 +178,34 @@ Local_Lab/runs/profile_scaling/full-3day-scaling_<timestamp>_<pid>/
 噪声。64 ranks 的 `8x8` 是本 sweep 固定的中间分块；若它表现异常，应另测 `4x16`，
 不要把节点数效应与 tile 形状效应混为一谈。
 
+### 2026-08-03 完整 sweep 结果
+
+| 配置 | Job | Wall | 结果 |
+| --- | ---: | ---: | --- |
+| 1 节点 / 32 ranks / `4x8` | `118500755` | 23.16 s | FAIL：首次 nesting 通信触发 `MPI_Bcast/MPI_ERR_TRUNCATE` |
+| 2 节点 / 64 ranks / `8x8` | `118500776` | 10588 s | PASS |
+| 4 节点 / 128 ranks / `8x16` | `118507345` | 9589 s | PASS；官方 `vali.py` 通过 |
+
+1 节点失败发生在两个网格初始化和第 0 步 history 写出之后、首次 nesting 通信期间，
+不是 OOM，也不能当作有效性能点。2 到 4 节点只从约 2:56:28 缩短到 2:39:49，新增一倍
+ranks 仅节省约 15.7 分钟，说明当前强扩展已经明显受 nesting/MPI 路径限制。
+
+60/300 步 demo 和完整 4 节点任务的关键占比如下：
+
+| 信号 | 60/300 步 | 完整三天 |
+| --- | ---: | ---: |
+| Grid 1 region 49 point gather / total | 34.45% | 36.34% |
+| Grid 1 region 39 nesting / total | 14.00% | 14.22% |
+| Grid 1 region 53 ngetD / nesting | 83.77% | 84.17% |
+| Grid 2 region 39 nesting / total | 48.18% | 50.85% |
+| Grid 2 region 46 data gather / total | 27.51% | 28.78% |
+| Grid 2 region 55 n2way / nesting | 58.12% | 57.89% |
+| Grid 2 region 51 vertical weights / nesting | 31.40% | 31.13% |
+
+热点排序及占比高度一致，因此日常优化使用固定 4 节点、128 ranks、`8x16`、60/300 步
+profiling 足以筛选方向，能把反馈周期控制在约 4 分钟。它仍不能证明最终加速：候选必须
+保持相同配置与 reference comparison，通过重复短测后再进入完整三天和官方验证。
+
 ## 测量 profiler 自身开销
 
 先构建只关闭 instrumentation 的控制二进制：
@@ -218,6 +252,8 @@ python Local_Lab/profile_overhead.py \
 | nesting 子阶段 128-rank 诊断 / overhead（off-on） | `118494857`，PASS，输出逐位一致，调用覆盖率大于 99.996%，`-2.39%` |
 | nesting 子阶段 overhead（on-off） | `118495221`，作业及两个模型进程均正常退出，`+4.27%`；远程额度中断后未生成配对汇总 JSON |
 | nesting 子阶段顺序平衡中心估计 | 同一节点组两组比值的几何平均，约 `+0.89%` |
+| 完整 2 节点 profiling | `118500776`，10588 s，PASS |
+| 完整 4 节点 profiling | `118507345`，9589 s，PASS，官方 `vali.py` 通过 |
 
 ## 下一轮优化顺序
 

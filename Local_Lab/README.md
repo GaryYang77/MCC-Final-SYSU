@@ -43,29 +43,33 @@ bash Local_Lab/run_cluster_gate.sh baseline
 
 ## Git 安全基线与实验分支
 
-优化前的安全基线提交为：
+最初建立服务器门禁的历史安全基线提交为：
 
 ```text
 77a4a4c chore: establish optimization validation baseline
 ```
 
-该提交没有修改 `ROMS_CoSiNE15/` 源码。原始代码已经由 Git 保存，不需要额外复制一个源码目录。开始一项优化前，从干净的 `main` 创建独立分支：
+该提交没有修改 `ROMS_CoSiNE15/` 源码。当前优化的回退锚点应是 profiling 分支合并后、
+已通过门禁的最新 `main`，而不是固定退回这个历史提交。原始代码已经由 Git 保存，不需要
+额外复制源码目录。开始一项优化前，从干净的 `main` 创建独立分支：
 
 ```bash
 git status --short
-git switch -c perf/profile-nesting
+git switch main
+git switch -c perf/ngetd-point-gather
+accepted_commit=$(git rev-parse HEAD)
 ```
 
 一个分支只验证一个主要假设，例如：
 
 ```text
-perf/profile-nesting       只增加或细化计时
+perf/ngetd-point-gather    只优化 Grid 1 ngetD / point gather
 perf/ticket-861-vweights   只优化垂向权重/冗余插值
 perf/ticket-747-assemble   只比较接触点集合通信
 perf/tiling-128            只比较 MPI 分块和绑核
 ```
 
-提交前检查源码差异和验证结果：
+修改后、进入远端门禁前检查源码差异；此时仍不要 commit：
 
 ```bash
 git diff --stat
@@ -73,11 +77,69 @@ git diff -- ROMS_CoSiNE15
 python -m pytest -q Local_Lab/tests
 bash Local_Lab/sync_to_cluster.sh
 # 随后在服务器工作区运行：bash Local_Lab/run_cluster_gate.sh validate
-git add <本次实际修改的文件>
-git commit -m "perf(nesting): reuse vertical interpolation weights"
 ```
 
-不要使用 `git add .` 把日志、输出或无关修改一起提交。失败实验也不要直接覆盖基线分支；先保留测量记录，再决定修正或放弃该实验。
+只有后文的 demo、配对 profiling 和性能判据全部通过后，才执行显式 `git add` 和
+`git commit`。不要使用 `git add .` 把日志、输出或无关修改一起提交。失败实验也不要
+直接覆盖基线分支；先保留测量记录，再恢复已接受版本并重新设计。
+
+### 可直接交接的单项优化闭环
+
+下一位工程师/Agent 对每个假设严格执行：
+
+```text
+读取 baseline bundle，写下单一可证伪假设
+  -> 只实现该项等价优化（暂不 commit）
+  -> 本地 pytest
+  -> sync_to_cluster.sh
+  -> run_cluster_gate.sh validate
+  -> 使用该 candidate/bin/oceanM 做 128-rank 60/300 profiling
+  -> 检查数值 comparison 和目标 region
+  -> 重复性能测量确认收益超过噪声
+  -> 显式 git add 文件并 commit
+  -> 有潜力的候选再跑完整三天和官方 vali.py
+```
+
+服务器 demo PASS 后，把刚生成的候选二进制与上一个已接受二进制放在同一个 allocation
+内配对 profiling，并交换执行顺序：
+
+```bash
+python Local_Lab/profile_overhead.py \
+  --profile-binary Local_Lab/runs/validation/<new-candidate>/bin/oceanM \
+  --control-binary Local_Lab/runs/validation/<accepted-candidate>/bin/oceanM \
+  --label <hypothesis>-ab --order off-on \
+  --outer-steps 60 --inner-steps 300 --tiles-i 8 --tiles-j 16
+
+python Local_Lab/profile_overhead.py \
+  --profile-binary Local_Lab/runs/validation/<new-candidate>/bin/oceanM \
+  --control-binary Local_Lab/runs/validation/<accepted-candidate>/bin/oceanM \
+  --label <hypothesis>-ba --order on-off \
+  --outer-steps 60 --inner-steps 300 --tiles-i 8 --tiles-j 16
+```
+
+这里两个二进制都可以启用 PROFILE；脚本中的 profile/control 实际代表
+candidate/accepted。接受结果要求两份 `overhead_report.json` 都 `passed=true`，数值
+comparison 通过，且候选的 `profile_report.json` 存在。`overhead_percent < 0` 表示候选
+更快。两个顺序的 candidate/accepted 比值取几何平均：初筛要求至少快 2%，且任一顺序
+不得慢 1% 以上；否则结果为 inconclusive，应增加配对重复，不能宣称加速。还要确认目标
+region 改善且没有把时间明显转移到其他热点。inclusive 百分比不能相加为 100%。
+
+若 demo、NaN/Inf、13 变量 comparison 或 profiling 任一失败，禁止 commit。先记录失败
+run，再把本次明确修改的文件恢复到开始时记录的 `accepted_commit`：
+
+```bash
+git status --short
+git diff -- ROMS_CoSiNE15 Local_Lab
+git restore --source="$accepted_commit" -- <本次候选修改的明确文件列表>
+python -m pytest -q Local_Lab/tests
+```
+
+`git restore` 不处理本次新增的未跟踪文件；必须先用 `git status --short` 找出它们，按
+本次实验的明确文件清单逐个移动到 `/tmp/<experiment>-failed/` 留档，不能使用宽泛的
+`git clean`。不要在有无关未提交改动时恢复文件，也不要使用 `git reset --hard`。如果
+失败候选已经 commit，则使用 `git revert <bad-commit>`。恢复后确认源码 diff 为空，重新
+同步并让服务器 demo PASS，再从新的实现思路开始；不得放宽阈值、减少变量、重建基线或
+修改输入来绕过失败。
 
 ## 128 核运行配置必须先对齐
 
@@ -221,7 +283,9 @@ collective / rank waiting     -> wall min/mean/max 与 imbalance
 `profile_report.json` 或 `run_report.json` 也能单独打开，但旧报告从未采集的变量量值
 会显示为 unavailable，不能事后从 RMSE 推导。
 
-完整三天的 1/2/4 节点顺序 profiling 使用：
+完整三天的 1/2/4 节点顺序 profiling 仅用于 scaling 研究，不是日常最终候选入口。已知
+1 节点 `32 ranks / 4x8` 会在首次 nesting 通信触发 `MPI_ERR_TRUNCATE`；不要为每个优化
+重复该 sweep。需要复现实验时使用：
 
 ```bash
 bash Local_Lab/start_full_profile_scaling_sweep.sh \
@@ -233,7 +297,8 @@ bash Local_Lab/start_full_profile_scaling_sweep.sh \
 该后台启动器保持官方 `2592/12960` 步和输出节奏，依次使用
 `1节点/32 ranks/4x8`、`2节点/64 ranks/8x8`、`4节点/128 ranks/8x16`，并把三份
 可视化 bundle 收集到 `Local_Lab/runs/profile_scaling/<sweep>/bundles/`。详细语义、
-结果目录和验证边界见 [`profiling-analysis.md`](profiling-analysis.md)。
+结果目录和验证边界见 [`profiling-analysis.md`](profiling-analysis.md)。正式候选应按
+[`../AGENTS.md`](../AGENTS.md) 的“决赛运行与最终验收”只运行 4 节点 no-profile 完整任务。
 
 集群运行时同时记录外部 wall time。示例：
 
