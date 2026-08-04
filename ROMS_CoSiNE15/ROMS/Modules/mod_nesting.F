@@ -272,6 +272,9 @@
         integer, pointer :: Jrg(:) ! receiver grid, J-contact point
         integer, pointer :: Idg(:) ! donor grid, cell I-left   index
         integer, pointer :: Jdg(:) ! donor grid, cell J-bottom index
+# ifdef DISTRIBUTE
+        integer, pointer :: Downer(:) ! rank owning donor cell
+# endif
 # ifdef SOLVE3D
         integer, pointer :: Kdg(:,:)         ! donor grid, cell K-index
 # endif

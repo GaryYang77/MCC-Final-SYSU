@@ -39,7 +39,7 @@
 
       logical, dimension((Ngrids-1)*2) :: Linterpolate
 !
-      integer :: cr, dg, ibry, ic, ig, ip,  m, rg, vindex
+      integer :: cr, dg, ibry, ic, ig, ip, m, rg, vindex
       integer :: my_Ncontact, my_Ngrids, my_nLweights, my_nQweights
 
       integer, dimension(Ngrids) :: my_Lm, my_Mm
@@ -477,6 +477,15 @@
         allocate ( Rcontact(cr) % Jdg(NpointsR(cr)) )
         allocate ( Ucontact(cr) % Jdg(NpointsU(cr)) )
         allocate ( Vcontact(cr) % Jdg(NpointsV(cr)) )
+
+# ifdef DISTRIBUTE
+        allocate ( Rcontact(cr) % Downer(NpointsR(cr)) )
+        allocate ( Ucontact(cr) % Downer(NpointsU(cr)) )
+        allocate ( Vcontact(cr) % Downer(NpointsV(cr)) )
+        Rcontact(cr) % Downer = -2
+        Ucontact(cr) % Downer = -2
+        Vcontact(cr) % Downer = -2
+# endif
 
 # ifdef SOLVE3D
         allocate ( Rcontact(cr) % Kdg(N(dg),NpointsR(cr)) )

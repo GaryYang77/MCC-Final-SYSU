@@ -4804,6 +4804,7 @@
 
 # ifdef DISTRIBUTE
 !
+      USE mod_parallel, ONLY : numthreads
       USE distribute_mod, ONLY : mp_assemble
 # endif
 !
@@ -4815,7 +4816,7 @@
 !
       character(len=*), intent(in) :: svname
 !
-      TYPE (T_NGC), intent(in) :: contact(:)
+      TYPE (T_NGC), intent(inout) :: contact(:)
 !
 # ifdef ASSUMED_SHAPE
       real(r8), intent(in) :: Ad(LBi:,LBj:)
@@ -4827,7 +4828,7 @@
 !
 !  Local variable declarations.
 !
-      integer :: i, ip1, j, jp1, m
+      integer :: i, ip1, j, jp1, m, ntile
       integer :: Imin, Imax, Jmin, Jmax
       integer :: Istr, Iend, Jstr, Jend
 # ifdef DISTRIBUTE
@@ -4842,16 +4843,13 @@
 
 # ifdef DISTRIBUTE
 !
-!  Initialize contact points array to special value to facilite
-!  distribute-memory data collection from all nodes.
+!  The sparse assembly path overwrites all contact values after gathering
+!  the uniquely owned donor records, so zero initialization is unnecessary.
 !
       Npts=4*Npoints
-      DO m=1,Npoints
-        Ac(1,m)=Aspv
-        Ac(2,m)=Aspv
-        Ac(3,m)=Aspv
-        Ac(4,m)=Aspv
-      END DO
+      IF (NtileI(dg)*NtileJ(dg).ne.numthreads) THEN
+        Ac=Aspv
+      END IF
 # endif
 !
 !  Set starting and ending tile indices for the donor grids.
@@ -4888,6 +4886,43 @@
           Jstr=BOUNDS(dg) % JstrP(tile)
           Jend=BOUNDS(dg) % JendT(tile)
       END SELECT
+
+# ifdef DISTRIBUTE
+!
+!  Build the static owner map lazily, after parallel tile bounds have been
+!  initialized.  Sparse assembly is enabled only for one rank per tile.
+!
+      IF ((NtileI(dg)*NtileJ(dg).eq.numthreads).and.                   &
+     &    ANY(contact(cr)%Downer.eq.-2)) THEN
+        contact(cr)%Downer=-1
+        DO ntile=0,numthreads-1
+          DO m=1,Npoints
+            i=contact(cr)%Idg(m)
+            j=contact(cr)%Jdg(m)
+            SELECT CASE (gtype)
+              CASE (r2dvar)
+                IF ((BOUNDS(dg)%IstrT(ntile).le.i).and.                &
+     &              (i.le.BOUNDS(dg)%IendT(ntile)).and.                &
+     &              (BOUNDS(dg)%JstrT(ntile).le.j).and.                &
+     &              (j.le.BOUNDS(dg)%JendT(ntile)))                   &
+     &            contact(cr)%Downer(m)=ntile
+              CASE (u2dvar)
+                IF ((BOUNDS(dg)%IstrP(ntile).le.i).and.                &
+     &              (i.le.BOUNDS(dg)%IendT(ntile)).and.                &
+     &              (BOUNDS(dg)%JstrT(ntile).le.j).and.                &
+     &              (j.le.BOUNDS(dg)%JendT(ntile)))                   &
+     &            contact(cr)%Downer(m)=ntile
+              CASE (v2dvar)
+                IF ((BOUNDS(dg)%IstrT(ntile).le.i).and.                &
+     &              (i.le.BOUNDS(dg)%IendT(ntile)).and.                &
+     &              (BOUNDS(dg)%JstrP(ntile).le.j).and.                &
+     &              (j.le.BOUNDS(dg)%JendT(ntile)))                   &
+     &            contact(cr)%Downer(m)=ntile
+            END SELECT
+          END DO
+        END DO
+      END IF
+# endif
 !
 !-----------------------------------------------------------------------
 !  Extract donor grid data at contact points.
@@ -4915,7 +4950,8 @@
 !
 !  Gather and broadcast data from all nodes.
 !
-      CALL mp_assemble (dg, model, Npts, Aspv, Ac)
+      CALL mp_assemble (dg, model, Npts, Aspv, Ac,                     &
+     &                  contact(cr)%Downer)
 # endif
 
       RETURN
@@ -4963,6 +4999,7 @@
 
 #  ifdef DISTRIBUTE
 !
+      USE mod_parallel, ONLY : numthreads
       USE distribute_mod, ONLY : mp_assemble
 #  endif
 !
@@ -4974,7 +5011,7 @@
 !
       character(len=*), intent(in) :: svname
 !
-      TYPE (T_NGC), intent(in) :: contact(:)
+      TYPE (T_NGC), intent(inout) :: contact(:)
 !
 #  ifdef ASSUMED_SHAPE
       real(r8), intent(in) :: Ad(LBi:,LBj:,LBk:)
@@ -4986,7 +5023,7 @@
 !
 !  Local variable declarations.
 !
-      integer :: i, ip1, j, jp1, k, m
+      integer :: i, ip1, j, jp1, k, m, ntile
       integer :: Imin, Imax, Jmin, Jmax
       integer :: Istr, Iend, Jstr, Jend
 #  ifdef DISTRIBUTE
@@ -5001,18 +5038,13 @@
 
 #  ifdef DISTRIBUTE
 !
-!  Initialize contact points array to special value to facilite
-!  distribute-memory data collection from all nodes.
+!  Sparse assembly overwrites all contact values after gathering the
+!  uniquely owned donor records, so zero initialization is unnecessary.
 !
       Npts=4*(UBk-LBk+1)*Npoints
-      DO k=LBk,UBk
-        DO m=1,Npoints
-          Ac(1,k,m)=Aspv
-          Ac(2,k,m)=Aspv
-          Ac(3,k,m)=Aspv
-          Ac(4,k,m)=Aspv
-        END DO
-      END DO
+      IF (NtileI(dg)*NtileJ(dg).ne.numthreads) THEN
+        Ac(:,LBk:,:)=Aspv
+      END IF
 #  endif
 !
 !  Set starting and ending tile indices for the donor grid.
@@ -5049,6 +5081,39 @@
           Jstr=BOUNDS(dg) % JstrP(tile)
           Jend=BOUNDS(dg) % JendT(tile)
       END SELECT
+
+#  ifdef DISTRIBUTE
+      IF ((NtileI(dg)*NtileJ(dg).eq.numthreads).and.                   &
+     &    ANY(contact(cr)%Downer.eq.-2)) THEN
+        contact(cr)%Downer=-1
+        DO ntile=0,numthreads-1
+          DO m=1,Npoints
+            i=contact(cr)%Idg(m)
+            j=contact(cr)%Jdg(m)
+            SELECT CASE (gtype)
+              CASE (r3dvar)
+                IF ((BOUNDS(dg)%IstrT(ntile).le.i).and.                &
+     &              (i.le.BOUNDS(dg)%IendT(ntile)).and.                &
+     &              (BOUNDS(dg)%JstrT(ntile).le.j).and.                &
+     &              (j.le.BOUNDS(dg)%JendT(ntile)))                   &
+     &            contact(cr)%Downer(m)=ntile
+              CASE (u3dvar)
+                IF ((BOUNDS(dg)%IstrP(ntile).le.i).and.                &
+     &              (i.le.BOUNDS(dg)%IendT(ntile)).and.                &
+     &              (BOUNDS(dg)%JstrT(ntile).le.j).and.                &
+     &              (j.le.BOUNDS(dg)%JendT(ntile)))                   &
+     &            contact(cr)%Downer(m)=ntile
+              CASE (v3dvar)
+                IF ((BOUNDS(dg)%IstrT(ntile).le.i).and.                &
+     &              (i.le.BOUNDS(dg)%IendT(ntile)).and.                &
+     &              (BOUNDS(dg)%JstrP(ntile).le.j).and.                &
+     &              (j.le.BOUNDS(dg)%JendT(ntile)))                   &
+     &            contact(cr)%Downer(m)=ntile
+            END SELECT
+          END DO
+        END DO
+      END IF
+#  endif
 !
 !-----------------------------------------------------------------------
 !  Extract donor grid data at contact points.
@@ -5078,7 +5143,8 @@
 !
 !  Gather and broadcast data from all nodes.
 !
-      CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:))
+      CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),           &
+     &                  contact(cr)%Downer)
 #  endif
 
       RETURN

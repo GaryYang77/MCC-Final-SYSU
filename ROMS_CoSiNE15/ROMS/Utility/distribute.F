@@ -1467,7 +1467,7 @@
       RETURN
       END SUBROUTINE mp_assemblef_1d
 !
-      SUBROUTINE mp_assemblef_2d (ng, model, Npts, Aspv, A)
+      SUBROUTINE mp_assemblef_2d (ng, model, Npts, Aspv, A, Owner)
 !
 !***********************************************************************
 !                                                                      !
@@ -1505,14 +1505,17 @@
       real(r8), intent(in) :: Aspv
 
       real(r8), intent(inout) :: A(:,:)
+      integer, intent(in), optional :: Owner(:)
 !
 !  Local variable declarations.
 !
       integer :: Lstr, MyError, MyNpts, Nnodes, Serror
+      integer :: i, m, p, rank
 
       integer :: Asize(2)
 
       integer, dimension(MPI_STATUS_SIZE) :: status
+      integer, dimension(0:numthreads-1) :: Counts, Displs, Offset
 
       real(r8), dimension(Npts) :: Asend, Arecv
 
@@ -1552,27 +1555,71 @@
 !  Collect data from all nodes.
 !-----------------------------------------------------------------------
 !
-!  Set input data to process.
+      IF (PRESENT(Owner).and.                                         &
+     &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
 !
-      Asend=RESHAPE(A, (/Npts/))
+!  Each contact point is supplied by one owner rank.  Gather only the
+!  owned four-value records and restore their original point ordering.
 !
-!  Collect data from all nodes as a reduced sum.
-!
-      CALL mpi_allreduce (Asend, Arecv, Npts, MP_FLOAT, MPI_SUM,        &
-     &                    OCN_COMM_WORLD, MyError)
+        IF (SIZE(Owner).ne.Asize(2)) THEN
+          IF (Master) WRITE (stdout,10) SIZE(Owner), Asize(2)
+          exit_flag=7
+        END IF
+        Counts=0
+        DO m=1,Asize(2)
+          IF (Owner(m).lt.0) THEN
+!           Unowned staggered boundary placeholders remain zero.
+          ELSE IF (Owner(m).ge.numthreads) THEN
+            exit_flag=7
+          ELSE
+            Counts(Owner(m))=Counts(Owner(m))+Asize(1)
+          END IF
+        END DO
+        Displs(0)=0
+        DO rank=1,numthreads-1
+          Displs(rank)=Displs(rank-1)+Counts(rank-1)
+        END DO
+        p=0
+        DO m=1,Asize(2)
+          IF (Owner(m).eq.MyRank) THEN
+            DO i=1,Asize(1)
+              p=p+1
+              Asend(p)=A(i,m)
+            END DO
+          END IF
+        END DO
+        CALL mpi_allgatherv (Asend, Counts(MyRank), MP_FLOAT,          &
+     &                       Arecv, Counts, Displs, MP_FLOAT,         &
+     &                       OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          Offset=0
+          DO m=1,Asize(2)
+            rank=Owner(m)
+            IF (rank.lt.0) THEN
+              A(:,m)=0.0_r8
+            ELSE
+              DO i=1,Asize(1)
+                A(i,m)=Arecv(Displs(rank)+Offset(rank)+i)
+              END DO
+              Offset(rank)=Offset(rank)+Asize(1)
+            END IF
+          END DO
+        END IF
+      ELSE
+        Asend=RESHAPE(A, (/Npts/))
+        CALL mpi_allreduce (Asend, Arecv, Npts, MP_FLOAT, MPI_SUM,      &
+     &                      OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) A=RESHAPE(Arecv, Asize)
+      END IF
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
         Lstr=LEN_TRIM(string)
-        WRITE (stdout,30) 'MPI_ALLREDUCE', MyRank, MyError,             &
+        WRITE (stdout,30) 'MPI_ASSEMBLE', MyRank, MyError,              &
      &                    string(1:Lstr)
         exit_flag=2
         RETURN
       END IF
 !
-!  Load collected data.
-!
-      A=RESHAPE(Arecv, Asize)
-
 # ifdef PROFILE
 !
 !-----------------------------------------------------------------------
@@ -1594,7 +1641,7 @@
       RETURN
       END SUBROUTINE mp_assemblef_2d
 !
-      SUBROUTINE mp_assemblef_3d (ng, model, Npts, Aspv, A)
+      SUBROUTINE mp_assemblef_3d (ng, model, Npts, Aspv, A, Owner)
 !
 !***********************************************************************
 !                                                                      !
@@ -1632,14 +1679,17 @@
       real(r8), intent(in) :: Aspv
 
       real(r8), intent(inout) :: A(:,:,:)
+      integer, intent(in), optional :: Owner(:)
 !
 !  Local variable declarations.
 !
       integer :: Lstr, MyError, MyNpts, Nnodes, Serror
+      integer :: i, k, m, p, rank
 
       integer :: Asize(3)
 
       integer, dimension(MPI_STATUS_SIZE) :: status
+      integer, dimension(0:numthreads-1) :: Counts, Displs, Offset
 
       real(r8), dimension(Npts) :: Asend, Arecv
 
@@ -1680,27 +1730,72 @@
 !  Collect data from all nodes.
 !-----------------------------------------------------------------------
 !
-!  Set input data to process.
-!
-      Asend=RESHAPE(A, (/Npts/))
-!
-!  Collect data from all nodes as a reduced sum.
-!
-      CALL mpi_allreduce (Asend, Arecv, Npts, MP_FLOAT, MPI_SUM,        &
-     &                    OCN_COMM_WORLD, MyError)
+      IF (PRESENT(Owner).and.                                         &
+     &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
+        IF (SIZE(Owner).ne.Asize(3)) THEN
+          IF (Master) WRITE (stdout,10) SIZE(Owner), Asize(3)
+          exit_flag=7
+        END IF
+        Counts=0
+        DO m=1,Asize(3)
+          IF (Owner(m).lt.0) THEN
+!           Unowned staggered boundary placeholders remain zero.
+          ELSE IF (Owner(m).ge.numthreads) THEN
+            exit_flag=7
+          ELSE
+            Counts(Owner(m))=Counts(Owner(m))+Asize(1)*Asize(2)
+          END IF
+        END DO
+        Displs(0)=0
+        DO rank=1,numthreads-1
+          Displs(rank)=Displs(rank-1)+Counts(rank-1)
+        END DO
+        p=0
+        DO m=1,Asize(3)
+          IF (Owner(m).eq.MyRank) THEN
+            DO k=1,Asize(2)
+              DO i=1,Asize(1)
+                p=p+1
+                Asend(p)=A(i,k,m)
+              END DO
+            END DO
+          END IF
+        END DO
+        CALL mpi_allgatherv (Asend, Counts(MyRank), MP_FLOAT,          &
+     &                       Arecv, Counts, Displs, MP_FLOAT,         &
+     &                       OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          Offset=0
+          DO m=1,Asize(3)
+            rank=Owner(m)
+            IF (rank.lt.0) THEN
+              A(:,:,m)=0.0_r8
+            ELSE
+              DO k=1,Asize(2)
+                DO i=1,Asize(1)
+                  p=Displs(rank)+Offset(rank)+(k-1)*Asize(1)+i
+                  A(i,k,m)=Arecv(p)
+                END DO
+              END DO
+              Offset(rank)=Offset(rank)+Asize(1)*Asize(2)
+            END IF
+          END DO
+        END IF
+      ELSE
+        Asend=RESHAPE(A, (/Npts/))
+        CALL mpi_allreduce (Asend, Arecv, Npts, MP_FLOAT, MPI_SUM,      &
+     &                      OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) A=RESHAPE(Arecv, Asize)
+      END IF
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
         Lstr=LEN_TRIM(string)
-        WRITE (stdout,30) 'MPI_ALLREDUCE', MyRank, MyError,             &
+        WRITE (stdout,30) 'MPI_ASSEMBLE', MyRank, MyError,              &
      &                    string(1:Lstr)
         exit_flag=2
         RETURN
       END IF
 !
-!  Load collected data.
-!
-      A=RESHAPE(Arecv, Asize)
-
 # ifdef PROFILE
 !
 !-----------------------------------------------------------------------
