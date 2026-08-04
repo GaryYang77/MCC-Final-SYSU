@@ -4713,9 +4713,15 @@
       integer :: Imin, Imax, Jmin, Jmax
       integer :: Ilen, Jlen, IJlen
       integer :: Lstr, MyError, MySize, MyType, Serror, ghost
-      integer :: i, ic, ij, j, jc, mc, nc
+      integer :: i, ic, ij, j, jc, mc, nc, p, rank, TotalSize
+      integer, dimension(0:NtileI(ng)*NtileJ(ng)-1) :: Counts, Displs
+      integer, dimension(0:NtileI(ng)*NtileJ(ng)-1) :: RImin, RImax
+      integer, dimension(0:NtileI(ng)*NtileJ(ng)-1) :: RJmin, RJmax
 
-      real(r8), dimension((Lm(ng)+2)*(Mm(ng)+2)) :: Arecv
+      logical :: UseScatterv
+
+      real(r8), allocatable :: Arecv(:), Asend(:)
+      real(r8), dimension((UBi-LBi+1)*(UBj-LBj+1)+2) :: LocalRecv
 
       character (len=MPI_MAX_ERROR_STRING) :: string
 
@@ -4826,28 +4832,97 @@
         MySize=Npts
       END IF
 !
-!  Initialize local array to avoid denormalized numbers. This
-!  facilitates processing and debugging.
-!
-      Arecv=0.0_r8
-!
 !-----------------------------------------------------------------------
 !  Scatter requested array data.
 !-----------------------------------------------------------------------
 !
-!  If master processor, append minimum and maximum values to the end of
-!  the buffer.
+      UseScatterv=(gtype.gt.0).and.                                    &
+     &            (NtileI(ng)*NtileJ(ng).eq.numthreads)
+      IF (UseScatterv) THEN
 !
-      IF (MyRank.eq.MyMaster) Then
-        A(MySize+1)=Amin
-        A(MySize+2)=Amax
+!  Pack only each rank's requested rectangular tile and scatter the
+!  variable-size records.  Append extrema to every record.
+!
+        DO rank=0,numthreads-1
+          SELECT CASE (MyType)
+            CASE (p2dvar, p3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(1,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(1,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(1,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(1,ghost,rank)
+            CASE (r2dvar, r3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(2,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(2,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(2,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(2,ghost,rank)
+            CASE (u2dvar, u3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(3,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(3,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(3,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(3,ghost,rank)
+            CASE (v2dvar, v3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(4,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(4,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(4,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(4,ghost,rank)
+            CASE DEFAULT
+              RImin(rank)=BOUNDS(ng)%Imin(2,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(2,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(2,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(2,ghost,rank)
+          END SELECT
+          Counts(rank)=(RImax(rank)-RImin(rank)+1)*                    &
+     &                 (RJmax(rank)-RJmin(rank)+1)+2
+        END DO
+        Displs(0)=0
+        DO rank=1,numthreads-1
+          Displs(rank)=Displs(rank-1)+Counts(rank-1)
+        END DO
+        TotalSize=Displs(numthreads-1)+Counts(numthreads-1)
+        IF (MyRank.eq.MyMaster) THEN
+          allocate (Asend(TotalSize))
+          DO rank=0,numthreads-1
+            p=Displs(rank)
+            DO j=RJmin(rank),RJmax(rank)
+              jc=(j-Joff)*Ilen
+              DO i=RImin(rank),RImax(rank)
+                ic=i+Ioff+jc
+                p=p+1
+                Asend(p)=A(ic)
+              END DO
+            END DO
+            Asend(p+1)=Amin
+            Asend(p+2)=Amax
+          END DO
+        ELSE
+          allocate (Asend(1))
+        END IF
+        CALL mpi_scatterv (Asend, Counts, Displs, MP_FLOAT,            &
+     &                     LocalRecv, Counts(MyRank), MP_FLOAT,        &
+     &                     MyMaster, OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          p=0
+          DO j=Jmin,Jmax
+            DO i=Imin,Imax
+              p=p+1
+              Awrk(i,j)=LocalRecv(p)
+            END DO
+          END DO
+          Amin=LocalRecv(p+1)
+          Amax=LocalRecv(p+2)
+        END IF
+        deallocate (Asend)
+      ELSE
+        allocate (Arecv((Lm(ng)+2)*(Mm(ng)+2)))
+        Arecv=0.0_r8
+        IF (MyRank.eq.MyMaster) Then
+          A(MySize+1)=Amin
+          A(MySize+2)=Amax
+        END IF
+        MySize=MySize+2
+        CALL mpi_bcast (A, MySize, MP_FLOAT, MyMaster, OCN_COMM_WORLD,  &
+     &                  MyError)
       END IF
-      MySize=MySize+2
-!
-!  Broadcast data to all processes in the group, itself included.
-!
-      CALL mpi_bcast (A, MySize, MP_FLOAT, MyMaster, OCN_COMM_WORLD,    &
-     &                MyError)
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
          Lstr=LEN_TRIM(string)
@@ -4858,45 +4933,45 @@
         RETURN
       END IF
 !
-!  If water points only, fill land points.
+!  For the fallback path, expand water points and unpack the full field.
 !
-      IF (gtype.gt.0) THEN
-        DO nc=1,MySize-2
-          Arecv(nc)=A(nc)
-        END DO
+      IF (.not.UseScatterv) THEN
+        IF (gtype.gt.0) THEN
+          DO nc=1,MySize-2
+            Arecv(nc)=A(nc)
+          END DO
 # if defined READ_WATER && defined MASKING
-      ELSE
-        ij=0
-        mc=0
-        nc=0
-        DO j=Jo,Je
+        ELSE
+          ij=0
+          mc=0
+          nc=0
+          DO j=Jo,Je
+            jc=(j-Joff)*Ilen
+            DO i=Io,Ie
+              ij=ij+1
+              ic=i+Ioff+jc
+              IF (IJ_water(mc+1).eq.ij) THEN
+                mc=mc+1
+                nc=nc+1
+                Arecv(ic)=A(nc)
+              ELSE
+                Arecv(ic)=0.0_r8
+              ENDIF
+            END DO
+          END DO
+# endif
+        END IF
+        DO j=Jmin,Jmax
           jc=(j-Joff)*Ilen
-          DO i=Io,Ie
-            ij=ij+1
+          DO i=Imin,Imax
             ic=i+Ioff+jc
-            IF (IJ_water(mc+1).eq.ij) THEN
-              mc=mc+1
-              nc=nc+1
-              Arecv(ic)=A(nc)
-            ELSE
-              Arecv(ic)=0.0_r8
-            ENDIF
+            Awrk(i,j)=Arecv(ic)
           END DO
         END DO
-# endif
+        Amin=A(MySize-1)
+        Amax=A(MySize)
+        deallocate (Arecv)
       END IF
-!
-!  Unpack data buffer.
-!
-      DO j=Jmin,Jmax
-        jc=(j-Joff)*Ilen
-        DO i=Imin,Imax
-          ic=i+Ioff+jc
-          Awrk(i,j)=Arecv(ic)
-        END DO
-      END DO
-      Amin=A(MySize-1)
-      Amax=A(MySize)
 # ifdef PROFILE
 !
 !-----------------------------------------------------------------------
@@ -4982,9 +5057,16 @@
       integer :: Imin, Imax, Jmin, Jmax
       integer :: Ilen, Jlen, Klen, IJlen
       integer :: Lstr, MyError, MySize, MyType, Serror, ghost
-      integer :: i, ic, ij, j, jc, k, kc, mc, nc
+      integer :: i, ic, ij, j, jc, k, kc, mc, nc, p, rank, TotalSize
+      integer, dimension(0:NtileI(ng)*NtileJ(ng)-1) :: Counts, Displs
+      integer, dimension(0:NtileI(ng)*NtileJ(ng)-1) :: RImin, RImax
+      integer, dimension(0:NtileI(ng)*NtileJ(ng)-1) :: RJmin, RJmax
 
-      real(r8), dimension((Lm(ng)+2)*(Mm(ng)+2)*(UBk-LBk+1)) :: Arecv
+      logical :: UseScatterv
+
+      real(r8), allocatable :: Arecv(:), Asend(:)
+      real(r8), dimension((UBi-LBi+1)*(UBj-LBj+1)*                    &
+     &                   (UBk-LBk+1)+2) :: LocalRecv
 
       character (len=MPI_MAX_ERROR_STRING) :: string
 
@@ -5102,28 +5184,98 @@
         MySize=Npts
       END IF
 !
-!  Initialize local array to avoid denormalized numbers. This
-!  facilitates processing and debugging.
-!
-      Arecv=0.0_r8
-!
 !-----------------------------------------------------------------------
 !  Scatter requested array data.
 !-----------------------------------------------------------------------
 !
-!  If master processor, append minimum and maximum values to the end of
-!  the buffer.
-!
-      IF (MyRank.eq.MyMaster) Then
-        A(MySize+1)=Amin
-        A(MySize+2)=Amax
+      UseScatterv=(gtype.gt.0).and.                                    &
+     &            (NtileI(ng)*NtileJ(ng).eq.numthreads)
+      IF (UseScatterv) THEN
+        DO rank=0,numthreads-1
+          SELECT CASE (MyType)
+            CASE (p2dvar, p3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(1,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(1,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(1,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(1,ghost,rank)
+            CASE (r2dvar, r3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(2,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(2,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(2,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(2,ghost,rank)
+            CASE (u2dvar, u3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(3,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(3,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(3,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(3,ghost,rank)
+            CASE (v2dvar, v3dvar)
+              RImin(rank)=BOUNDS(ng)%Imin(4,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(4,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(4,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(4,ghost,rank)
+            CASE DEFAULT
+              RImin(rank)=BOUNDS(ng)%Imin(2,ghost,rank)
+              RImax(rank)=BOUNDS(ng)%Imax(2,ghost,rank)
+              RJmin(rank)=BOUNDS(ng)%Jmin(2,ghost,rank)
+              RJmax(rank)=BOUNDS(ng)%Jmax(2,ghost,rank)
+          END SELECT
+          Counts(rank)=(RImax(rank)-RImin(rank)+1)*                    &
+     &                 (RJmax(rank)-RJmin(rank)+1)*Klen+2
+        END DO
+        Displs(0)=0
+        DO rank=1,numthreads-1
+          Displs(rank)=Displs(rank-1)+Counts(rank-1)
+        END DO
+        TotalSize=Displs(numthreads-1)+Counts(numthreads-1)
+        IF (MyRank.eq.MyMaster) THEN
+          allocate (Asend(TotalSize))
+          DO rank=0,numthreads-1
+            p=Displs(rank)
+            DO k=LBk,UBk
+              kc=(k-Koff)*IJlen
+              DO j=RJmin(rank),RJmax(rank)
+                jc=(j-Joff)*Ilen+kc
+                DO i=RImin(rank),RImax(rank)
+                  ic=i+Ioff+jc
+                  p=p+1
+                  Asend(p)=A(ic)
+                END DO
+              END DO
+            END DO
+            Asend(p+1)=Amin
+            Asend(p+2)=Amax
+          END DO
+        ELSE
+          allocate (Asend(1))
+        END IF
+        CALL mpi_scatterv (Asend, Counts, Displs, MP_FLOAT,            &
+     &                     LocalRecv, Counts(MyRank), MP_FLOAT,        &
+     &                     MyMaster, OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          p=0
+          DO k=LBk,UBk
+            DO j=Jmin,Jmax
+              DO i=Imin,Imax
+                p=p+1
+                Awrk(i,j,k)=LocalRecv(p)
+              END DO
+            END DO
+          END DO
+          Amin=LocalRecv(p+1)
+          Amax=LocalRecv(p+2)
+        END IF
+        deallocate (Asend)
+      ELSE
+        allocate (Arecv((Lm(ng)+2)*(Mm(ng)+2)*(UBk-LBk+1)))
+        Arecv=0.0_r8
+        IF (MyRank.eq.MyMaster) Then
+          A(MySize+1)=Amin
+          A(MySize+2)=Amax
+        END IF
+        MySize=MySize+2
+        CALL mpi_bcast (A, MySize, MP_FLOAT, MyMaster, OCN_COMM_WORLD,  &
+     &                  MyError)
       END IF
-      MySize=MySize+2
-!
-!  Broadcast data to all processes in the group, itself included.
-!
-      CALL mpi_bcast (A, MySize, MP_FLOAT, MyMaster, OCN_COMM_WORLD,    &
-     &                MyError)
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
          Lstr=LEN_TRIM(string)
@@ -5134,51 +5286,51 @@
         RETURN
       END IF
 !
-!  If water points only, fill land points.
+!  For the fallback path, expand water points and unpack the full field.
 !
-      IF (gtype.gt.0) THEN
-        DO nc=1,MySize-2
-          Arecv(nc)=A(nc)
-        END DO
+      IF (.not.UseScatterv) THEN
+        IF (gtype.gt.0) THEN
+          DO nc=1,MySize-2
+            Arecv(nc)=A(nc)
+          END DO
 # if defined READ_WATER && defined MASKING
-      ELSE
-        nc=0
+        ELSE
+          nc=0
+          DO k=LBk,UBk
+            kc=(k-Koff)*IJlen
+            ij=0
+            mc=0
+            DO j=Jo,Je
+              jc=(j-Joff)*Ilen+kc
+              DO i=Io,Ie
+                ij=ij+1
+                ic=i+Ioff+jc
+                IF (IJ_water(mc+1).eq.ij) THEN
+                  mc=mc+1
+                  nc=nc+1
+                  Arecv(ic)=A(nc)
+                ELSE
+                  Arecv(ic)=0.0_r8
+                ENDIF
+              END DO
+            END DO
+          END DO
+# endif
+        END IF
         DO k=LBk,UBk
           kc=(k-Koff)*IJlen
-          ij=0
-          mc=0
-          DO j=Jo,Je
+          DO j=Jmin,Jmax
             jc=(j-Joff)*Ilen+kc
-            DO i=Io,Ie
-              ij=ij+1
+            DO i=Imin,Imax
               ic=i+Ioff+jc
-              IF (IJ_water(mc+1).eq.ij) THEN
-                mc=mc+1
-                nc=nc+1
-                Arecv(ic)=A(nc)
-              ELSE
-                Arecv(ic)=0.0_r8
-              ENDIF
+              Awrk(i,j,k)=Arecv(ic)
             END DO
           END DO
         END DO
-# endif
+        Amin=A(MySize-1)
+        Amax=A(MySize)
+        deallocate (Arecv)
       END IF
-!
-!  Unpack data buffer.
-!
-      DO k=LBk,UBk
-        kc=(k-Koff)*IJlen
-        DO j=Jmin,Jmax
-          jc=(j-Joff)*Ilen+kc
-          DO i=Imin,Imax
-            ic=i+Ioff+jc
-            Awrk(i,j,k)=Arecv(ic)
-          END DO
-        END DO
-      END DO
-      Amin=A(MySize-1)
-      Amax=A(MySize)
 # ifdef PROFILE
 !
 !-----------------------------------------------------------------------
