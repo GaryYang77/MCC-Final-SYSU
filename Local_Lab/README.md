@@ -34,8 +34,8 @@ bash Local_Lab/run_cluster_gate.sh baseline
   -> 记录未优化基准 wall time
   -> 修改并运行本地快速单元测试
   -> 同步服务器，在计算节点干净编译并执行 4/20 步正确性门禁
-  -> demo PASS 后提交单一实验 commit
-  -> 集群缩时、多 rank profiling 决定保留或 revert
+  -> 正确性 PASS 后运行一次 2 节点、64-rank、60/300 步 profiling demo
+  -> profiling 有效后提交单一 accepted commit
   -> 只有最终累计候选才运行完整三天和官方 vali.py
 ```
 
@@ -79,10 +79,10 @@ bash Local_Lab/sync_to_cluster.sh
 # 随后在服务器工作区运行：bash Local_Lab/run_cluster_gate.sh validate
 ```
 
-本地测试和服务器 demo 正确性全部通过后，就可以执行显式 `git add` 和 `git commit`，
-不需要为每个 commit 跑完整三天或官方 `vali.py`。不要使用 `git add .` 把日志、输出或
-无关修改一起提交。commit 后再做短 profiling，决定这个实验 commit 是否值得保留；失败
-实验不要覆盖 accepted 基线，先保留测量记录，再恢复已接受版本并重新设计。
+本地测试和服务器 4/20 正确性 demo 通过后，只运行一次 2 节点、64-rank、60/300 步 profiling
+demo；两层短 demo 都通过且性能方向有效后，才能执行显式 `git add` 和 `git commit`。
+普通 commit 不需要完整三天或官方 `vali.py`。不要使用 `git add .` 把日志、输出或无关
+修改一起提交；失败实验先保留测量记录，再恢复 accepted 版本并重新设计。
 
 ### 可直接交接的单项优化闭环
 
@@ -94,39 +94,46 @@ bash Local_Lab/sync_to_cluster.sh
   -> 本地 pytest
   -> sync_to_cluster.sh
   -> run_cluster_gate.sh validate
-  -> demo PASS 后形成单一实验 commit
-  -> 使用该 candidate/bin/oceanM 做 128-rank 60/300 profiling
+  -> 4/20 正确性 demo PASS
+  -> 使用该 candidate/bin/oceanM 做一次 2 节点、64-rank、60/300 profiling demo
   -> 检查数值 comparison 和目标 region
-  -> 有效则成为新的 accepted commit；无效则 revert 并重新设计
+  -> 有效才形成单一 accepted commit；无效则恢复并重新设计
   -> 只有最终累计候选才跑完整三天和官方 vali.py
 ```
 
-服务器 demo PASS 后，把刚生成的候选二进制与上一个已接受二进制放在同一个 allocation
-内配对 profiling，并交换执行顺序：
+服务器正确性 demo PASS 后，使用刚生成的候选二进制只跑一次 profiling，并与上一个
+accepted 的同配置 run 做数值 comparison：
+
+首次优化前若还没有 2 节点、64-rank、60/300 步 reference，只用当前 accepted 二进制
+生成一次；以后直接把每个新 accepted 候选的 profiling run 作为下一次 reference，不再
+额外跑 control：
 
 ```bash
-python Local_Lab/profile_overhead.py \
-  --profile-binary Local_Lab/runs/validation/<new-candidate>/bin/oceanM \
-  --control-binary Local_Lab/runs/validation/<accepted-candidate>/bin/oceanM \
-  --label <hypothesis>-ab --order off-on \
-  --outer-steps 60 --inner-steps 300 --tiles-i 8 --tiles-j 16
-
-python Local_Lab/profile_overhead.py \
-  --profile-binary Local_Lab/runs/validation/<new-candidate>/bin/oceanM \
-  --control-binary Local_Lab/runs/validation/<accepted-candidate>/bin/oceanM \
-  --label <hypothesis>-ba --order on-off \
-  --outer-steps 60 --inner-steps 300 --tiles-i 8 --tiles-j 16
+python Local_Lab/profile_128.py \
+  --binary Local_Lab/runs/validation/candidate_20260803T105345Z_12953/bin/oceanM \
+  --label accepted-2n64-reference \
+  --outer-steps 60 --inner-steps 300 \
+  --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8
 ```
 
-这里两个二进制都可以启用 PROFILE；脚本中的 profile/control 实际代表
-candidate/accepted。接受结果要求两份 `overhead_report.json` 都 `passed=true`，数值
-comparison 通过，且候选的 `profile_report.json` 存在。`overhead_percent < 0` 表示候选
-更快。两个顺序的 candidate/accepted 比值取几何平均：初筛要求至少快 2%，且任一顺序
-不得慢 1% 以上；否则结果为 inconclusive，应增加配对重复，不能宣称加速。还要确认目标
-region 改善且没有把时间明显转移到其他热点。inclusive 百分比不能相加为 100%。
+每个候选的唯一 profiling 命令是：
 
-若 demo 失败，禁止 commit。先记录失败 run，再把本次明确修改的文件恢复到开始时记录的
-`accepted_commit`：
+```bash
+python Local_Lab/profile_128.py \
+  --binary Local_Lab/runs/validation/<new-candidate>/bin/oceanM \
+  --label <hypothesis>-2n64 \
+  --outer-steps 60 --inner-steps 300 \
+  --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8 \
+  --reference-run Local_Lab/runs/profile128/<accepted-2n64-reference-run>
+```
+
+这一份 run 同时产生数值 comparison、变量量值、总 wall time、热点、nesting 子阶段和
+rank 离散。接受要求 `run_report.json` 的 `passed`、`normal_end`、`comparison.passed`
+都为 `true`，并存在 `profile_report.json`；同时目标 region 或总时间应显示有用方向，且
+没有明显把耗时转移到其他热点。默认不自动重复；结果接近噪声时由团队决定是否再测。
+
+若正确性 demo、profiling comparison 或性能判据失败，禁止 commit。先记录失败 run，
+再把本次明确修改的文件恢复到开始时记录的 `accepted_commit`：
 
 ```bash
 git status --short
@@ -138,10 +145,9 @@ python -m pytest -q Local_Lab/tests
 `git restore` 不处理本次新增的未跟踪文件；必须先用 `git status --short` 找出它们，按
 本次实验的明确文件清单逐个移动到 `/tmp/<experiment>-failed/` 留档，不能使用宽泛的
 `git clean`。不要在有无关未提交改动时恢复文件，也不要使用 `git reset --hard`。如果
-实验 commit 后若多-rank comparison 失败，或 profiling 证明它无效/显著变慢，则使用
-`git revert <experiment-commit>` 回到 accepted 状态。恢复后确认源码 diff 为空，重新同步
-并让服务器 demo PASS，再从新的实现思路开始；不得放宽阈值、减少变量、重建基线或修改
-输入来绕过失败。
+问题在 commit 后才被发现，则使用 `git revert <bad-commit>` 回到 accepted 状态。
+恢复后确认源码 diff 为空，重新同步并让两层短 demo 通过，再从新的实现思路开始；不得
+放宽阈值、减少变量、重建基线或修改输入来绕过失败。
 
 ## 128 核运行配置必须先对齐
 
@@ -347,7 +353,7 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
 环境：commit、编译器、flags、节点、ranks、tile、绑核
 任务：4/20 步、半天、一天或完整三天
 性能：每次 wall time、中位数、相对基线加速
-正确性：每个 commit 记录服务器 demo validation_report.json；只有最终候选记录官方 vali.py
+正确性：每个 commit 记录正确性 demo 和 profiling demo；只有最终候选记录官方 vali.py
 结论：保留、继续调查或放弃，以及原因
 ```
 
@@ -358,8 +364,8 @@ perf stat -e task-clock,cycles,instructions,cache-misses \
   -> 一次只实现一个优化
   -> 同步服务器并干净编译
   -> 服务器 4/20 步门禁
-  -> demo PASS 后单独 commit
-  -> 128-rank 60/300 步 profiling 决定保留或 revert
+  -> 一次 2 节点、64-rank、60/300 步 profiling demo
+  -> 两层短 demo 通过且性能有效后单独 commit
   -> 仅最终累计候选：完整三天运行和官方 vali.py
 ```
 

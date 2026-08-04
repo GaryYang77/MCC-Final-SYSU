@@ -96,13 +96,14 @@ weights 是两个网格共同的第二候选。
 
 ## 使用方法
 
-先通过服务器 demo 门禁得到当前源码的干净候选二进制；demo PASS 后即可形成单一实验
-commit，不要求完整三天或官方 `vali.py`。commit 后使用
-`profile_overhead.py` 将候选与上一个已接受二进制放在同一 allocation 内执行 60/300 步
-配对 profiling 并交换顺序，用于决定保留还是 revert；完整命令和判据以 `AGENTS.md` 为准。
+先通过服务器 4/20 正确性 demo 得到当前源码的干净候选二进制，然后在 commit 前只运行
+一次 2 节点、64-rank、`8x8`、60/300 步 profiling demo，并通过 `--reference-run` 与
+上一个 accepted 的同配置 run 做数值 comparison。这一份 run 同时给出正确性、总 wall、
+热点和 rank 离散。两层短 demo 都通过且性能方向有效后才 commit；普通 commit 不要求
+完整三天或官方 `vali.py`。
 
-下面的单独运行方式只适合进一步探索热点，不具备同 allocation 性能对照，因此不能单独
-作为候选加速证据。若用于正确性 comparison，必须显式提供同配置 reference：
+日常候选的单次 profiling 命令如下；必须显式提供上一个 accepted 的 2 节点同配置
+reference：
 
 ```bash
 bash Local_Lab/run_cluster_gate.sh validate
@@ -111,10 +112,10 @@ source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
 conda activate vali
 python Local_Lab/profile_128.py \
   --binary Local_Lab/runs/validation/candidate_<timestamp>/bin/oceanM \
-  --label exploratory-profile \
+  --label <hypothesis>-2n64 \
   --outer-steps 60 --inner-steps 300 \
-  --nodes 4 --ranks 128 --tiles-i 8 --tiles-j 16 \
-  --reference-run Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162
+  --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8 \
+  --reference-run Local_Lab/runs/profile128/<accepted-2n64-reference-run>
 ```
 
 运行目录会生成：
@@ -205,7 +206,8 @@ ranks 仅节省约 15.7 分钟，说明当前强扩展已经明显受 nesting/MP
 
 热点排序及占比高度一致，因此日常优化使用固定 4 节点、128 ranks、`8x16`、60/300 步
 profiling 足以筛选方向，能把反馈周期控制在约 4 分钟。它仍不能证明最终加速：候选必须
-保持相同配置与 reference comparison，通过重复短测后再进入完整三天和官方验证。
+保持相同配置与 reference comparison；只有团队选出的最终累计版本才进入完整三天和
+官方验证。
 
 ## 测量 profiler 自身开销
 
@@ -261,7 +263,8 @@ python Local_Lab/profile_overhead.py \
 1. 沿 Grid 1 region 53 进入 `ngetD` 与 region 49 point gather，区分调用频率、payload 和等待。
 2. 沿 Grid 2 region 55 进入 `n2way/fine2coarse` 与 region 46 data gather。
 3. 对照 `#861` 检查两个网格的 vertical weights 是否存在可证明的重复计算。
-4. 对准备保留的实验 commit 使用 60/300 步配对 profiling；结果接近噪声时再增加重复。
+4. 对未提交候选只跑一次 2 节点、64-rank、60/300 步 profiling；接近噪声时由团队决定
+   是否复测，不自动增加作业。
 5. 对照 `#747` 在昆山节点实测 gather/assemble 的 collective 方案，不凭实现直觉替换。
-6. 每个普通 commit 只强制本地测试和 1-rank demo；只有团队选出的最终累计候选才运行
-   完整三天和官方 `vali.py`。
+6. 每个普通 commit 必须先通过本地测试、1-rank 正确性 demo 和一次 2 节点、64-rank、60/300 步
+   profiling demo；只有团队选出的最终累计候选才运行完整三天和官方 `vali.py`。

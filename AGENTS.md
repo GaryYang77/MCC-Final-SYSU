@@ -35,8 +35,8 @@
   `ROMS/TOMS: DONE`，wall `9589 s`，团队已确认官方 `vali.py` 通过。
 - 公开基准 `01:50:06` 与本次 profiler runner 的 `9589 s` 不是同一次运行边界和二进制，
   暂不得直接计算 speedup。wall-only instrumentation 的已测中心开销约 0.89%，不足以单独
-  解释该差距；应以同一 runner、同一输入/输出节奏、相同 ranks/tiles 的 accepted 与
-  candidate 配对结果判断单项优化，最终再用 no-profile 完整任务对齐比赛计时。
+  解释该差距；日常只以同一 runner、输入/输出节奏、ranks/tiles 的 accepted reference
+  与 candidate 单次结果判断方向，最终再用 no-profile 完整任务对齐比赛计时。
 - 2 节点、64 ranks、`8x8`、完整任务：job `118500776`，wall `10588 s`；与 4 节点
   两个平均场的 13 个变量逐位一致。它只用于 scaling 诊断，不是决赛目标配置。
 - 1 节点、32 ranks、`4x8` 在首次 nesting 通信处触发
@@ -48,11 +48,15 @@
 - 当前可复用的服务器 profiling reference 是
   `Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。详细数字和
   region 解释见 `Local_Lab/profiling-analysis.md`。
-- 第一项优化的 accepted/control 二进制是
+- 日常优化固定只跑一次 2 节点、64 ranks、`8x8`、60/300 步 profiling demo。首次优化
+  前用 accepted 二进制生成一次同配置 reference；以后每个新 accepted commit 产生的
+  profiling run 直接成为下一项优化的 reference。4 节点 reference 只保留作历史对照，
+  不用于日常候选 comparison。
+- 第一项优化的 accepted 二进制是
   `Local_Lab/runs/validation/candidate_20260803T105345Z_12953/bin/oceanM`，SHA-256 为
-  `a9b08b31478da2546ca9ba7dc25ad2401afee78e63457e646a1428d84973a3e5`。每接受一个新
-  优化后，下一项实验应把 accepted/control 更新为新提交通过门禁后生成的二进制，避免
-  只与最初版本比较而掩盖后续回归。
+  `a9b08b31478da2546ca9ba7dc25ad2401afee78e63457e646a1428d84973a3e5`。首次优化前用它
+  一次性生成 2 节点、64-rank、60/300 步 reference。每接受一个新优化后，该候选的
+  profiling run 直接成为下一项实验的 `--reference-run`，避免额外运行 control case。
 
 ## 修改边界
 
@@ -70,7 +74,10 @@
 - 编译和运行配置优化，但每一种配置都必须单独验证，且不得依赖比赛禁用的硬件。
 - 调试时临时缩短 `NTIMES`；不得把缩短配置当作最终结果。
 
-边界不确定时，先停止修改并向团队确认。ROMS 后续版本的改动（例如相关 tickets）只能作为实现参考，移植后仍须走完整门禁，不能因“官方已有”而默认正确。
+边界不确定时，先停止修改并向团队确认。ROMS 后续版本的改动（例如相关 tickets）只能
+作为实现参考：普通 commit 仍须通过本地测试、1-rank 正确性 demo 和一次 2 节点、
+64-rank profiling demo；只有最终累计候选才运行完整三天和官方验证。不能因“官方已有”
+而默认正确。
 
 ## 每次优化的固定流程
 
@@ -92,8 +99,8 @@
    将打印出的完整 SHA 写入实验记录，不能只依赖会随终端消失的 shell 变量。先从
    baseline bundle 写下一个可证伪假设、目标 region、预期变化和不应变化的数值行为；
    区分计算、MPI 通信/等待和 I/O，避免凭直觉改动。
-2. 一次只做一个可解释的等价实现优化，保留可审查的 diff。普通实验 commit 的硬门禁
-   只有本地测试和服务器 demo 正确性；不要求先跑完整三天或官方 `vali.py`。
+2. 一次只做一个可解释的等价实现优化，保留可审查的 diff。在正确性 demo 和 profiling
+   demo 都完成前不要 commit。普通 commit 不要求完整三天或官方 `vali.py`。
 3. 在 Ubuntu WSL 的仓库根目录运行代码级快速测试：
 
    ```bash
@@ -113,11 +120,9 @@
    ```
 
    不得只运行本地单元测试或在登录节点直接运行模型后就宣称优化有效。
-5. 仅在三个条件同时满足时允许形成实验 commit：包装命令退出码为 0、终端明确显示
-   `[validate] PASS`、最新 `validation_report.json` 的 `passed` 为 `true`。提交前运行
-   `git diff --check`、审查 `git diff -- ROMS_CoSiNE15 Local_Lab`，只用明确文件列表
-   `git add`；禁止 `git add .`。commit 信息应描述被 demo 验证的单一优化。
-6. 实验 commit 形成后再做性能 profiling，判断它是否值得保留或继续。记录新的
+5. 仅在三个条件同时满足时进入 profiling demo：包装命令退出码为 0、终端明确显示
+   `[validate] PASS`、最新 `validation_report.json` 的 `passed` 为 `true`。此时仍不要
+   commit。记录新的
    candidate 目录以及上一个已接受 candidate 的二进制路径。candidate 路径必须来自
    本次 `run_cluster_gate.sh validate` 输出，不能用 `ls ... | head` 猜“最新”目录。运行
    profiling 前检查本次报告和二进制，并记录 SHA-256：
@@ -130,34 +135,36 @@
    sha256sum "$candidate_dir/bin/oceanM"
    ```
 
-   用 `profile_overhead.py`
-   将“新候选”作为 profile binary、“上一个已接受版本”作为 control binary，在同一
-   Slurm allocation 内做 128-rank、60/300 步 A/B 配对。两个二进制都可以启用 PROFILE；
-   此处脚本名和 on/off 字段沿用历史命名，实际语义是 candidate/accepted：
+   首次优化前如果尚无同配置 reference，只用 accepted 二进制生成一次；这是一次性准备，
+   不是每个候选的额外任务：
+
+   ```bash
+   python Local_Lab/profile_128.py \
+     --binary Local_Lab/runs/validation/candidate_20260803T105345Z_12953/bin/oceanM \
+     --label accepted-2n64-reference \
+     --outer-steps 60 --inner-steps 300 \
+     --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8
+   ```
+
+   之后每个候选只运行一次 2 节点、64 ranks、`8x8`、60/300 步 profiling demo：
 
    ```bash
    source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
    conda activate vali
-   python Local_Lab/profile_overhead.py \
-     --profile-binary Local_Lab/runs/validation/<new-candidate>/bin/oceanM \
-     --control-binary Local_Lab/runs/validation/<accepted-candidate>/bin/oceanM \
-     --label <hypothesis>-ab --order off-on \
-     --outer-steps 60 --inner-steps 300 --tiles-i 8 --tiles-j 16
-   python Local_Lab/profile_overhead.py \
-     --profile-binary Local_Lab/runs/validation/<new-candidate>/bin/oceanM \
-     --control-binary Local_Lab/runs/validation/<accepted-candidate>/bin/oceanM \
-     --label <hypothesis>-ba --order on-off \
-     --outer-steps 60 --inner-steps 300 --tiles-i 8 --tiles-j 16
+   python Local_Lab/profile_128.py \
+     --binary "$candidate_dir/bin/oceanM" \
+     --label <hypothesis>-2n64 \
+     --outer-steps 60 --inner-steps 300 \
+     --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8 \
+     --reference-run Local_Lab/runs/profile128/<accepted-2n64-reference-run>
    ```
 
-   两组 `overhead_report.json` 必须 `passed=true` 且 comparison 通过；候选一侧必须有
-   `profile_report.json`。在这种复用方式下，`overhead_percent < 0` 才表示候选更快。
-   两个顺序的 candidate/accepted 比值取几何平均：初筛要求至少快 2%，且任一顺序不得
-   慢 1% 以上；否则标为 inconclusive 并增加配对重复，不能宣称加速。还要比较 total
+   这一份 run 同时完成数值和性能诊断：`run_report.json` 必须满足 `passed=true`、
+   `normal_end=true`、`comparison.passed=true`，且存在 `profile_report.json`。检查 total
    wall、目标 region wall/调用次数、rank imbalance 和非目标热点；inclusive region
-   不得相加成 100%。
-7. demo 正确性失败时不得 commit。先保留失败 run 路径和报告用于诊断，然后恢复到
-   `accepted_commit` 的代码状态并重新设计：
+   不得相加成 100%。若热点或总时间没有显示有用方向，恢复并重新设计；不要求自动重复。
+6. 正确性 demo、profiling 数值 comparison 或性能判据任一失败时不得 commit。先保留
+   失败 run 路径和报告用于诊断，然后恢复到 `accepted_commit` 的代码状态并重新设计：
 
    ```bash
    git status --short
@@ -169,19 +176,19 @@
    `git restore` 不处理本次新增的未跟踪文件。用 `git status --short` 和实验开始时的
    文件清单识别它们，逐个移动到 `/tmp/<experiment>-failed/` 留档；禁止使用宽泛的
    `git clean`。只有确认工作树中没有其他人的无关修改时才能恢复文件；禁止使用
-   `git reset --hard`。如果实验 commit 后的多-rank profiling 出现数值 comparison 失败，
-   或证明该优化无效/显著变慢，使用 `git revert <experiment-commit>` 回到上一个已接受
-   状态，不要改写共享历史。若只是性能结果受噪声影响，则保留实验记录并增加短测，不要
-   因此运行完整三天。恢复后确认源码 diff 和本次新增文件都已清除，再重新同步并让 demo
-   门禁 PASS，才能开始下一种设计。
+   `git reset --hard`。若 profiling 结果接近噪声，由团队决定是否额外复测；默认不自动
+   增加作业，更不能因此运行完整三天。恢复后确认源码 diff 和本次新增文件都已清除，
+   再重新同步并让两层短 demo PASS，才能开始下一种设计。若问题在 commit 后才被发现，使用
+   `git revert <bad-commit>`，不要改写共享历史。
    不得通过提高容差、减少变量、修改输入、重建基线或跳过计算来挽救失败候选。
-8. profiling 显示性能方向有效后，才把该实验 commit 标记为新的 accepted commit，并把
-   下一项实验的 accepted/control 二进制更新到该版本。profiling 是保留决策，不是普通
-   commit 的前置门禁。
-9. 服务器 1-rank、`4/20` 步 demo 是严格正确性门禁，不是 128 核性能结论。涉及 MPI、
-   分块、通信或同步的改动，还必须完成 128-rank 缩时诊断，检查正常结束、输出齐全、
-   NaN/Inf 和同配置 13 变量 comparison，才能判断是否保留该实验 commit。
-10. 只有团队选出的少数累计版本进入决赛候选阶段，才运行 128-rank 完整三天任务和
+7. 只有正确性 demo 和 2 节点、64-rank、60/300 步 profiling demo 都通过，且性能方向有效，才
+   运行 `git diff --check`、审查 `git diff -- ROMS_CoSiNE15 Local_Lab`，使用明确文件
+   列表 `git add` 并 commit；禁止 `git add .`。该 commit 随即成为新的 accepted commit，
+   本次 profiling run 随即成为下一项实验的 `--reference-run`。
+8. 所有普通优化都必须完成上述 2 节点、64-rank profiling demo。MPI、分块、通信或同步
+   改动尤其要检查正常结束、输出齐全、NaN/Inf、13 变量 comparison 和 rank 离散，才能
+   commit。
+9. 只有团队选出的少数累计版本进入决赛候选阶段，才运行 128-rank 完整三天任务和
    主办方 `vali.py`。这两项绝不是每个 commit 的门禁；至少一个最终提交候选必须完成，
    时间允许时再重复测量。只有完整任务和官方验证都通过，才能报告最终成绩。
 
