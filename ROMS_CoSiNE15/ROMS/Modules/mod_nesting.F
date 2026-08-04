@@ -149,6 +149,13 @@
       integer, allocatable :: RefineSteps(:)        ! [Ngrids]
 !$OMP THREADPRIVATE (RefineSteps)
 !
+!  Global finer-grid mask used by three-dimensional fine-to-coarse
+!  coupling.  Consecutive tracers share the same mask within a coupling
+!  section; the first tracer refreshes it for wetting and drying.
+!
+      real(r8), allocatable :: Fine3dMask(:,:)
+!$OMP THREADPRIVATE (Fine3dMask)
+!
 !  Refined time-steps counter with respect the coarse grid (ng=1)
 !  single time-step.
 !

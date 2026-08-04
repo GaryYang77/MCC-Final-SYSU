@@ -3462,6 +3462,7 @@
       integer :: LBiR, UBiR, LBjR, UBjR
       integer :: Dindex2d, Rindex2d
 # ifdef SOLVE3D
+      logical :: GetMask
       integer :: Dindex3d, Rindex3d
 # endif
       integer :: cr, dg, k, rg, nrec, rec
@@ -3629,9 +3630,10 @@
 !
             AreaAvg=.FALSE.
             DO itrc=1,NT(rg)
+              GetMask=itrc.eq.1
               CALL fine2coarse3d (rg, dg, model, tile,                  &
      &                            r3dvar, Vname(1,idTvar(itrc)),        &
-     &                            AreaAvg, RefineScale(dg),             &
+     &                            AreaAvg, GetMask, RefineScale(dg),    &
      &                            cr, Rcontact(cr)%Npoints, Rcontact,   &
      &                            LBiD, UBiD, LBjD, UBjD, 1, N(dg),     &
      &                            LBiR, UBiR, LBjR, UBjR, 1, N(rg),     &
@@ -3651,9 +3653,10 @@
 !  Process 3D momentum components (u, v).
 !
             AreaAvg=.FALSE.
+            GetMask=.TRUE.
             CALL fine2coarse3d (rg, dg, model, tile,                    &
      &                          u3dvar, Vname(1,idUvel),                &
-     &                          AreaAvg, RefineScale(dg),               &
+     &                          AreaAvg, GetMask, RefineScale(dg),      &
      &                          cr, Ucontact(cr)%Npoints, Ucontact,     &
      &                          LBiD, UBiD, LBjD, UBjD, 1, N(dg),       &
      &                          LBiR, UBiR, LBjR, UBjR, 1, N(rg),       &
@@ -3671,7 +3674,7 @@
 !
             CALL fine2coarse3d (rg, dg, model, tile,                    &
      &                          v3dvar, Vname(1,idVvel),                &
-     &                          AreaAvg, RefineScale(dg),               &
+     &                          AreaAvg, GetMask, RefineScale(dg),      &
      &                          cr, Vcontact(cr)%Npoints, Vcontact,     &
      &                          LBiD, UBiD, LBjD, UBjD, 1, N(dg),       &
      &                          LBiR, UBiR, LBjR, UBjR, 1, N(rg),       &
@@ -4136,7 +4139,7 @@
 # ifdef SOLVE3D
       SUBROUTINE fine2coarse3d (ng, dg, model, tile,                    &
      &                          gtype, svname,                          &
-     &                          AreaAvg, Rscale,                        &
+     &                          AreaAvg, GetMask, Rscale,               &
      &                          cr, Npoints, contact,                   &
      &                          LBiF, UBiF, LBjF, UBjF, LBkF, UBkF,     &
      &                          LBiC, UBiC, LBjC, UBjC, LBkC, UBkC,     &
@@ -4235,7 +4238,7 @@
 !
 !  Imported variable declarations.
 !
-      logical, intent(in) :: AreaAvg
+      logical, intent(in) :: AreaAvg, GetMask
       integer, intent(in) :: ng, dg, model, tile
       integer, intent(in) :: gtype, cr, Npoints, Rscale
       integer, intent(in) :: LBiF, UBiF, LBjF, UBjF, LBkF, UBkF
@@ -4304,8 +4307,16 @@
       real(r8), allocatable :: dxF(:,:)
       real(r8), allocatable :: dyF(:,:)
 #   ifdef MASKING
+#    ifndef DISTRIBUTE
       real(r8), allocatable :: Fmsk(:,:)
+#    endif
 #   endif
+#  endif
+
+#  ifdef DISTRIBUTE
+#   define F3MASK Fine3dMask
+#  else
+#   define F3MASK Fmsk
 #  endif
 
 #  include "set_bounds.h"
@@ -4335,8 +4346,8 @@
         END IF
       END IF
 #   ifdef MASKING
-      IF (.not.allocated(Fmsk)) THEN
-        allocate ( Fmsk(LBi:UBi,LBj:UBj) )
+      IF (.not.allocated(Fine3dMask)) THEN
+        allocate ( Fine3dMask(LBi:UBi,LBj:UBj) )
       END IF
 #   endif
 !
@@ -4365,11 +4376,13 @@
       END IF
 #   ifdef MASKING
 !
-      CALL mp_aggregate2d (dg, model, gtype,                            &
-     &                     LBiF, UBiF, LBjF, UBjF,                      &
-     &                     LBi,  UBi,  LBj,  UBj,                       &
-     &                     Amsk, Fmsk)
-      IF (exit_flag.ne.NoError) RETURN
+      IF (GetMask) THEN
+        CALL mp_aggregate2d (dg, model, gtype,                          &
+     &                       LBiF, UBiF, LBjF, UBjF,                    &
+     &                       LBi,  UBi,  LBj,  UBj,                     &
+     &                       Amsk, Fine3dMask)
+        IF (exit_flag.ne.NoError) RETURN
+      END IF
 #   endif
 #  endif
 !
@@ -4396,8 +4409,8 @@
 #  ifdef MASKING
                   my_sum=my_sum+                                        &
      &                   F(i+Iadd,j+Jadd,k)*my_area*                    &
-     &                   MIN(1.0_r8,Fmsk(i+Iadd,j+Jadd))
-                  my_count=my_count+MIN(1.0_r8,Fmsk(i+Iadd,j+Jadd))
+     &                   MIN(1.0_r8,F3MASK(i+Iadd,j+Jadd))
+                  my_count=my_count+MIN(1.0_r8,F3MASK(i+Iadd,j+Jadd))
 #  else
                   my_sum=my_sum+                                        &
      &                   F(i+Iadd,j+Jadd,k)*my_area
@@ -4444,8 +4457,8 @@
                 DO Iadd=-half,half
 #  ifdef MASKING
                   my_sum=my_sum+                                        &
-     &                   F(i+Iadd,j+Jadd,k)*Fmsk(i+Iadd,j+Jadd)
-                  my_count=my_count+MIN(1.0_r8,Fmsk(i+Iadd,j+Jadd))
+     &                   F(i+Iadd,j+Jadd,k)*F3MASK(i+Iadd,j+Jadd)
+                  my_count=my_count+MIN(1.0_r8,F3MASK(i+Iadd,j+Jadd))
 #  else
                   my_sum=my_sum+                                        &
      &                   F(i+Iadd,j+Jadd,k)
@@ -4479,11 +4492,15 @@
         END IF
       END IF
 #   ifdef MASKING
+#    ifndef DISTRIBUTE
       IF (allocated(Fmsk)) THEN
         deallocate (Fmsk)
       END IF
+#    endif
 #   endif
 #  endif
+
+#  undef F3MASK
 
       RETURN
       END SUBROUTINE fine2coarse3d
