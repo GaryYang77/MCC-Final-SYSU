@@ -4394,7 +4394,7 @@
 !
       character(len=*), intent(in) :: svname
 !
-      TYPE (T_NGC), intent(in) :: contact(:)
+      TYPE (T_NGC), intent(inout) :: contact(:)
 !
 #  ifdef ASSUMED_SHAPE
       real(r8), intent(in) :: pmC(LBiC:,LBjC:)
@@ -4447,7 +4447,6 @@
       integer :: F_Iend, F_Istr, F_Jend, F_Jstr
       integer :: BlockLen, Klen, LBi, UBi, LBj, UBj, Npts
       integer :: Ncross, Nnodes, ib, ii, jj, kk, rank
-      integer, allocatable :: BlockOwner(:), CrossSlot(:)
 #  endif
 
       real(r8) :: areaC_inv, my_area, my_areasum, ratio
@@ -4514,49 +4513,54 @@
         BlockLen=Rscale*Rscale
         Klen=UBkF-LBkF+1
         Nnodes=NtileI(dg)*NtileJ(dg)-1
-        allocate (BlockOwner(Npoints), CrossSlot(Npoints))
-        BlockOwner=-1
-        CrossSlot=0
-        Ncross=0
 !
-!  Classify donor blocks. All ranks compute the same ownership map.
+!  Classify donor blocks once. Grid contacts and MPI decomposition remain
+!  fixed throughout a run, so all state variables reuse this integer map.
 !
-        DO m=1,Npoints
-          i=contact(cr)%Idg(m)
-          j=contact(cr)%Jdg(m)
-          DO rank=0,Nnodes
-            SELECT CASE (ABS(gtype))
-              CASE (p3dvar)
-                F_Istr=BOUNDS(dg)%IstrP(rank)
-                F_Iend=BOUNDS(dg)%IendP(rank)
-                F_Jstr=BOUNDS(dg)%JstrP(rank)
-                F_Jend=BOUNDS(dg)%JendP(rank)
-              CASE (r3dvar)
-                F_Istr=BOUNDS(dg)%IstrT(rank)
-                F_Iend=BOUNDS(dg)%IendT(rank)
-                F_Jstr=BOUNDS(dg)%JstrT(rank)
-                F_Jend=BOUNDS(dg)%JendT(rank)
-              CASE (u3dvar)
-                F_Istr=BOUNDS(dg)%IstrP(rank)
-                F_Iend=BOUNDS(dg)%IendP(rank)
-                F_Jstr=BOUNDS(dg)%JstrT(rank)
-                F_Jend=BOUNDS(dg)%JendT(rank)
-              CASE (v3dvar)
-                F_Istr=BOUNDS(dg)%IstrT(rank)
-                F_Iend=BOUNDS(dg)%IendT(rank)
-                F_Jstr=BOUNDS(dg)%JstrP(rank)
-                F_Jend=BOUNDS(dg)%JendP(rank)
-            END SELECT
-            IF (((F_Istr.le.i-half).and.(i+half.le.F_Iend)).and.       &
-     &          ((F_Jstr.le.j-half).and.(j+half.le.F_Jend))) THEN
-              BlockOwner(m)=rank
+        IF (contact(cr)%F2CnCross.lt.0) THEN
+          contact(cr)%F2Cowner=-1
+          contact(cr)%F2Ccross=0
+          Ncross=0
+          DO m=1,Npoints
+            i=contact(cr)%Idg(m)
+            j=contact(cr)%Jdg(m)
+            DO rank=0,Nnodes
+              SELECT CASE (ABS(gtype))
+                CASE (p3dvar)
+                  F_Istr=BOUNDS(dg)%IstrP(rank)
+                  F_Iend=BOUNDS(dg)%IendP(rank)
+                  F_Jstr=BOUNDS(dg)%JstrP(rank)
+                  F_Jend=BOUNDS(dg)%JendP(rank)
+                CASE (r3dvar)
+                  F_Istr=BOUNDS(dg)%IstrT(rank)
+                  F_Iend=BOUNDS(dg)%IendT(rank)
+                  F_Jstr=BOUNDS(dg)%JstrT(rank)
+                  F_Jend=BOUNDS(dg)%JendT(rank)
+                CASE (u3dvar)
+                  F_Istr=BOUNDS(dg)%IstrP(rank)
+                  F_Iend=BOUNDS(dg)%IendP(rank)
+                  F_Jstr=BOUNDS(dg)%JstrT(rank)
+                  F_Jend=BOUNDS(dg)%JendT(rank)
+                CASE (v3dvar)
+                  F_Istr=BOUNDS(dg)%IstrT(rank)
+                  F_Iend=BOUNDS(dg)%IendT(rank)
+                  F_Jstr=BOUNDS(dg)%JstrP(rank)
+                  F_Jend=BOUNDS(dg)%JendP(rank)
+              END SELECT
+              IF (((F_Istr.le.i-half).and.(i+half.le.F_Iend)).and.     &
+     &            ((F_Jstr.le.j-half).and.(j+half.le.F_Jend))) THEN
+                contact(cr)%F2Cowner(m)=rank
+              END IF
+            END DO
+            IF (contact(cr)%F2Cowner(m).lt.0) THEN
+              Ncross=Ncross+1
+              contact(cr)%F2Ccross(m)=Ncross
             END IF
           END DO
-          IF (BlockOwner(m).lt.0) THEN
-            Ncross=Ncross+1
-            CrossSlot(m)=Ncross
-          END IF
-        END DO
+          contact(cr)%F2CnCross=Ncross
+        ELSE
+          Ncross=contact(cr)%F2CnCross
+        END IF
 !
 !  Reset this rank's physical bounds after the classification loop.
 !
@@ -4606,7 +4610,7 @@
           DO m=1,Npoints
             i=contact(cr)%Idg(m)
             j=contact(cr)%Jdg(m)
-            IF (BlockOwner(m).eq.MyRank) THEN
+            IF (contact(cr)%F2Cowner(m).eq.MyRank) THEN
               DO Jadd=-half,half
                 DO Iadd=-half,half
 #   ifdef MASKING
@@ -4617,7 +4621,7 @@
 #   endif
                 END DO
               END DO
-            ELSE IF (CrossSlot(m).gt.0) THEN
+            ELSE IF (contact(cr)%F2Ccross(m).gt.0) THEN
               DO Jadd=-half,half
                 jj=j+Jadd
                 DO Iadd=-half,half
@@ -4626,9 +4630,10 @@
                   IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.         &
      &                ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
 #   ifdef MASKING
-                    Fine3dCrossMask(ib,CrossSlot(m))=Amsk(ii,jj)
+                    Fine3dCrossMask(ib,contact(cr)%F2Ccross(m))=       &
+     &                             Amsk(ii,jj)
 #   else
-                    Fine3dCrossMask(ib,CrossSlot(m))=1.0_r8
+                    Fine3dCrossMask(ib,contact(cr)%F2Ccross(m))=1.0_r8
 #   endif
                   END IF
                 END DO
@@ -4647,7 +4652,7 @@
         DO m=1,Npoints
           i=contact(cr)%Idg(m)
           j=contact(cr)%Jdg(m)
-          IF (BlockOwner(m).eq.MyRank) THEN
+          IF (contact(cr)%F2Cowner(m).eq.MyRank) THEN
             DO k=LBkF,UBkF
               kk=k-LBkF+1
               DO Jadd=-half,half
@@ -4661,7 +4666,7 @@
                 END DO
               END DO
             END DO
-          ELSE IF (CrossSlot(m).gt.0) THEN
+          ELSE IF (contact(cr)%F2Ccross(m).gt.0) THEN
             DO k=LBkF,UBkF
               kk=k-LBkF+1
               DO Jadd=-half,half
@@ -4671,7 +4676,7 @@
                   ib=(Jadd+half)*Rscale+Iadd+half+1
                   IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.         &
      &                ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
-                    Fcross(ib,kk,CrossSlot(m))=A(ii,jj,k)
+                    Fcross(ib,kk,contact(cr)%F2Ccross(m))=A(ii,jj,k)
                   END IF
                 END DO
               END DO
@@ -4679,7 +4684,8 @@
           END IF
         END DO
         Npts=Klen*Npoints
-        CALL mp_assemble (dg, model, Npts, 0.0_r8, Fsum, BlockOwner)
+        CALL mp_assemble (dg, model, Npts, 0.0_r8, Fsum,              &
+     &                    contact(cr)%F2Cowner)
         IF (exit_flag.ne.NoError) RETURN
         IF (Ncross.gt.0) THEN
           Npts=BlockLen*Klen*Ncross
@@ -4695,7 +4701,7 @@
             DO k=LBkC,UBkC
               kk=k-LBkC+1
               my_avg=0.0_r8
-              IF (BlockOwner(m).ge.0) THEN
+              IF (contact(cr)%F2Cowner(m).ge.0) THEN
                 IF (Fine3dCount(m).gt.0.0_r8) THEN
                   my_avg=Fsum(kk,m)/Fine3dCount(m)
                 END IF
@@ -4706,13 +4712,17 @@
                   DO Iadd=-half,half
                     ib=(Jadd+half)*Rscale+Iadd+half+1
 #   ifdef MASKING
-                    my_sum=my_sum+Fcross(ib,kk,CrossSlot(m))*          &
-     &                     Fine3dCrossMask(ib,CrossSlot(m))
+                    my_sum=my_sum+                                   &
+     &                     Fcross(ib,kk,contact(cr)%F2Ccross(m))*     &
+     &                     Fine3dCrossMask                            &
+     &                     (ib,contact(cr)%F2Ccross(m))
                     my_count=my_count+                                &
      &                       MIN(1.0_r8,                               &
-     &                           Fine3dCrossMask(ib,CrossSlot(m)))
+     &                           Fine3dCrossMask                       &
+     &                           (ib,contact(cr)%F2Ccross(m)))
 #   else
-                    my_sum=my_sum+Fcross(ib,kk,CrossSlot(m))
+                    my_sum=my_sum+                                   &
+     &                     Fcross(ib,kk,contact(cr)%F2Ccross(m))
                     my_count=my_count+1.0_r8
 #   endif
                   END DO
@@ -4726,7 +4736,7 @@
             END DO
           END IF
         END DO
-        deallocate (BlockOwner, CrossSlot, Fsum)
+        deallocate (Fsum)
         IF (allocated(Fcross)) deallocate (Fcross)
         RETURN
       END IF

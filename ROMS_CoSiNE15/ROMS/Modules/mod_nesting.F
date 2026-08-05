@@ -274,6 +274,9 @@
         integer, pointer :: Jdg(:) ! donor grid, cell J-bottom index
 # ifdef DISTRIBUTE
         integer, pointer :: Downer(:) ! rank owning donor cell
+        integer :: F2CnCross          ! crossing fine-to-coarse blocks
+        integer, pointer :: F2Cowner(:) ! owner of complete donor block
+        integer, pointer :: F2Ccross(:) ! slot of crossing donor block
 # endif
 # ifdef SOLVE3D
         integer, pointer :: Kdg(:,:)         ! donor grid, cell K-index

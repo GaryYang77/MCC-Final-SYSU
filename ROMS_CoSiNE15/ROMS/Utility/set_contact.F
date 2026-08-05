@@ -482,9 +482,24 @@
         allocate ( Rcontact(cr) % Downer(NpointsR(cr)) )
         allocate ( Ucontact(cr) % Downer(NpointsU(cr)) )
         allocate ( Vcontact(cr) % Downer(NpointsV(cr)) )
+        allocate ( Rcontact(cr) % F2Cowner(NpointsR(cr)) )
+        allocate ( Ucontact(cr) % F2Cowner(NpointsU(cr)) )
+        allocate ( Vcontact(cr) % F2Cowner(NpointsV(cr)) )
+        allocate ( Rcontact(cr) % F2Ccross(NpointsR(cr)) )
+        allocate ( Ucontact(cr) % F2Ccross(NpointsU(cr)) )
+        allocate ( Vcontact(cr) % F2Ccross(NpointsV(cr)) )
         Rcontact(cr) % Downer = -2
         Ucontact(cr) % Downer = -2
         Vcontact(cr) % Downer = -2
+        Rcontact(cr) % F2CnCross = -1
+        Ucontact(cr) % F2CnCross = -1
+        Vcontact(cr) % F2CnCross = -1
+        Rcontact(cr) % F2Cowner = -1
+        Ucontact(cr) % F2Cowner = -1
+        Vcontact(cr) % F2Cowner = -1
+        Rcontact(cr) % F2Ccross = 0
+        Ucontact(cr) % F2Ccross = 0
+        Vcontact(cr) % F2Ccross = 0
 # endif
 
 # ifdef SOLVE3D
