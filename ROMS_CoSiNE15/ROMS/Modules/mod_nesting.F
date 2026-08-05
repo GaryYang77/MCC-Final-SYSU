@@ -274,6 +274,8 @@
         integer, pointer :: Jdg(:) ! donor grid, cell J-bottom index
 # ifdef DISTRIBUTE
         integer, pointer :: Downer(:) ! rank owning donor cell
+        integer :: Dnlocal            ! donor points owned by this rank
+        integer, pointer :: Dlocal(:) ! local donor point indices
         integer :: F2CnCross          ! crossing fine-to-coarse blocks
         integer, pointer :: F2Cowner(:) ! owner of complete donor block
         integer, pointer :: F2Ccross(:) ! slot of crossing donor block

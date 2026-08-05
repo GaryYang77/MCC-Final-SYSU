@@ -482,6 +482,9 @@
         allocate ( Rcontact(cr) % Downer(NpointsR(cr)) )
         allocate ( Ucontact(cr) % Downer(NpointsU(cr)) )
         allocate ( Vcontact(cr) % Downer(NpointsV(cr)) )
+        allocate ( Rcontact(cr) % Dlocal(NpointsR(cr)) )
+        allocate ( Ucontact(cr) % Dlocal(NpointsU(cr)) )
+        allocate ( Vcontact(cr) % Dlocal(NpointsV(cr)) )
         allocate ( Rcontact(cr) % F2Cowner(NpointsR(cr)) )
         allocate ( Ucontact(cr) % F2Cowner(NpointsU(cr)) )
         allocate ( Vcontact(cr) % F2Cowner(NpointsV(cr)) )
@@ -491,6 +494,12 @@
         Rcontact(cr) % Downer = -2
         Ucontact(cr) % Downer = -2
         Vcontact(cr) % Downer = -2
+        Rcontact(cr) % Dnlocal = -1
+        Ucontact(cr) % Dnlocal = -1
+        Vcontact(cr) % Dnlocal = -1
+        Rcontact(cr) % Dlocal = 0
+        Ucontact(cr) % Dlocal = 0
+        Vcontact(cr) % Dlocal = 0
         Rcontact(cr) % F2CnCross = -1
         Ucontact(cr) % F2CnCross = -1
         Vcontact(cr) % F2CnCross = -1

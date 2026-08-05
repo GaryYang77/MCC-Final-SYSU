@@ -4959,7 +4959,7 @@
 
 # ifdef DISTRIBUTE
 !
-      USE mod_parallel, ONLY : numthreads
+      USE mod_parallel, ONLY : MyRank, numthreads
       USE distribute_mod, ONLY : mp_assemble
 # endif
 !
@@ -4983,9 +4983,10 @@
 !
 !  Local variable declarations.
 !
-      integer :: i, ip1, j, jp1, m, ntile
+      logical :: UseLocalList
+      integer :: i, idx, ip1, j, jp1, m, ntile
       integer :: Imin, Imax, Jmin, Jmax
-      integer :: Istr, Iend, Jstr, Jend
+      integer :: Istr, Iend, Jstr, Jend, Nlocal
 # ifdef DISTRIBUTE
       integer :: Npts
 # endif
@@ -5076,6 +5077,13 @@
             END SELECT
           END DO
         END DO
+        contact(cr)%Dnlocal=0
+        DO m=1,Npoints
+          IF (contact(cr)%Downer(m).eq.MyRank) THEN
+            contact(cr)%Dnlocal=contact(cr)%Dnlocal+1
+            contact(cr)%Dlocal(contact(cr)%Dnlocal)=m
+          END IF
+        END DO
       END IF
 # endif
 !
@@ -5087,13 +5095,34 @@
 !  of the grid. This implies that contact point lies on the grid
 !  boundary.
 !
-      DO m=1,Npoints
+# ifdef DISTRIBUTE
+      UseLocalList=(NtileI(dg)*NtileJ(dg).eq.numthreads)
+      IF (UseLocalList) THEN
+        Nlocal=contact(cr)%Dnlocal
+      ELSE
+        Nlocal=Npoints
+      END IF
+# else
+      UseLocalList=.FALSE.
+      Nlocal=Npoints
+# endif
+      DO idx=1,Nlocal
+# ifdef DISTRIBUTE
+        IF (UseLocalList) THEN
+          m=contact(cr)%Dlocal(idx)
+        ELSE
+          m=idx
+        END IF
+# else
+        m=idx
+# endif
         i=contact(cr)%Idg(m)
         j=contact(cr)%Jdg(m)
         ip1=MIN(i+1,Imax)
         jp1=MIN(j+1,Jmax)
-        IF (((Istr.le.i).and.(i.le.Iend)).and.                          &
-     &      ((Jstr.le.j).and.(j.le.Jend))) THEN
+        IF (UseLocalList.or.                                           &
+     &      (((Istr.le.i).and.(i.le.Iend)).and.                        &
+     &       ((Jstr.le.j).and.(j.le.Jend)))) THEN
           Ac(1,m)=Ad(i  ,j  )
           Ac(2,m)=Ad(ip1,j  )
           Ac(3,m)=Ad(ip1,jp1)
@@ -5154,7 +5183,7 @@
 
 #  ifdef DISTRIBUTE
 !
-      USE mod_parallel, ONLY : numthreads
+      USE mod_parallel, ONLY : MyRank, numthreads
       USE distribute_mod, ONLY : mp_assemble
 #  endif
 !
@@ -5178,9 +5207,10 @@
 !
 !  Local variable declarations.
 !
-      integer :: i, ip1, j, jp1, k, m, ntile
+      logical :: UseLocalList
+      integer :: i, idx, ip1, j, jp1, k, m, ntile
       integer :: Imin, Imax, Jmin, Jmax
-      integer :: Istr, Iend, Jstr, Jend
+      integer :: Istr, Iend, Jstr, Jend, Nlocal
 #  ifdef DISTRIBUTE
       integer :: Npts
 #  endif
@@ -5267,6 +5297,13 @@
             END SELECT
           END DO
         END DO
+        contact(cr)%Dnlocal=0
+        DO m=1,Npoints
+          IF (contact(cr)%Downer(m).eq.MyRank) THEN
+            contact(cr)%Dnlocal=contact(cr)%Dnlocal+1
+            contact(cr)%Dlocal(contact(cr)%Dnlocal)=m
+          END IF
+        END DO
       END IF
 #  endif
 !
@@ -5278,14 +5315,35 @@
 !  of the grid. This implies that contact point lies on the grid
 !  boundary.
 !
+#  ifdef DISTRIBUTE
+      UseLocalList=(NtileI(dg)*NtileJ(dg).eq.numthreads)
+      IF (UseLocalList) THEN
+        Nlocal=contact(cr)%Dnlocal
+      ELSE
+        Nlocal=Npoints
+      END IF
+#  else
+      UseLocalList=.FALSE.
+      Nlocal=Npoints
+#  endif
       DO k=LBk,UBk
-        DO m=1,Npoints
+        DO idx=1,Nlocal
+#  ifdef DISTRIBUTE
+          IF (UseLocalList) THEN
+            m=contact(cr)%Dlocal(idx)
+          ELSE
+            m=idx
+          END IF
+#  else
+          m=idx
+#  endif
           i=contact(cr)%Idg(m)
           j=contact(cr)%Jdg(m)
           ip1=MIN(i+1,Imax)
           jp1=MIN(j+1,Jmax)
-          IF (((Istr.le.i).and.(i.le.Iend)).and.                        &
-     &        ((Jstr.le.j).and.(j.le.Jend))) THEN
+          IF (UseLocalList.or.                                         &
+     &        (((Istr.le.i).and.(i.le.Iend)).and.                      &
+     &         ((Jstr.le.j).and.(j.le.Jend)))) THEN
             Ac(1,k,m)=Ad(i  ,j  ,k)
             Ac(2,k,m)=Ad(ip1,j  ,k)
             Ac(3,k,m)=Ad(ip1,jp1,k)
