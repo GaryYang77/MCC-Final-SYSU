@@ -485,6 +485,9 @@
         allocate ( Rcontact(cr) % Rowner(NpointsR(cr)) )
         allocate ( Ucontact(cr) % Rowner(NpointsU(cr)) )
         allocate ( Vcontact(cr) % Rowner(NpointsV(cr)) )
+        allocate ( Rcontact(cr) % Rlocal(NpointsR(cr)) )
+        allocate ( Ucontact(cr) % Rlocal(NpointsU(cr)) )
+        allocate ( Vcontact(cr) % Rlocal(NpointsV(cr)) )
         allocate ( Rcontact(cr) % Dlocal(NpointsR(cr)) )
         allocate ( Ucontact(cr) % Dlocal(NpointsU(cr)) )
         allocate ( Vcontact(cr) % Dlocal(NpointsV(cr)) )
@@ -500,6 +503,12 @@
         Rcontact(cr) % Rowner = -2
         Ucontact(cr) % Rowner = -2
         Vcontact(cr) % Rowner = -2
+        Rcontact(cr) % Rnlocal = -1
+        Ucontact(cr) % Rnlocal = -1
+        Vcontact(cr) % Rnlocal = -1
+        Rcontact(cr) % Rlocal = 0
+        Ucontact(cr) % Rlocal = 0
+        Vcontact(cr) % Rlocal = 0
         Rcontact(cr) % Dnlocal = -1
         Ucontact(cr) % Dnlocal = -1
         Vcontact(cr) % Dnlocal = -1

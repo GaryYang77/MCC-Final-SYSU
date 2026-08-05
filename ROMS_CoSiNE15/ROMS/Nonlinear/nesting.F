@@ -4443,10 +4443,10 @@
 !
 !  Local variable declarations.
 !
-      integer :: Iadd, Ic, Jadd, Jc, half, i, j, k, m
+      integer :: Iadd, Ic, Jadd, Jc, half, i, idx, j, k, m
 #  ifdef DISTRIBUTE
       integer :: F_Iend, F_Istr, F_Jend, F_Jstr
-      integer :: BlockLen, Klen, LBi, UBi, LBj, UBj, Npts
+      integer :: BlockLen, Klen, LBi, UBi, LBj, UBj, Nlocal, Npts
       integer :: Ncross, Nnodes, Rnodes, ib, ii, jj, kk, rank
 #  endif
 
@@ -4601,6 +4601,13 @@
      &          contact(cr)%Rowner(m)=rank
             END DO
           END DO
+          contact(cr)%Rnlocal=0
+          DO m=1,Npoints
+            IF (contact(cr)%Rowner(m).eq.MyRank) THEN
+              contact(cr)%Rnlocal=contact(cr)%Rnlocal+1
+              contact(cr)%Rlocal(contact(cr)%Rnlocal)=m
+            END IF
+          END DO
         END IF
 !
 !  Reset this rank's physical bounds after the classification loop.
@@ -4734,7 +4741,9 @@
           IF (exit_flag.ne.NoError) RETURN
         END IF
 
-        DO m=1,Npoints
+        Nlocal=contact(cr)%Rnlocal
+        DO idx=1,Nlocal
+          m=contact(cr)%Rlocal(idx)
           Ic=contact(cr)%Irg(m)
           Jc=contact(cr)%Jrg(m)
           IF (((Istr.le.Ic).and.(Ic.le.Iend)).and.                     &
@@ -5174,6 +5183,13 @@
             END SELECT
           END DO
         END DO
+        contact(cr)%Rnlocal=0
+        DO m=1,Npoints
+          IF (contact(cr)%Rowner(m).eq.MyRank) THEN
+            contact(cr)%Rnlocal=contact(cr)%Rnlocal+1
+            contact(cr)%Rlocal(contact(cr)%Rnlocal)=m
+          END IF
+        END DO
       END IF
 # endif
 !
@@ -5443,6 +5459,13 @@
      &            contact(cr)%Rowner(m)=ntile
             END SELECT
           END DO
+        END DO
+        contact(cr)%Rnlocal=0
+        DO m=1,Npoints
+          IF (contact(cr)%Rowner(m).eq.MyRank) THEN
+            contact(cr)%Rnlocal=contact(cr)%Rnlocal+1
+            contact(cr)%Rlocal(contact(cr)%Rnlocal)=m
+          END IF
         END DO
       END IF
 #  endif
@@ -5780,8 +5803,9 @@
 !
 !  Local variable declarations.
 !
-      integer :: i, j, m
-      integer :: Istr, Iend, Jstr, Jend
+      logical :: UseLocalList
+      integer :: i, idx, j, m
+      integer :: Istr, Iend, Jstr, Jend, Nlocal
 !
 !-----------------------------------------------------------------------
 !  Interpolate 2D data from donor grid to receiver grid contact points.
@@ -5809,7 +5833,27 @@
 !
 !  Interpolate.
 !
-      DO m=1,Npoints
+# ifdef DISTRIBUTE
+      UseLocalList=contact(cr)%Rnlocal.ge.0
+      IF (UseLocalList) THEN
+        Nlocal=contact(cr)%Rnlocal
+      ELSE
+        Nlocal=Npoints
+      END IF
+# else
+      UseLocalList=.FALSE.
+      Nlocal=Npoints
+# endif
+      DO idx=1,Nlocal
+# ifdef DISTRIBUTE
+        IF (UseLocalList) THEN
+          m=contact(cr)%Rlocal(idx)
+        ELSE
+          m=idx
+        END IF
+# else
+        m=idx
+# endif
         i=contact(cr)%Irg(m)
         j=contact(cr)%Jrg(m)
         IF (((Istr.le.i).and.(i.le.Iend)).and.                          &
@@ -5902,8 +5946,9 @@
 !
 !  Local variable declarations.
 !
-      integer :: i, j, k, kdg, kdgm1, m
-      integer :: Istr, Iend, Jstr, Jend, Kmin
+      logical :: UseLocalList
+      integer :: i, idx, j, k, kdg, kdgm1, m
+      integer :: Istr, Iend, Jstr, Jend, Kmin, Nlocal
 
       real(r8), dimension(8) :: cff
 !
@@ -5942,8 +5987,28 @@
 !
 !  Interpolate.
 !
+#  ifdef DISTRIBUTE
+      UseLocalList=contact(cr)%Rnlocal.ge.0
+      IF (UseLocalList) THEN
+        Nlocal=contact(cr)%Rnlocal
+      ELSE
+        Nlocal=Npoints
+      END IF
+#  else
+      UseLocalList=.FALSE.
+      Nlocal=Npoints
+#  endif
       DO k=LBk,UBk
-        DO m=1,Npoints
+        DO idx=1,Nlocal
+#  ifdef DISTRIBUTE
+          IF (UseLocalList) THEN
+            m=contact(cr)%Rlocal(idx)
+          ELSE
+            m=idx
+          END IF
+#  else
+          m=idx
+#  endif
           i=contact(cr)%Irg(m)
           j=contact(cr)%Jrg(m)
           kdg=contact(cr)%Kdg(k,m)

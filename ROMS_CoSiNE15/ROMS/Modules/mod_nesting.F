@@ -275,6 +275,8 @@
 # ifdef DISTRIBUTE
         integer, pointer :: Downer(:) ! rank owning donor cell
         integer, pointer :: Rowner(:) ! rank consuming receiver point
+        integer :: Rnlocal            ! receiver points used by this rank
+        integer, pointer :: Rlocal(:) ! local receiver point indices
         integer :: Dnlocal            ! donor points owned by this rank
         integer, pointer :: Dlocal(:) ! local donor point indices
         integer :: F2CnCross          ! crossing fine-to-coarse blocks
