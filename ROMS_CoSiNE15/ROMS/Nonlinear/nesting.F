@@ -4447,7 +4447,7 @@
 #  ifdef DISTRIBUTE
       integer :: F_Iend, F_Istr, F_Jend, F_Jstr
       integer :: BlockLen, Klen, LBi, UBi, LBj, UBj, Npts
-      integer :: Ncross, Nnodes, ib, ii, jj, kk, rank
+      integer :: Ncross, Nnodes, Rnodes, ib, ii, jj, kk, rank
 #  endif
 
       real(r8) :: areaC_inv, my_area, my_areasum, ratio
@@ -4561,6 +4561,46 @@
           contact(cr)%F2CnCross=Ncross
         ELSE
           Ncross=contact(cr)%F2CnCross
+        END IF
+!
+!  Cache the rank that consumes each coarse-grid contact point. Complete
+!  donor-block sums can then be routed only to that rank instead of being
+!  replicated to every rank.
+!
+        IF (ANY(contact(cr)%Rowner.eq.-2)) THEN
+          contact(cr)%Rowner=-1
+          Rnodes=NtileI(ng)*NtileJ(ng)-1
+          DO m=1,Npoints
+            i=contact(cr)%Irg(m)
+            j=contact(cr)%Jrg(m)
+            DO rank=0,Rnodes
+              SELECT CASE (ABS(gtype))
+                CASE (p3dvar)
+                  F_Istr=BOUNDS(ng)%IstrP(rank)
+                  F_Iend=BOUNDS(ng)%IendP(rank)
+                  F_Jstr=BOUNDS(ng)%JstrP(rank)
+                  F_Jend=BOUNDS(ng)%JendP(rank)
+                CASE (r3dvar)
+                  F_Istr=BOUNDS(ng)%IstrT(rank)
+                  F_Iend=BOUNDS(ng)%IendT(rank)
+                  F_Jstr=BOUNDS(ng)%JstrT(rank)
+                  F_Jend=BOUNDS(ng)%JendT(rank)
+                CASE (u3dvar)
+                  F_Istr=BOUNDS(ng)%IstrP(rank)
+                  F_Iend=BOUNDS(ng)%IendT(rank)
+                  F_Jstr=BOUNDS(ng)%JstrT(rank)
+                  F_Jend=BOUNDS(ng)%JendT(rank)
+                CASE (v3dvar)
+                  F_Istr=BOUNDS(ng)%IstrT(rank)
+                  F_Iend=BOUNDS(ng)%IendT(rank)
+                  F_Jstr=BOUNDS(ng)%JstrP(rank)
+                  F_Jend=BOUNDS(ng)%JendT(rank)
+              END SELECT
+              IF (((F_Istr.le.i).and.(i.le.F_Iend)).and.              &
+     &            ((F_Jstr.le.j).and.(j.le.F_Jend)))                  &
+     &          contact(cr)%Rowner(m)=rank
+            END DO
+          END DO
         END IF
 !
 !  Reset this rank's physical bounds after the classification loop.
@@ -4686,7 +4726,7 @@
         END DO
         Npts=Klen*Npoints
         CALL mp_assemble (dg, model, Npts, 0.0_r8, Fsum,              &
-     &                    contact(cr)%F2Cowner)
+     &                    contact(cr)%F2Cowner, contact(cr)%Rowner)
         IF (exit_flag.ne.NoError) RETURN
         IF (Ncross.gt.0) THEN
           Npts=BlockLen*Klen*Ncross
