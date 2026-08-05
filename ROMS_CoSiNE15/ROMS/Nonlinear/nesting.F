@@ -125,12 +125,83 @@
       PRIVATE :: put_composite
       PRIVATE :: put_refine
       PRIVATE :: put_refine2d
+# ifdef DISTRIBUTE
+      PRIVATE :: assemble_boundary_fluxes
+# endif
 # ifdef SOLVE3D
       PRIVATE :: put_refine3d
       PRIVATE :: z_weights
 # endif
 !
       CONTAINS
+# ifdef DISTRIBUTE
+!
+      SUBROUTINE assemble_boundary_fluxes (ng, model,                  &
+     &                                     F_west, F_east,             &
+     &                                     F_south, F_north)
+!
+!=======================================================================
+!                                                                      !
+!  Assemble four independent boundary-flux arrays in one collective.   !
+!                                                                      !
+!=======================================================================
+!
+      USE mod_param
+      USE mod_scalars, ONLY : exit_flag, NoError
+      USE distribute_mod, ONLY : mp_assemble
+!
+      implicit none
+!
+!  Imported variable declarations.
+!
+      integer, intent(in) :: ng, model
+
+      real(r8), intent(inout) :: F_west(:), F_east(:)
+      real(r8), intent(inout) :: F_south(:), F_north(:)
+!
+!  Local variable declarations.
+!
+      integer :: Npts, NptsSN, NptsWE, p
+
+      real(r8), allocatable, save :: Fpack(:)
+!$OMP THREADPRIVATE (Fpack)
+!
+!-----------------------------------------------------------------------
+!  Pack in a stable direction order and apply one element-wise sum.
+!-----------------------------------------------------------------------
+!
+      NptsWE=SIZE(F_west)
+      NptsSN=SIZE(F_south)
+      Npts=2*(NptsWE+NptsSN)
+      IF (allocated(Fpack)) THEN
+        IF (SIZE(Fpack).ne.Npts) deallocate (Fpack)
+      END IF
+      IF (.not.allocated(Fpack)) allocate (Fpack(Npts))
+
+      p=0
+      Fpack(p+1:p+NptsWE)=F_west
+      p=p+NptsWE
+      Fpack(p+1:p+NptsWE)=F_east
+      p=p+NptsWE
+      Fpack(p+1:p+NptsSN)=F_south
+      p=p+NptsSN
+      Fpack(p+1:p+NptsSN)=F_north
+
+      CALL mp_assemble (ng, model, Npts, 0.0_r8, Fpack)
+      IF (exit_flag.ne.NoError) RETURN
+
+      p=0
+      F_west=Fpack(p+1:p+NptsWE)
+      p=p+NptsWE
+      F_east=Fpack(p+1:p+NptsWE)
+      p=p+NptsWE
+      F_south=Fpack(p+1:p+NptsSN)
+      p=p+NptsSN
+      F_north=Fpack(p+1:p+NptsSN)
+
+      RETURN
+      END SUBROUTINE assemble_boundary_fluxes
+# endif
 !
       SUBROUTINE nesting (ng, model, isection)
 !
@@ -565,16 +636,9 @@
 !  Gather and broadcast data from all nodes.
 !-----------------------------------------------------------------------
 !
-      CALL mp_assemble (dg, model, NptsWE, Fspv, F_west (JLB:))
-      IF (exit_flag.ne.NoError) RETURN
-
-      CALL mp_assemble (dg, model, NptsWE, Fspv, F_east (JLB:))
-      IF (exit_flag.ne.NoError) RETURN
-
-      CALL mp_assemble (dg, model, NptsSN, Fspv, F_south(ILB:))
-      IF (exit_flag.ne.NoError) RETURN
-
-      CALL mp_assemble (dg, model, NptsSN, Fspv, F_north(ILB:))
+      CALL assemble_boundary_fluxes (dg, model,                        &
+     &                               F_west (JLB:), F_east (JLB:),     &
+     &                               F_south(ILB:), F_north(ILB:))
       IF (exit_flag.ne.NoError) RETURN
 # endif
 
@@ -917,14 +981,11 @@
 !
 !  Collect data from all nodes.
 !
-          CALL mp_assemble (dg, model, NptsWE, spv,                      &
-     &                      BRY_CONTACT(iwest ,cjcr)%Mflux(JLB:))
-          CALL mp_assemble (dg, model, NptsWE, spv,                      &
-     &                      BRY_CONTACT(ieast ,cjcr)%Mflux(JLB:))
-          CALL mp_assemble (dg, model, NptsSN, spv,                      &
-     &                      BRY_CONTACT(isouth,cjcr)%Mflux(ILB:))
-          CALL mp_assemble (dg, model, NptsSN, spv,                      &
-     &                      BRY_CONTACT(inorth,cjcr)%Mflux(ILB:))
+          CALL assemble_boundary_fluxes (dg, model,                    &
+     &                BRY_CONTACT(iwest ,cjcr)%Mflux(JLB:),            &
+     &                BRY_CONTACT(ieast ,cjcr)%Mflux(JLB:),            &
+     &                BRY_CONTACT(isouth,cjcr)%Mflux(ILB:),            &
+     &                BRY_CONTACT(inorth,cjcr)%Mflux(ILB:))
 # endif
         END IF
       END DO
@@ -6085,14 +6146,11 @@
      &                      OCEAN(ng)%vbar(:,:,2),                      &
      &                      OCEAN(ng)%vbar(:,:,3))
 !
-        CALL mp_assemble (ng, model, NptsWE, spv,                        &
-     &                    BRY_CONTACT(iwest ,cr)%Mflux(JLB:))
-        CALL mp_assemble (ng, model, NptsWE, spv,                        &
-     &                    BRY_CONTACT(ieast ,cr)%Mflux(JLB:))
-        CALL mp_assemble (ng, model, NptsSN, spv,                        &
-     &                    BRY_CONTACT(isouth,cr)%Mflux(ILB:))
-        CALL mp_assemble (ng, model, NptsSN, spv,                        &
-     &                    BRY_CONTACT(inorth,cr)%Mflux(ILB:))
+        CALL assemble_boundary_fluxes (ng, model,                      &
+     &                BRY_CONTACT(iwest ,cr)%Mflux(JLB:),              &
+     &                BRY_CONTACT(ieast ,cr)%Mflux(JLB:),              &
+     &                BRY_CONTACT(isouth,cr)%Mflux(ILB:),              &
+     &                BRY_CONTACT(inorth,cr)%Mflux(ILB:))
       END IF
 # endif
 !
