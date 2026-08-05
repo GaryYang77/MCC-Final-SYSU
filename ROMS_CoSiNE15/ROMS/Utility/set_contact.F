@@ -524,6 +524,12 @@
         Rcontact(cr) % F2Ccross = 0
         Ucontact(cr) % F2Ccross = 0
         Vcontact(cr) % F2Ccross = 0
+        nullify ( Rcontact(cr) % F2CcellOwner )
+        nullify ( Ucontact(cr) % F2CcellOwner )
+        nullify ( Vcontact(cr) % F2CcellOwner )
+        nullify ( Rcontact(cr) % F2Creceiver )
+        nullify ( Ucontact(cr) % F2Creceiver )
+        nullify ( Vcontact(cr) % F2Creceiver )
 # endif
 
 # ifdef SOLVE3D

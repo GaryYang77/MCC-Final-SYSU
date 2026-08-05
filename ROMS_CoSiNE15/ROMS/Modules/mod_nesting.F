@@ -282,6 +282,8 @@
         integer :: F2CnCross          ! crossing fine-to-coarse blocks
         integer, pointer :: F2Cowner(:) ! owner of complete donor block
         integer, pointer :: F2Ccross(:) ! slot of crossing donor block
+        integer, pointer :: F2CcellOwner(:,:) ! owner within crossing block
+        integer, pointer :: F2Creceiver(:) ! receiver of crossing block
 # endif
 # ifdef SOLVE3D
         integer, pointer :: Kdg(:,:)         ! donor grid, cell K-index

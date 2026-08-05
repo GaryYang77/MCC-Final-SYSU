@@ -1707,7 +1707,7 @@
       END SUBROUTINE mp_assemblef_2d
 !
       SUBROUTINE mp_assemblef_3d (ng, model, Npts, Aspv, A, Owner,     &
-     &                            Receiver)
+     &                            Receiver, CellOwner)
 !
 !***********************************************************************
 !                                                                      !
@@ -1747,6 +1747,7 @@
       real(r8), intent(inout) :: A(:,:,:)
       integer, intent(in), optional :: Owner(:)
       integer, intent(in), optional :: Receiver(:)
+      integer, intent(in), optional :: CellOwner(:,:)
 !
 !  Local variable declarations.
 !
@@ -1798,7 +1799,86 @@
 !  Collect data from all nodes.
 !-----------------------------------------------------------------------
 !
-      IF (PRESENT(Owner).and.PRESENT(Receiver).and.                    &
+      IF (PRESENT(CellOwner).and.PRESENT(Receiver).and.                &
+     &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
+!
+!  A crossing donor block can contain cells from several ranks, but every
+!  cell has a unique owner and the assembled block is consumed by only one
+!  receiver rank. Route each vertical cell record directly to that rank.
+!
+        IF ((SIZE(CellOwner,DIM=1).ne.Asize(1)).or.                    &
+     &      (SIZE(CellOwner,DIM=2).ne.Asize(3)).or.                    &
+     &      (SIZE(Receiver).ne.Asize(3))) THEN
+          IF (Master) WRITE (stdout,10) SIZE(CellOwner),               &
+     &                                    Asize(1)*Asize(3)
+          exit_flag=7
+        END IF
+        Counts=0
+        Rcounts=0
+        DO m=1,Asize(3)
+          rank=Receiver(m)
+          IF (rank.ge.numthreads) THEN
+            exit_flag=7
+          ELSE
+            DO i=1,Asize(1)
+              source=CellOwner(i,m)
+              IF (source.ge.numthreads) THEN
+                exit_flag=7
+              ELSE
+                IF ((source.eq.MyRank).and.(rank.ge.0))                &
+     &            Counts(rank)=Counts(rank)+Asize(2)
+                IF ((rank.eq.MyRank).and.(source.ge.0))                &
+     &            Rcounts(source)=Rcounts(source)+Asize(2)
+              END IF
+            END DO
+          END IF
+        END DO
+        Displs(0)=0
+        Rdispls(0)=0
+        DO rank=1,numthreads-1
+          Displs(rank)=Displs(rank-1)+Counts(rank-1)
+          Rdispls(rank)=Rdispls(rank-1)+Rcounts(rank-1)
+        END DO
+        Offset=0
+        DO m=1,Asize(3)
+          rank=Receiver(m)
+          IF (rank.ge.0) THEN
+            DO i=1,Asize(1)
+              IF (CellOwner(i,m).eq.MyRank) THEN
+                p=Displs(rank)+Offset(rank)
+                DO k=1,Asize(2)
+                  p=p+1
+                  Asend(p)=A(i,k,m)
+                END DO
+                Offset(rank)=Offset(rank)+Asize(2)
+              END IF
+            END DO
+          END IF
+        END DO
+        CALL mpi_alltoallv (Asend, Counts, Displs, MP_FLOAT,           &
+     &                      Arecv, Rcounts, Rdispls, MP_FLOAT,         &
+     &                      OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          Roffset=0
+          DO m=1,Asize(3)
+            IF (Receiver(m).eq.MyRank) THEN
+              DO i=1,Asize(1)
+                source=CellOwner(i,m)
+                IF (source.lt.0) THEN
+                  A(i,:,m)=0.0_r8
+                ELSE
+                  p=Rdispls(source)+Roffset(source)
+                  DO k=1,Asize(2)
+                    p=p+1
+                    A(i,k,m)=Arecv(p)
+                  END DO
+                  Roffset(source)=Roffset(source)+Asize(2)
+                END IF
+              END DO
+            END IF
+          END DO
+        END IF
+      ELSE IF (PRESENT(Owner).and.PRESENT(Receiver).and.               &
      &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
         IF ((SIZE(Owner).ne.Asize(3)).or.                              &
      &      (SIZE(Receiver).ne.Asize(3))) THEN

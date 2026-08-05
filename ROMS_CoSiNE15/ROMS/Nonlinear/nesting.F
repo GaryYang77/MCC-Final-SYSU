@@ -4559,6 +4559,53 @@
             END IF
           END DO
           contact(cr)%F2CnCross=Ncross
+          IF (Ncross.gt.0) THEN
+            allocate (contact(cr)%F2CcellOwner(BlockLen,Ncross))
+            allocate (contact(cr)%F2Creceiver(Ncross))
+            contact(cr)%F2CcellOwner=-1
+            contact(cr)%F2Creceiver=-2
+            DO m=1,Npoints
+              IF (contact(cr)%F2Ccross(m).gt.0) THEN
+                i=contact(cr)%Idg(m)
+                j=contact(cr)%Jdg(m)
+                DO rank=0,Nnodes
+                  SELECT CASE (ABS(gtype))
+                    CASE (p3dvar)
+                      F_Istr=BOUNDS(dg)%IstrP(rank)
+                      F_Iend=BOUNDS(dg)%IendP(rank)
+                      F_Jstr=BOUNDS(dg)%JstrP(rank)
+                      F_Jend=BOUNDS(dg)%JendP(rank)
+                    CASE (r3dvar)
+                      F_Istr=BOUNDS(dg)%IstrT(rank)
+                      F_Iend=BOUNDS(dg)%IendT(rank)
+                      F_Jstr=BOUNDS(dg)%JstrT(rank)
+                      F_Jend=BOUNDS(dg)%JendT(rank)
+                    CASE (u3dvar)
+                      F_Istr=BOUNDS(dg)%IstrP(rank)
+                      F_Iend=BOUNDS(dg)%IendT(rank)
+                      F_Jstr=BOUNDS(dg)%JstrT(rank)
+                      F_Jend=BOUNDS(dg)%JendT(rank)
+                    CASE (v3dvar)
+                      F_Istr=BOUNDS(dg)%IstrT(rank)
+                      F_Iend=BOUNDS(dg)%IendT(rank)
+                      F_Jstr=BOUNDS(dg)%JstrP(rank)
+                      F_Jend=BOUNDS(dg)%JendP(rank)
+                  END SELECT
+                  DO Jadd=-half,half
+                    jj=j+Jadd
+                    DO Iadd=-half,half
+                      ii=i+Iadd
+                      ib=(Jadd+half)*Rscale+Iadd+half+1
+                      IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.     &
+     &                    ((F_Jstr.le.jj).and.(jj.le.F_Jend)))        &
+     &                  contact(cr)%F2CcellOwner                      &
+     &                    (ib,contact(cr)%F2Ccross(m))=rank
+                    END DO
+                  END DO
+                END DO
+              END IF
+            END DO
+          END IF
         ELSE
           Ncross=contact(cr)%F2CnCross
         END IF
@@ -4606,6 +4653,14 @@
             IF (contact(cr)%Rowner(m).eq.MyRank) THEN
               contact(cr)%Rnlocal=contact(cr)%Rnlocal+1
               contact(cr)%Rlocal(contact(cr)%Rnlocal)=m
+            END IF
+          END DO
+        END IF
+        IF ((Ncross.gt.0).and.ANY(contact(cr)%F2Creceiver.eq.-2)) THEN
+          DO m=1,Npoints
+            IF (contact(cr)%F2Ccross(m).gt.0) THEN
+              contact(cr)%F2Creceiver(contact(cr)%F2Ccross(m))=        &
+     &                              contact(cr)%Rowner(m)
             END IF
           END DO
         END IF
@@ -4737,7 +4792,9 @@
         IF (exit_flag.ne.NoError) RETURN
         IF (Ncross.gt.0) THEN
           Npts=BlockLen*Klen*Ncross
-          CALL mp_assemble (dg, model, Npts, 0.0_r8, Fcross)
+          CALL mp_assemble (dg, model, Npts, 0.0_r8, Fcross,           &
+     &                      Receiver=contact(cr)%F2Creceiver,          &
+     &                      CellOwner=contact(cr)%F2CcellOwner)
           IF (exit_flag.ne.NoError) RETURN
         END IF
 
