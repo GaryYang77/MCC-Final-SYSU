@@ -180,7 +180,7 @@ Local_Lab/runs/profile_scaling/full-3day-scaling_<timestamp>_<pid>/
 噪声。64 ranks 的 `8x8` 是本 sweep 固定的中间分块；若它表现异常，应另测 `4x16`，
 不要把节点数效应与 tile 形状效应混为一谈。
 
-### 2026-08-03 完整 sweep 结果
+### 2026-08-03 完整 sweep 结果（优化前基线）
 
 | 配置 | Job | Wall | 结果 |
 | --- | ---: | ---: | --- |
@@ -192,22 +192,40 @@ Local_Lab/runs/profile_scaling/full-3day-scaling_<timestamp>_<pid>/
 不是 OOM，也不能当作有效性能点。2 到 4 节点只从约 2:56:28 缩短到 2:39:49，新增一倍
 ranks 仅节省约 15.7 分钟，说明当前强扩展已经明显受 nesting/MPI 路径限制。
 
-60/300 步 demo 和完整 4 节点任务的关键占比如下：
+### 2026-08-04/05 优化后完整三天结果
 
-| 信号 | 60/300 步 | 完整三天 |
+累计 6 项渐进优化（#861 vertical weights、mask reuse、distributed fine2coarse、
+sparse Allgatherv、Scatterv input tiles、owner-aware fsum）后的完整三天结果：
+
+| 配置 | Job | Wall | vs 优化前 | 官方 vali.py |
+| --- | ---: | ---: | ---: | --- |
+| 2 节点 / 64 ranks / `8x8` | `—` | 6226 s | -41.2% | 全部 RMSE=0 ✅ |
+| 4 节点 / 128 ranks / `8x16` | `118566851` | 6452 s | -32.7% | 全部 RMSE=0 ✅ |
+| **4 节点 / 64 ranks / 16ppn / `8x8`** | **`118585284`** | **4657 s（1.29h）** | **—** | **全部 RMSE=0 ✅** |
+
+4nodes-64ranks-16ppn 是当前最快配置：每节点仅 16 ranks，内存带宽充裕、节点内 MPI
+争用低，相比 4node-128rank（6452s）快 27.8%，相比 2node-64rank（6226s）快 25.2%。
+**日常 DEMO profiling 已切换为此配置**。最终提交仍使用 4 节点 128 ranks。
+
+### 优化后 DEMO 与完整任务热点对比（4nodes-64ranks-16ppn）
+
+首个 4nodes-64ranks-16ppn DEMO：job `118597954`，Slurm wall **122.0 s**，PASS。
+相比旧 2nodes-64ranks 优化后 DEMO（162.99s）快 **25.1%**，验证了新配置的优势。
+
+| 信号 | DEMO (122s) | 完整三天 (4657s) |
 | --- | ---: | ---: |
-| Grid 1 region 49 point gather / total | 34.45% | 36.34% |
-| Grid 1 region 39 nesting / total | 14.00% | 14.22% |
-| Grid 1 region 53 ngetD / nesting | 83.77% | 84.17% |
-| Grid 2 region 39 nesting / total | 48.18% | 50.85% |
-| Grid 2 region 46 data gather / total | 27.51% | 28.78% |
-| Grid 2 region 55 n2way / nesting | 58.12% | 57.89% |
-| Grid 2 region 51 vertical weights / nesting | 31.40% | 31.13% |
+| Grid 1 total wall | 119.2s | 4657.3s |
+| Grid 1 region 49 point gather / total | 27.0% | 28.2% |
+| Grid 1 region 39 nesting / total | 11.9% | 12.6% |
+| Grid 1 region 53 ngetD / nesting | 99.3% | 99.5% |
+| Grid 2 region 39 nesting / total | 19.8% | 21.6% |
+| Grid 2 region 55 n2way / nesting | 70.8% | 71.0% |
+| Grid 2 region 35 tracer corrector / total | 17.2% | 17.9% |
+| Grid 2 region 49 point gather / total | 13.6% | 14.8% |
 
-热点排序及占比高度一致，因此日常优化使用固定 4 节点、128 ranks、`8x16`、60/300 步
-profiling 足以筛选方向，能把反馈周期控制在约 4 分钟。它仍不能证明最终加速：候选必须
-保持相同配置与 reference comparison；只有团队选出的最终累计版本才进入完整三天和
-官方验证。
+热点排序及占比高度一致，因此日常优化使用固定 4 节点、64 ranks、16ppn、`8x8`、60/300 步
+profiling 足以筛选方向。它仍不能证明最终加速：候选必须保持相同配置与 reference
+comparison；只有团队选出的最终累计版本才进入完整三天和官方验证。
 
 ## 测量 profiler 自身开销
 
@@ -257,14 +275,49 @@ python Local_Lab/profile_overhead.py \
 | nesting 子阶段顺序平衡中心估计 | 同一节点组两组比值的几何平均，约 `+0.89%` |
 | 完整 2 节点 profiling | `118500776`，10588 s，PASS |
 | 完整 4 节点 profiling | `118507345`，9589 s，PASS，官方 `vali.py` 通过 |
+| 优化后完整 4 节点 128-rank | `118566851`，6452 s，PASS，官方 `vali.py` 全部 RMSE=0 |
+| **优化后完整 4 节点 64-rank 16ppn** | **`118585284`，4657 s，PASS，官方 `vali.py` 全部 RMSE=0** |
 
-## 下一轮优化顺序
+## 下一轮优化顺序（基于 4nodes-64ranks-16ppn 完整三天热点）
 
-1. 沿 Grid 1 region 53 进入 `ngetD` 与 region 49 point gather，区分调用频率、payload 和等待。
-2. 沿 Grid 2 region 55 进入 `n2way/fine2coarse` 与 region 46 data gather。
-3. 对照 `#861` 检查两个网格的 vertical weights 是否存在可证明的重复计算。
-4. 对未提交候选只跑一次 2 节点、64-rank、60/300 步 profiling；接近噪声时由团队决定
-   是否复测，不自动增加作业。
-5. 对照 `#747` 在昆山节点实测 gather/assemble 的 collective 方案，不凭实现直觉替换。
-6. 每个普通 commit 必须先通过本地测试、1-rank 正确性 demo 和一次 2 节点、64-rank、60/300 步
-   profiling demo；只有团队选出的最终累计候选才运行完整三天和官方 `vali.py`。
+以下热点排序来自优化后的 4nodes-64ranks-16ppn 完整三天数据（`4nodes-64ranks-16ppn_optimized_20260805T014345Z_profile_bundle.json`）。注意 region 可嵌套，百分比不能相加为 100%。
+
+### P0 —— 必定有收益的方向
+
+1. **Grid 1 r49 `mpi_point_data_gathering`（1311s，28.2%）**：当前最大单项。`270e69a`
+   已将 Allreduce 改为 Allgatherv，但仍占近三成时间。方向：分析 contact 稀疏性和
+   owner 分布，评估非阻塞 MPI 重叠通信与计算；对照 ROMS `#747` 实测 gather/assemble
+   替代方案。
+
+2. **Grid 2 r55 `nesting_two_way_coupling`（711s，71.0% of nesting）**：`0cc1920`
+   混合方案已将 region 46 消除、r55 从 2826s 降到 1888s（128-rank），现在进一步
+   降到 711s（64-rank 16ppn）。方向：检查 fine-grid block sum 的循环向量化、减少
+   临时数组分配、评估 non-blocking MPI 在 n2way 中的可行性。
+
+3. **Grid 2 r35 `tracer_corrector`（835s，17.9%）**：**纯计算热点**，在低争用
+   配置下暴露出来。方向：循环合并/展开、缓存优化、检查冗余的水平/垂直 advection
+   计算；编译器 flags 微调需单独实验。
+
+### P1 —— 收益中等或依赖前置改动的方向
+
+4. **Grid 2 r49 `mpi_point_data_gathering`（690s，14.8%）**：与 Grid 1 r49 同类
+   问题但规模较小。Grid 1 r49 的改进方案可能直接复用。
+
+5. **Grid 1 r53 `nesting_get_donor_data`（586s，99.5% of Grid 1 nesting）**：
+   已从 1154s（优化前 128-rank）显著下降。需区分内部的计算 vs 通信占比。
+
+### P2 —— 计算热点，值得关注但不紧急
+
+6. **Grid 2 r19 `gls_vertical_mixing`（361s，7.7%）** 和 **Grid 2 r22
+   `3d_equations_predictor`（360s，7.7%）**：纯计算。方向：向量化、循环融合、
+   减少临时量。
+
+7. **Grid 2 r42 `mpi_4d_halo_exchange`（270s，5.8%）**：imbalance=1.14，
+   rank 分布不均值得排查。
+
+### 工作约定
+
+- 每个普通 commit 必须先通过本地测试、1-rank 正确性 demo 和一次 4 节点、64-rank、
+  16ppn、60/300 步 profiling demo。
+- 对未提交候选只跑一次 profiling；接近噪声时由团队决定是否复测，不自动增加作业。
+- 只有团队选出的最终累计候选才运行完整三天和官方 `vali.py`。

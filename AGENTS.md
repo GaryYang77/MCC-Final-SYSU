@@ -26,17 +26,21 @@
 - 4 节点 128 ranks `8x16` 完整三天 profiling：job `118507345`，wall `9589 s`，官方 `vali.py` 已通过。注意：`9589 s` 与公开基准 `01:50:06` 不是同一边界/二进制，**不得直接算 speedup**；最终成绩以 no-profile 二进制对齐。
 - 2 节点 64 ranks `8x8` 完整三天：job `118500776`，wall `10588 s`，输出与 4 节点逐位一致——仅用于 scaling 诊断。
 - 1 节点 32 ranks `4x8` 在首次 nesting 通信处触发 `MPI_Bcast/MPI_ERR_TRUNCATE`：**该结果不得用于任何 scaling 结论，也不要默认其他 32-rank tile 形状可用**。
+- **优化后 4 节点 64 ranks、每节点 16 核（16ppn）、`8x8` 完整三天**：job `118585284`，wall **`4657 s`（1.29h）**，官方 `vali.py` 已通过（全部 26 变量 `RMSE==0`、`max_abs==0`）。相比 4node-128rank（6452s）快 27.8%，相比 2node-64rank（6226s）快 25.2%——是当前最快配置，因此**日常 DEMO profiling 切换为此配置**。二进制 SHA-256 `bdcdfeafbd1f48c6c0725c3f336470a451d12a237ebab01ae2768c4c668da08d`，位于 `Local_Lab/runs/validation/candidate_20260804T143831Z_9553/bin/oceanM`。
 
 ### 优化前必读证据
 
-- 仓库根目录三份 bundle（可直接载入 `Local_Lab/profile_dashboard.html`）：`profile_bundle.json`（4 节点日常 demo 基线）、`2nodes-64ranks_profile_bundle.json`、`4nodes-128ranks_profile_bundle.json`（完整三天 scaling）。
+- 仓库根目录 profile bundles（可直接载入 `Local_Lab/profile_dashboard.html`）：
+  - 优化前完整三天 scaling：`profile_bundle.json`（4 节点 demo）、`2nodes-64ranks_profile_bundle.json`、`4nodes-128ranks_profile_bundle.json`
+  - 优化后完整三天：`2nodes-64ranks_optimized_20260804T152030Z_profile_bundle.json`、`4nodes-128ranks_optimized_20260804T152030Z_profile_bundle.json`
+  - **优化后 4nodes-64ranks-16ppn（当前最快）**：`4nodes-64ranks-16ppn_optimized_20260805T014345Z_profile_bundle.json`
 - 细节见 `Local_Lab/profiling-analysis.md`；服务器 profiling reference：`Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。
 - **必须先读 bundle 和分析文档再选热点，不得脱离证据凭直觉优化**；完整任务 bundle 只用于确认热点代表性，不替代日常 reference。
 
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
-- **DEMO**：2 节点、64 ranks、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。
-- **reference 规则**：每个新 accepted commit 的 DEMO profiling run 直接成为下一项实验的 `--reference-run`。首个 accepted 二进制为 `Local_Lab/runs/validation/candidate_20260803T105345Z_12953/bin/oceanM`（SHA-256 `a9b08b31478da2546ca9ba7dc25ad2401afee78e63457e646a1428d84973a3e5`），已用它生成一次性 2 节点 reference。4 节点 reference 仅作历史对照。
+- **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
+- **reference 规则**：每个新 accepted commit 的 DEMO profiling run 直接成为下一项实验的 `--reference-run`。首个 4node-64rank-16ppn DEMO reference 为 `Local_Lab/runs/profile128/baseline-4n64-16ppn_20260805T034227Z_9444`（job `118597954`，Slurm wall **122.0s**，PASS；二进制 `Local_Lab/runs/validation/candidate_20260804T143831Z_9553/bin/oceanM`，SHA-256 `bdcdfeafbd1f48c6c0725c3f336470a451d12a237ebab01ae2768c4c668da08d`）。旧的 2 节点 reference 和 4 节点 128-rank reference 仅作历史对照。
 
 ## 修改边界
 
@@ -85,10 +89,10 @@
    conda activate vali
    python Local_Lab/profile_128.py \
      --binary "$candidate_dir/bin/oceanM" \
-     --label <hypothesis>-2n64 \
+     --label <hypothesis>-4n64-16ppn \
      --outer-steps 60 --inner-steps 300 \
-     --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8 \
-     --reference-run Local_Lab/runs/profile128/<accepted-2n64-reference-run>
+     --nodes 4 --ranks 64 --tiles-i 8 --tiles-j 8 \
+     --reference-run Local_Lab/runs/profile128/<accepted-4n64-16ppn-reference-run>
    ```
 
    判据：`run_report.json` 满足 `passed=true`、`normal_end=true`、`comparison.passed=true`，且存在 `profile_report.json`。检查 total wall、目标 region wall/调用次数、rank imbalance 和非目标热点（inclusive region 不得相加成 100%）。无有用方向则恢复重设计，不自动重复。
