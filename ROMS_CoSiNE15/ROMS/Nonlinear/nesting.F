@@ -412,12 +412,14 @@
 !$OMP BARRIER
 !
 !  If refinement, check mass flux conservation between coarser and
-!  finer grids.
+!  finer grids when verbose nesting diagnostics are enabled.
 !
+# ifdef NESTING_DEBUG
         ELSE IF (isection.eq.nmflx) THEN
           DO tile=first_tile(ng),last_tile(ng),+1
             CALL check_massflux (ng, model, tile)
           END DO
+# endif
 
 # ifndef ONE_WAY
 !
@@ -6228,11 +6230,16 @@
      &                      OCEAN(ng)%vbar(:,:,2),                      &
      &                      OCEAN(ng)%vbar(:,:,3))
 !
-        CALL assemble_boundary_fluxes (ng, model,                      &
+!  The boundary mass-flux arrays are consumed only by check_massflux,
+!  which is an optional verbose diagnostic.
+!
+#  ifdef NESTING_DEBUG
+        CALL assemble_boundary_fluxes (ng, model,                     &
      &                BRY_CONTACT(iwest ,cr)%Mflux(JLB:),              &
      &                BRY_CONTACT(ieast ,cr)%Mflux(JLB:),              &
      &                BRY_CONTACT(isouth,cr)%Mflux(ILB:),              &
      &                BRY_CONTACT(inorth,cr)%Mflux(ILB:))
+#  endif
       END IF
 # endif
 !
