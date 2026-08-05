@@ -3,8 +3,8 @@ set -euo pipefail
 
 command_name="${1:-validate}"
 case "$command_name" in
-  baseline|validate) ;;
-  *) echo "usage: $0 [baseline|validate]" >&2; exit 2 ;;
+  baseline|build|validate) ;;
+  *) echo "usage: $0 [baseline|build|validate]" >&2; exit 2 ;;
 esac
 
 repo_root=$(cd "$(dirname "$0")/.." && pwd)

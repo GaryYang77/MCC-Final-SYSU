@@ -21,7 +21,9 @@
 ## 已确认状态（无需重复验证）
 
 - 服务器原生基线已生成并封存于 `Local_Lab/baselines/mcc_4x20/`（job `118468694` COMPLETED）；独立全新构建验证通过（job `118469268`，13 变量 `RMSE==0`、`max_abs==0`，PASS）。
-- **日常只运行 `validate`，禁止重新运行 `baseline`**（脚本会拒绝覆盖；仅当基线缺失、源码树干净且团队明确要求时才可重建）。
+- **禁止重新运行 `baseline`**。日常候选默认执行 `build` 后直接进入 4n64
+  profiling；`validate` 只在下文列出的风险条件或最终累计候选时运行。
+  仅当基线缺失、源码树干净且团队明确要求时才可重建 baseline。
 - profiling 基线（`feat-improve-profiling`，2026-08-04）：wall-only、per-rank min/mean/max、调用次数、I/O/MPI 分类、region 39 与子阶段 51–56、JSON/CSV、HTML dashboard。默认 profiler 同节点顺序平衡开销约 `+0.89%`。
 - 4 节点 128 ranks `8x16` 完整三天 profiling：job `118507345`，wall `9589 s`，官方 `vali.py` 已通过。注意：`9589 s` 与公开基准 `01:50:06` 不是同一边界/二进制，**不得直接算 speedup**；最终成绩以 no-profile 二进制对齐。
 - 2 节点 64 ranks `8x8` 完整三天：job `118500776`，wall `10588 s`，输出与 4 节点逐位一致——仅用于 scaling 诊断。
@@ -65,24 +67,24 @@
 一个分支只处理一个主要性能假设；不得把算法改写、编译 flags、MPI 分块等多个变量混在同一次实验。
 
 1. **开分支**：从干净 `main` 创建 `perf/<single-hypothesis>`，记录 `accepted_commit=$(git rev-parse HEAD)` 的完整 SHA 到实验记录（不要只依赖 shell 变量）。`git status --short` 必须为空；确认 `main` 已含 `Local_Lab/profile_128.py` 和 `Local_Lab/profile_dashboard.html`，否则停止。先从 bundle 写下可证伪假设：目标 region、预期变化、不应变化的数值行为；区分计算 / MPI 通信等待 / I/O。
-2. **改代码**：一次一个可解释的等价实现优化，保留可审查 diff；两层 demo 都完成前不 commit。
-3. **本地快测**（WSL 仓库根目录）：`python -m pytest -q Local_Lab/tests`。缺依赖时用专用环境装 `Local_Lab/requirements-validation.txt`，不得改测试规避环境问题。
-4. **正确性门禁**：同步后运行——
+2. **改代码**：一次一个可解释的等价实现优化，保留可审查 diff；日常 DEMO 完成前不 commit。
+3. **本地快测**（WSL 仓库根目录）：`python -m pytest -q Local_Lab/tests`。该测试通常只需数秒，继续保留以避免把接口、脚本和预处理错误带到集群。缺依赖时用专用环境装 `Local_Lab/requirements-validation.txt`，不得改测试规避环境问题。
+4. **干净构建 PROFILE 候选**：同步后只编译，不运行慢速 1-rank 模型——
 
    ```bash
    bash Local_Lab/sync_to_cluster.sh
    ssh -i ~/.ssh/fangxihong_key -p 65023 fangxihong@cancon.hpccube.com
    cd /public/home/fangxihong/MCC-Final-SYSU
-   bash Local_Lab/run_cluster_gate.sh validate
+   bash Local_Lab/run_cluster_gate.sh build
    ```
 
-   包装脚本会等待 Slurm 作业并把 stdout/stderr 打到终端；自动化调用必须检查退出码。不得只跑本地测试或在登录节点直接跑模型就宣称有效。
-5. **profiling demo**：仅当退出码 0、终端显示 `[validate] PASS`、`validation_report.json` 的 `passed=true` 三者同时满足才进入（此时仍不 commit）。candidate 目录必须取自本次 validate 输出，不能用 `ls | head` 猜。运行前验证二进制并记录 SHA-256：
+   包装脚本会等待 Slurm 作业并把 stdout/stderr 打到终端；自动化调用必须检查退出码。只有退出码 0、终端显示 `[build] PASS`、`build_report.json` 的 `passed=true` 三者同时满足才可运行模型。不得在登录节点编译或运行模型。
+5. **唯一日常运行门禁：4n64 profiling DEMO**。candidate 目录必须取自本次 build 输出，不能用 `ls | head` 猜。运行前验证构建报告、二进制并记录 SHA-256：
 
    ```bash
    candidate_dir=Local_Lab/runs/validation/candidate_<exact-timestamp>
    python -c 'import json,sys; assert json.load(open(sys.argv[1]))["passed"] is True' \
-     "$candidate_dir/validation_report.json"
+     "$candidate_dir/build_report.json"
    test -x "$candidate_dir/bin/oceanM" && sha256sum "$candidate_dir/bin/oceanM"
 
    source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
@@ -95,27 +97,32 @@
      --reference-run Local_Lab/runs/profile128/<accepted-4n64-16ppn-reference-run>
    ```
 
-   判据：`run_report.json` 满足 `passed=true`、`normal_end=true`、`comparison.passed=true`，且存在 `profile_report.json`。检查 total wall、目标 region wall/调用次数、rank imbalance 和非目标热点（inclusive region 不得相加成 100%）。无有用方向则恢复重设计，不自动重复。
-6. **失败恢复**：任一门禁失败不得 commit。保留失败 run 路径与报告后恢复：
+   该 DEMO 同时承担并行正确性与性能门禁。判据：`run_report.json` 满足 `passed=true`、`normal_end=true`、`outputs.passed=true`、`comparison.passed=true`，26 个变量均检查 shape、mask、NaN/Inf、`RMSE <= 1e-5`、`max_abs <= 1e-5`，且存在 `profile_report.json`。同时检查 total wall、目标 region wall/调用次数、rank imbalance 和非目标热点（inclusive region 不得相加成 100%）。无有用方向则恢复重设计，不自动重复。
+6. **触发式 1-rank validate**：普通、逐位一致的候选不再运行。出现以下任一情况时，commit 前仍须运行 `bash Local_Lab/run_cluster_gate.sh validate`，并满足退出码 0、`[validate] PASS`、`validation_report.json passed=true`：
+   - DEMO 任一变量出现非零误差，即使仍在 `1e-5` 容限内；
+   - 修改数值精度、浮点运算顺序、mask/边界索引、CPP 分支或非 DISTRIBUTE fallback；
+   - reference 链不可信、输出元数据异常，或团队明确要求独立复核；
+   - 进入完整三天测试的最终累计候选。
+7. **失败恢复**：任一适用门禁失败不得 commit。保留失败 run 路径与报告后恢复：
 
    ```bash
    git restore --source="$accepted_commit" -- <本次修改的明确文件列表>
    python -m pytest -q Local_Lab/tests
    ```
 
-   `git restore` 不处理新增未跟踪文件：用 `git status --short` 对照实验开始时的文件清单，逐个移到 `/tmp/<experiment>-failed/` 留档。**禁止 `git clean`、禁止 `git reset --hard`**；确认工作树无他人修改才可恢复；commit 后才发现问题用 `git revert <bad-commit>`。恢复后确认 diff 与新增文件已清除，重新同步并让两层 demo PASS，才能开始下一设计。结果接近噪声由团队决定是否复测，默认不加作业。
-7. **commit**：两层 demo 通过且性能方向有效后，运行 `git diff --check`、审查 diff，用明确文件列表 `git add`（禁止 `git add .`）。该 commit 成为新 accepted commit，本次 profiling run 成为下一实验的 reference。MPI/分块/通信/同步类改动，commit 前额外检查正常结束、输出齐全、NaN/Inf、13 变量 comparison、rank 离散。
-8. **完整三天与官方验证不是普通 commit 的门禁**：只有团队选出的最终累计候选才运行（见下节），至少一个候选必须完成，时间允许再重复测量。
+   `git restore` 不处理新增未跟踪文件：用 `git status --short` 对照实验开始时的文件清单，逐个移到 `/tmp/<experiment>-failed/` 留档。**禁止 `git clean`、禁止 `git reset --hard`**；确认工作树无他人修改才可恢复；commit 后才发现问题用 `git revert <bad-commit>`。恢复后确认 diff 与新增文件已清除，重新同步并让适用门禁 PASS，才能开始下一设计。结果接近噪声由团队决定是否复测，默认不加作业。
+8. **commit**：4n64 DEMO 及任何触发的 validate 通过且性能方向有效后，运行 `git diff --check`、审查 diff，用明确文件列表 `git add`（禁止 `git add .`）。该 commit 成为新 accepted commit，本次 profiling run 成为下一实验的 reference。MPI/分块/通信/同步类改动，commit 前额外检查正常结束、输出齐全、NaN/Inf、13 变量 comparison、rank 离散。
+9. **完整三天与官方验证不是普通 commit 的门禁**：只有团队选出的最终累计候选才运行（见下节），至少一个候选必须完成，时间允许再重复测量。
 
-### 正确性门禁判定标准
+### 触发式 1-rank 正确性门禁判定标准
 
 `valid_test.py` 在计算节点用官方 Intel 2017.5.239、HPC-X 2.7.4、NetCDF 4.4.1 干净编译，1 rank 跑固定 `4/20` 步双向嵌套样例，比较 `SCS_avg_0001.nc`、`Dongsha60_avg_0001.nc` 中 13 个变量（`temp salt u v zeta NO3 NH4 PO4 diatom microzooplankton detritus oxygen TIC`）：每变量 `RMSE <= 1e-5` 且 `max_abs <= 1e-5`，并检查文件、维度、shape、缺失值掩膜、NaN/Inf。使用服务器封存基线，不替代主办方完整三天 `vali.py`。
 
-### 门禁管线速查
+### 日常门禁管线速查
 
-`sync_to_cluster.sh`（WSL 同步，排除输入大文件与远端基线/runs/builds/日志）→ `finalize_cluster_sync.sh`（检查输入、建 `Inputfiles` 软链、存源码快照）→ `run_cluster_gate.sh validate`（提交并等待 Slurm，透传退出码）→ `cluster_gate.sbatch`（队列/资源/官方环境）→ `valid_test.py`（编译、demo、比较、报告）。
+`sync_to_cluster.sh`（WSL 同步，排除输入大文件与远端基线/runs/builds/日志）→ `finalize_cluster_sync.sh`（检查输入、建 `Inputfiles` 软链、存源码快照）→ `run_cluster_gate.sh build`（提交并等待 Slurm，透传退出码）→ `cluster_gate.sbatch`（队列/官方环境）→ `valid_test.py build`（干净编译、SHA-256、报告）→ `profile_128.py`（4n64 并行运行、数值 comparison、profiling 报告）。触发风险条件时，在 commit 前额外执行 `run_cluster_gate.sh validate`。
 
-故障定位：同步/输入链接失败看同步脚本输出；编译看 `build.log`；MPI/运行异常看 `model.log` 和 `cluster_logs/mcc-demo-gate_<jobid>.err`；数值失败看 `validation_report.json`；资源看 `resource.log`。产物目录 `Local_Lab/runs/validation/candidate_*/`。
+故障定位：同步/输入链接失败看同步脚本输出；编译看 `build.log` 和 `build_report.json`；MPI/运行异常看 `model.log` 和 Slurm stderr；数值失败看 profiling run 的 `run_report.json`，触发式 1-rank 门禁失败再看 `validation_report.json`；资源看 `resource.log`。构建产物目录 `Local_Lab/runs/validation/candidate_*/`，DEMO 产物目录 `Local_Lab/runs/profile128/<label>_*/`。
 
 ## 决赛运行与最终验收
 

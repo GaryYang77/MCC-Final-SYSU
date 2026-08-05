@@ -33,7 +33,7 @@ test -f ROMS_CoSiNE15/ROMS/External/ocean_SCS_Dongsha60_bio15.in
 
 command_name="${MCC_GATE_COMMAND:-validate}"
 case "$command_name" in
-  baseline|validate) ;;
+  baseline|build|validate) ;;
   *) echo "unsupported MCC_GATE_COMMAND: $command_name" >&2; exit 2 ;;
 esac
 

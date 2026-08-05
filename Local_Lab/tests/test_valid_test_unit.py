@@ -105,6 +105,19 @@ def test_validate_cli_dispatches_to_the_same_validation_workflow(monkeypatch) ->
     assert calls == ["validate"]
 
 
+def test_build_cli_dispatches_to_clean_profile_build(monkeypatch) -> None:
+    calls = []
+
+    def fake_build_profile_candidate():
+        calls.append("build")
+        return Path("bin/oceanM"), Path("build_report.json")
+
+    monkeypatch.setattr(validation, "build_profile_candidate", fake_build_profile_candidate)
+
+    assert validation._main(["build"]) == 0
+    assert calls == ["build"]
+
+
 def test_baseline_creation_refuses_to_overwrite_an_existing_baseline(
     tmp_path: Path, monkeypatch
 ) -> None:

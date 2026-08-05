@@ -96,26 +96,28 @@ weights 是两个网格共同的第二候选。
 
 ## 使用方法
 
-先通过服务器 4/20 正确性 demo 得到当前源码的干净候选二进制，然后在 commit 前只运行
-一次 2 节点、64-rank、`8x8`、60/300 步 profiling demo，并通过 `--reference-run` 与
-上一个 accepted 的同配置 run 做数值 comparison。这一份 run 同时给出正确性、总 wall、
-热点和 rank 离散。两层短 demo 都通过且性能方向有效后才 commit；普通 commit 不要求
-完整三天或官方 `vali.py`。
+日常流程先在服务器干净编译 PROFILE 候选，不再默认运行独立的 4/20 步 1-rank
+模型；随后在 commit 前运行一次 4 节点、64-rank、16ppn、`8x8`、60/300 步
+profiling demo，并通过 `--reference-run` 与上一个 accepted 的同配置 run 做数值
+comparison。这一份 run 同时给出并行正确性、总 wall、热点和 rank 离散。DEMO
+通过且性能方向有效后才 commit；出现非零数值误差、修改浮点顺序/mask/边界/CPP
+fallback、reference 链可疑或进入最终累计候选时，仍额外运行 4/20 步 1-rank
+`validate`。普通 commit 不要求完整三天或官方 `vali.py`。
 
-日常候选的单次 profiling 命令如下；必须显式提供上一个 accepted 的 2 节点同配置
+日常候选的单次 profiling 命令如下；必须显式提供上一个 accepted 的 4 节点同配置
 reference：
 
 ```bash
-bash Local_Lab/run_cluster_gate.sh validate
+bash Local_Lab/run_cluster_gate.sh build
 
 source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
 conda activate vali
 python Local_Lab/profile_128.py \
   --binary Local_Lab/runs/validation/candidate_<timestamp>/bin/oceanM \
-  --label <hypothesis>-2n64 \
+  --label <hypothesis>-4n64-16ppn \
   --outer-steps 60 --inner-steps 300 \
-  --nodes 2 --ranks 64 --tiles-i 8 --tiles-j 8 \
-  --reference-run Local_Lab/runs/profile128/<accepted-2n64-reference-run>
+  --nodes 4 --ranks 64 --tiles-i 8 --tiles-j 8 \
+  --reference-run Local_Lab/runs/profile128/<accepted-4n64-16ppn-reference-run>
 ```
 
 运行目录会生成：

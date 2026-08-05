@@ -3,7 +3,8 @@
 Public commands (run inside Linux/WSL or a Slurm compute allocation)::
 
     python Local_Lab/valid_test.py baseline
-    pytest -s Local_Lab/valid_test.py
+    python Local_Lab/valid_test.py build
+    python Local_Lab/valid_test.py validate
 """
 
 from __future__ import annotations
@@ -403,6 +404,35 @@ def _build_model(run_id: str, artifact_dir: Path) -> tuple[Path, float, Path]:
     return binary, build_seconds, build_log
 
 
+def build_profile_candidate() -> tuple[Path, Path]:
+    """Clean-build a PROFILE candidate without running the one-rank model."""
+    _check_environment()
+    run_id = _run_id("candidate")
+    run_dir = VALIDATION_RUNS_ROOT / run_id
+    print(f"[build] clean-building current source in {run_id}...")
+    binary, build_seconds, build_log = _build_model(run_id, run_dir)
+    result = {
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "passed": True,
+        "source": _source_state(),
+        "toolchain": _toolchain_metadata(),
+        "build_seconds": build_seconds,
+        "binary": str(binary),
+        "binary_sha256": _sha256(binary),
+        "build_log": str(build_log),
+    }
+    report_path = run_dir / "build_report.json"
+    report_path.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    print(f"[build] binary: {binary}")
+    print(f"[build] SHA-256: {result['binary_sha256']}")
+    print(f"[build] report: {report_path}")
+    print("[build] PASS")
+    return binary, report_path
+
+
 def _localized_demo_input(output_dir_name: str) -> str:
     rendered = render_demo_input(CANONICAL_INPUT.read_text(encoding="utf-8", errors="strict"))
     roms_path = ROMS_ROOT.as_posix()
@@ -596,13 +626,15 @@ def _main(arguments: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "command",
-        choices=("baseline", "validate"),
-        help="create the sealed baseline once, or validate current source",
+        choices=("baseline", "build", "validate"),
+        help="create the sealed baseline, build a PROFILE candidate, or validate it",
     )
     options = parser.parse_args(arguments)
     try:
         if options.command == "baseline":
             create_baseline()
+        elif options.command == "build":
+            build_profile_candidate()
         else:
             report, _ = validate_candidate()
             if not report.passed:
