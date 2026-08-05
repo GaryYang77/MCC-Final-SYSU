@@ -1467,7 +1467,8 @@
       RETURN
       END SUBROUTINE mp_assemblef_1d
 !
-      SUBROUTINE mp_assemblef_2d (ng, model, Npts, Aspv, A, Owner)
+      SUBROUTINE mp_assemblef_2d (ng, model, Npts, Aspv, A, Owner,     &
+     &                            Receiver)
 !
 !***********************************************************************
 !                                                                      !
@@ -1506,16 +1507,18 @@
 
       real(r8), intent(inout) :: A(:,:)
       integer, intent(in), optional :: Owner(:)
+      integer, intent(in), optional :: Receiver(:)
 !
 !  Local variable declarations.
 !
       integer :: Lstr, MyError, MyNpts, Nnodes, Serror
-      integer :: i, m, p, rank
+      integer :: i, m, p, rank, source
 
       integer :: Asize(2)
 
       integer, dimension(MPI_STATUS_SIZE) :: status
       integer, dimension(0:numthreads-1) :: Counts, Displs, Offset
+      integer, dimension(0:numthreads-1) :: Rcounts, Rdispls, Roffset
 
       real(r8), dimension(Npts) :: Asend, Arecv
 
@@ -1555,7 +1558,69 @@
 !  Collect data from all nodes.
 !-----------------------------------------------------------------------
 !
-      IF (PRESENT(Owner).and.                                         &
+      IF (PRESENT(Owner).and.PRESENT(Receiver).and.                    &
+     &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
+!
+!  Route every uniquely owned donor record only to the rank containing
+!  its receiver point. Each record is copied, never reduced.
+!
+        IF ((SIZE(Owner).ne.Asize(2)).or.                              &
+     &      (SIZE(Receiver).ne.Asize(2))) THEN
+          IF (Master) WRITE (stdout,10) SIZE(Owner), Asize(2)
+          exit_flag=7
+        END IF
+        Counts=0
+        Rcounts=0
+        DO m=1,Asize(2)
+          source=Owner(m)
+          rank=Receiver(m)
+          IF ((source.ge.numthreads).or.(rank.ge.numthreads)) THEN
+            exit_flag=7
+          ELSE
+            IF ((source.eq.MyRank).and.(rank.ge.0))                    &
+     &        Counts(rank)=Counts(rank)+Asize(1)
+            IF ((rank.eq.MyRank).and.(source.ge.0))                    &
+     &        Rcounts(source)=Rcounts(source)+Asize(1)
+          END IF
+        END DO
+        Displs(0)=0
+        Rdispls(0)=0
+        DO rank=1,numthreads-1
+          Displs(rank)=Displs(rank-1)+Counts(rank-1)
+          Rdispls(rank)=Rdispls(rank-1)+Rcounts(rank-1)
+        END DO
+        Offset=0
+        DO m=1,Asize(2)
+          rank=Receiver(m)
+          IF ((Owner(m).eq.MyRank).and.(rank.ge.0)) THEN
+            p=Displs(rank)+Offset(rank)
+            DO i=1,Asize(1)
+              Asend(p+i)=A(i,m)
+            END DO
+            Offset(rank)=Offset(rank)+Asize(1)
+          END IF
+        END DO
+        CALL mpi_alltoallv (Asend, Counts, Displs, MP_FLOAT,           &
+     &                      Arecv, Rcounts, Rdispls, MP_FLOAT,         &
+     &                      OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          Roffset=0
+          DO m=1,Asize(2)
+            IF (Receiver(m).eq.MyRank) THEN
+              source=Owner(m)
+              IF (source.lt.0) THEN
+                A(:,m)=0.0_r8
+              ELSE
+                p=Rdispls(source)+Roffset(source)
+                DO i=1,Asize(1)
+                  A(i,m)=Arecv(p+i)
+                END DO
+                Roffset(source)=Roffset(source)+Asize(1)
+              END IF
+            END IF
+          END DO
+        END IF
+      ELSE IF (PRESENT(Owner).and.                                    &
      &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
 !
 !  Each contact point is supplied by one owner rank.  Gather only the
@@ -1641,7 +1706,8 @@
       RETURN
       END SUBROUTINE mp_assemblef_2d
 !
-      SUBROUTINE mp_assemblef_3d (ng, model, Npts, Aspv, A, Owner)
+      SUBROUTINE mp_assemblef_3d (ng, model, Npts, Aspv, A, Owner,     &
+     &                            Receiver)
 !
 !***********************************************************************
 !                                                                      !
@@ -1680,16 +1746,18 @@
 
       real(r8), intent(inout) :: A(:,:,:)
       integer, intent(in), optional :: Owner(:)
+      integer, intent(in), optional :: Receiver(:)
 !
 !  Local variable declarations.
 !
       integer :: Lstr, MyError, MyNpts, Nnodes, Serror
-      integer :: i, k, m, p, rank
+      integer :: i, k, m, p, rank, source
 
       integer :: Asize(3)
 
       integer, dimension(MPI_STATUS_SIZE) :: status
       integer, dimension(0:numthreads-1) :: Counts, Displs, Offset
+      integer, dimension(0:numthreads-1) :: Rcounts, Rdispls, Roffset
 
       real(r8), dimension(Npts) :: Asend, Arecv
 
@@ -1730,7 +1798,71 @@
 !  Collect data from all nodes.
 !-----------------------------------------------------------------------
 !
-      IF (PRESENT(Owner).and.                                         &
+      IF (PRESENT(Owner).and.PRESENT(Receiver).and.                    &
+     &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
+        IF ((SIZE(Owner).ne.Asize(3)).or.                              &
+     &      (SIZE(Receiver).ne.Asize(3))) THEN
+          IF (Master) WRITE (stdout,10) SIZE(Owner), Asize(3)
+          exit_flag=7
+        END IF
+        Counts=0
+        Rcounts=0
+        DO m=1,Asize(3)
+          source=Owner(m)
+          rank=Receiver(m)
+          IF ((source.ge.numthreads).or.(rank.ge.numthreads)) THEN
+            exit_flag=7
+          ELSE
+            IF ((source.eq.MyRank).and.(rank.ge.0))                    &
+     &        Counts(rank)=Counts(rank)+Asize(1)*Asize(2)
+            IF ((rank.eq.MyRank).and.(source.ge.0))                    &
+     &        Rcounts(source)=Rcounts(source)+Asize(1)*Asize(2)
+          END IF
+        END DO
+        Displs(0)=0
+        Rdispls(0)=0
+        DO rank=1,numthreads-1
+          Displs(rank)=Displs(rank-1)+Counts(rank-1)
+          Rdispls(rank)=Rdispls(rank-1)+Rcounts(rank-1)
+        END DO
+        Offset=0
+        DO m=1,Asize(3)
+          rank=Receiver(m)
+          IF ((Owner(m).eq.MyRank).and.(rank.ge.0)) THEN
+            p=Displs(rank)+Offset(rank)
+            DO k=1,Asize(2)
+              DO i=1,Asize(1)
+                p=p+1
+                Asend(p)=A(i,k,m)
+              END DO
+            END DO
+            Offset(rank)=Offset(rank)+Asize(1)*Asize(2)
+          END IF
+        END DO
+        CALL mpi_alltoallv (Asend, Counts, Displs, MP_FLOAT,           &
+     &                      Arecv, Rcounts, Rdispls, MP_FLOAT,         &
+     &                      OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          Roffset=0
+          DO m=1,Asize(3)
+            IF (Receiver(m).eq.MyRank) THEN
+              source=Owner(m)
+              IF (source.lt.0) THEN
+                A(:,:,m)=0.0_r8
+              ELSE
+                p=Rdispls(source)+Roffset(source)
+                DO k=1,Asize(2)
+                  DO i=1,Asize(1)
+                    p=p+1
+                    A(i,k,m)=Arecv(p)
+                  END DO
+                END DO
+                Roffset(source)=Roffset(source)+Asize(1)*Asize(2)
+              END IF
+            END IF
+          END DO
+        END IF
+      ELSE IF (PRESENT(Owner).and.                                    &
      &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
         IF (SIZE(Owner).ne.Asize(3)) THEN
           IF (Master) WRITE (stdout,10) SIZE(Owner), Asize(3)

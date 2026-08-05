@@ -2593,14 +2593,14 @@
      &                        cr, Rcontact(cr)%Npoints, Rcontact,       &
      &                        LBi, UBi, LBj, UBj,                       &
      &                        COUPLING(dg) % Zt_avg1,                   &
-     &                        REFINED(cr) % zeta(:,:,tnew))
+     &                        REFINED(cr) % zeta(:,:,tnew), .TRUE.)
 # else
           CALL get_contact2d (dg, model, tile,                          &
      &                        r2dvar, 'zeta',                           &
      &                        cr, Rcontact(cr)%Npoints, Rcontact,       &
      &                        LBi, UBi, LBj, UBj,                       &
      &                        OCEAN(dg) % zeta(:,:,Tindex2d),           &
-     &                        REFINED(cr) % zeta(:,:,tnew))
+     &                        REFINED(cr) % zeta(:,:,tnew), .TRUE.)
 # endif
 !
 !  Extract 2D momentum components (ubar, vbar).
@@ -2610,14 +2610,14 @@
      &                        cr, Ucontact(cr)%Npoints, Ucontact,       &
      &                        LBi, UBi, LBj, UBj,                       &
      &                        OCEAN(dg) % ubar(:,:,Tindex2d),           &
-     &                        REFINED(cr) % ubar(:,:,tnew))
+     &                        REFINED(cr) % ubar(:,:,tnew), .TRUE.)
 
           CALL get_contact2d (dg, model, tile,                          &
      &                        v2dvar, Vname(1,idVbar),                  &
      &                        cr, Vcontact(cr)%Npoints, Vcontact,       &
      &                        LBi, UBi, LBj, UBj,                       &
      &                        OCEAN(dg) % vbar(:,:,Tindex2d),           &
-     &                        REFINED(cr) % vbar(:,:,tnew))
+     &                        REFINED(cr) % vbar(:,:,tnew), .TRUE.)
 
 # ifdef SOLVE3D
 !
@@ -2647,7 +2647,8 @@
      &                          cr, Rcontact(cr)%Npoints, Rcontact,     &
      &                          LBi, UBi, LBj, UBj, 1, N(dg),           &
      &                          OCEAN(dg) % t(:,:,:,Tindex3d,itrc),     &
-     &                          REFINED(cr) % t(:,:,:,tnew,itrc))
+     &                          REFINED(cr) % t(:,:,:,tnew,itrc),      &
+     &                          .TRUE.)
           END DO
 !
 !  Extract 3D momentum components (u, v).
@@ -2657,14 +2658,14 @@
      &                        cr, Ucontact(cr)%Npoints, Ucontact,       &
      &                        LBi, UBi, LBj, UBj, 1, N(dg),             &
      &                        OCEAN(dg) % u(:,:,:,Tindex3d),            &
-     &                        REFINED(cr) % u(:,:,:,tnew))
+     &                        REFINED(cr) % u(:,:,:,tnew), .TRUE.)
 
           CALL get_contact3d (dg, model, tile,                          &
      &                        v3dvar, Vname(1,idVvel),                  &
      &                        cr, Vcontact(cr)%Npoints, Vcontact,       &
      &                        LBi, UBi, LBj, UBj, 1, N(dg),             &
      &                        OCEAN(dg) % v(:,:,:,Tindex3d),            &
-     &                        REFINED(cr) % v(:,:,:,tnew))
+     &                        REFINED(cr) % v(:,:,:,tnew), .TRUE.)
 # endif
         END IF
       END DO
@@ -4923,7 +4924,7 @@
      &                          gtype, svname,                          &
      &                          cr, Npoints, contact,                   &
      &                          LBi, UBi, LBj, UBj,                     &
-     &                          Ad, Ac)
+     &                          Ad, Ac, ReceiverOnly)
 !
 !=======================================================================
 !                                                                      !
@@ -4983,7 +4984,8 @@
 !
 !  Local variable declarations.
 !
-      logical :: UseLocalList
+      logical, intent(in), optional :: ReceiverOnly
+      logical :: UseLocalList, UseReceiver
       integer :: i, idx, ip1, j, jp1, m, ntile
       integer :: Imin, Imax, Jmin, Jmax
       integer :: Istr, Iend, Jstr, Jend, Nlocal
@@ -4992,6 +4994,9 @@
 # endif
 
       real(r8), parameter :: Aspv = 0.0_r8
+
+      UseReceiver=.FALSE.
+      IF (PRESENT(ReceiverOnly)) UseReceiver=ReceiverOnly
 !
 !-----------------------------------------------------------------------
 !  Initialize.
@@ -5085,6 +5090,51 @@
           END IF
         END DO
       END IF
+!
+!  Map each contact point to the sole rank that consumes it. This map is
+!  needed only by the runtime donor-to-receiver routing path.
+!
+      IF (UseReceiver.and.ANY(contact(cr)%Rowner.eq.-2)) THEN
+        contact(cr)%Rowner=-1
+        DO ntile=0,numthreads-1
+          DO m=1,Npoints
+            i=contact(cr)%Irg(m)
+            j=contact(cr)%Jrg(m)
+            SELECT CASE (gtype)
+              CASE (r2dvar)
+                IF ((BOUNDS(contact(cr)%receiver_grid)%IstrT(ntile)    &
+     &               .le.i).and.                                      &
+     &              (i.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    IendT(ntile)).and.                           &
+     &              (BOUNDS(contact(cr)%receiver_grid)%JstrT(ntile)   &
+     &               .le.j).and.                                      &
+     &              (j.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    JendT(ntile)))                               &
+     &            contact(cr)%Rowner(m)=ntile
+              CASE (u2dvar)
+                IF ((BOUNDS(contact(cr)%receiver_grid)%IstrP(ntile)    &
+     &               .le.i).and.                                      &
+     &              (i.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    IendT(ntile)).and.                           &
+     &              (BOUNDS(contact(cr)%receiver_grid)%JstrT(ntile)   &
+     &               .le.j).and.                                      &
+     &              (j.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    JendT(ntile)))                               &
+     &            contact(cr)%Rowner(m)=ntile
+              CASE (v2dvar)
+                IF ((BOUNDS(contact(cr)%receiver_grid)%IstrT(ntile)    &
+     &               .le.i).and.                                      &
+     &              (i.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    IendT(ntile)).and.                           &
+     &              (BOUNDS(contact(cr)%receiver_grid)%JstrP(ntile)   &
+     &               .le.j).and.                                      &
+     &              (j.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    JendT(ntile)))                               &
+     &            contact(cr)%Rowner(m)=ntile
+            END SELECT
+          END DO
+        END DO
+      END IF
 # endif
 !
 !-----------------------------------------------------------------------
@@ -5134,8 +5184,13 @@
 !
 !  Gather and broadcast data from all nodes.
 !
-      CALL mp_assemble (dg, model, Npts, Aspv, Ac,                     &
-     &                  contact(cr)%Downer)
+      IF (UseReceiver) THEN
+        CALL mp_assemble (dg, model, Npts, Aspv, Ac,                   &
+     &                    contact(cr)%Downer, contact(cr)%Rowner)
+      ELSE
+        CALL mp_assemble (dg, model, Npts, Aspv, Ac,                   &
+     &                    contact(cr)%Downer)
+      END IF
 # endif
 
       RETURN
@@ -5147,7 +5202,7 @@
      &                          gtype, svname,                          &
      &                          cr, Npoints, contact,                   &
      &                          LBi, UBi, LBj, UBj, LBk, UBk,           &
-     &                          Ad, Ac)
+     &                          Ad, Ac, ReceiverOnly)
 !
 !=======================================================================
 !                                                                      !
@@ -5207,7 +5262,8 @@
 !
 !  Local variable declarations.
 !
-      logical :: UseLocalList
+      logical, intent(in), optional :: ReceiverOnly
+      logical :: UseLocalList, UseReceiver
       integer :: i, idx, ip1, j, jp1, k, m, ntile
       integer :: Imin, Imax, Jmin, Jmax
       integer :: Istr, Iend, Jstr, Jend, Nlocal
@@ -5216,6 +5272,9 @@
 #  endif
 
       real(r8), parameter :: Aspv = 0.0_r8
+
+      UseReceiver=.FALSE.
+      IF (PRESENT(ReceiverOnly)) UseReceiver=ReceiverOnly
 !
 !-----------------------------------------------------------------------
 !  Initialize.
@@ -5305,6 +5364,47 @@
           END IF
         END DO
       END IF
+      IF (UseReceiver.and.ANY(contact(cr)%Rowner.eq.-2)) THEN
+        contact(cr)%Rowner=-1
+        DO ntile=0,numthreads-1
+          DO m=1,Npoints
+            i=contact(cr)%Irg(m)
+            j=contact(cr)%Jrg(m)
+            SELECT CASE (gtype)
+              CASE (r3dvar)
+                IF ((BOUNDS(contact(cr)%receiver_grid)%IstrT(ntile)    &
+     &               .le.i).and.                                      &
+     &              (i.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    IendT(ntile)).and.                           &
+     &              (BOUNDS(contact(cr)%receiver_grid)%JstrT(ntile)   &
+     &               .le.j).and.                                      &
+     &              (j.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    JendT(ntile)))                               &
+     &            contact(cr)%Rowner(m)=ntile
+              CASE (u3dvar)
+                IF ((BOUNDS(contact(cr)%receiver_grid)%IstrP(ntile)    &
+     &               .le.i).and.                                      &
+     &              (i.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    IendT(ntile)).and.                           &
+     &              (BOUNDS(contact(cr)%receiver_grid)%JstrT(ntile)   &
+     &               .le.j).and.                                      &
+     &              (j.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    JendT(ntile)))                               &
+     &            contact(cr)%Rowner(m)=ntile
+              CASE (v3dvar)
+                IF ((BOUNDS(contact(cr)%receiver_grid)%IstrT(ntile)    &
+     &               .le.i).and.                                      &
+     &              (i.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    IendT(ntile)).and.                           &
+     &              (BOUNDS(contact(cr)%receiver_grid)%JstrP(ntile)   &
+     &               .le.j).and.                                      &
+     &              (j.le.BOUNDS(contact(cr)%receiver_grid)%          &
+     &                    JendT(ntile)))                               &
+     &            contact(cr)%Rowner(m)=ntile
+            END SELECT
+          END DO
+        END DO
+      END IF
 #  endif
 !
 !-----------------------------------------------------------------------
@@ -5356,8 +5456,13 @@
 !
 !  Gather and broadcast data from all nodes.
 !
-      CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),           &
-     &                  contact(cr)%Downer)
+      IF (UseReceiver) THEN
+        CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),         &
+     &                    contact(cr)%Downer, contact(cr)%Rowner)
+      ELSE
+        CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),         &
+     &                    contact(cr)%Downer)
+      END IF
 #  endif
 
       RETURN
