@@ -147,6 +147,9 @@
 # endif
 # ifdef NESTING
       USE nesting_mod, ONLY : bry_fluxes
+#  ifdef DISTRIBUTE
+      USE nesting_mod, ONLY : assemble_tracer_fluxes
+#  endif
 # endif
       USE t3dbc_mod, ONLY : t3dbc_tile
 !
@@ -594,7 +597,8 @@
      &                          BRY_CONTACT(iwest, cr)%Tflux(:,k,itrc), &
      &                          BRY_CONTACT(ieast, cr)%Tflux(:,k,itrc), &
      &                          BRY_CONTACT(isouth,cr)%Tflux(:,k,itrc), &
-     &                          BRY_CONTACT(inorth,cr)%Tflux(:,k,itrc))
+     &                          BRY_CONTACT(inorth,cr)%Tflux(:,k,itrc), &
+     &                          .FALSE.)
              END IF
            END DO
          END IF
@@ -651,6 +655,26 @@
 # endif
         END DO K_LOOP
       END DO T_LOOP
+# if defined DISTRIBUTE && defined NESTING && !defined ONE_WAY
+!
+!  The complete tracer/level flux set is not consumed inside T_LOOP.
+!  Assemble it now with one collective per active contact region.
+!
+      IF (RefinedGrid(ng)) THEN
+        DO cr=1,Ncontact
+          dg=Rcontact(cr)%donor_grid
+          rg=Rcontact(cr)%receiver_grid
+          IF (ng.eq.rg) THEN
+            CALL assemble_tracer_fluxes (dg, iNLM,                    &
+     &                  BRY_CONTACT(iwest ,cr)%Tflux,                 &
+     &                  BRY_CONTACT(ieast ,cr)%Tflux,                 &
+     &                  BRY_CONTACT(isouth,cr)%Tflux,                 &
+     &                  BRY_CONTACT(inorth,cr)%Tflux)
+            IF (exit_flag.ne.NoError) RETURN
+          END IF
+        END DO
+      END IF
+# endif
 !
 !-----------------------------------------------------------------------
 !  Time-step vertical advection term.

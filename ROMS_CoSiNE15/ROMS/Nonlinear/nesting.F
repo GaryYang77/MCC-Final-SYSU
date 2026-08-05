@@ -127,6 +127,9 @@
       PRIVATE :: put_refine2d
 # ifdef DISTRIBUTE
       PRIVATE :: assemble_boundary_fluxes
+#  ifdef SOLVE3D
+      PUBLIC  :: assemble_tracer_fluxes
+#  endif
 # endif
 # ifdef SOLVE3D
       PRIVATE :: put_refine3d
@@ -201,6 +204,75 @@
 
       RETURN
       END SUBROUTINE assemble_boundary_fluxes
+!
+#  ifdef SOLVE3D
+      SUBROUTINE assemble_tracer_fluxes (ng, model,                    &
+     &                                   F_west, F_east,               &
+     &                                   F_south, F_north)
+!
+!=======================================================================
+!                                                                      !
+!  Assemble all tracer and vertical-level boundary fluxes in one       !
+!  collective after their local extraction is complete.               !
+!                                                                      !
+!=======================================================================
+!
+      USE mod_param
+      USE mod_scalars, ONLY : exit_flag, NoError
+      USE distribute_mod, ONLY : mp_assemble
+!
+      implicit none
+!
+!  Imported variable declarations.
+!
+      integer, intent(in) :: ng, model
+
+      real(r8), intent(inout) :: F_west(:,:,:), F_east(:,:,:)
+      real(r8), intent(inout) :: F_south(:,:,:), F_north(:,:,:)
+!
+!  Local variable declarations.
+!
+      integer :: Npts, NptsSN, NptsWE, p
+
+      real(r8), allocatable, save :: Fpack(:)
+!$OMP THREADPRIVATE (Fpack)
+!
+!-----------------------------------------------------------------------
+!  Preserve Fortran array element order within each direction.
+!-----------------------------------------------------------------------
+!
+      NptsWE=SIZE(F_west)
+      NptsSN=SIZE(F_south)
+      Npts=2*(NptsWE+NptsSN)
+      IF (allocated(Fpack)) THEN
+        IF (SIZE(Fpack).ne.Npts) deallocate (Fpack)
+      END IF
+      IF (.not.allocated(Fpack)) allocate (Fpack(Npts))
+
+      p=0
+      Fpack(p+1:p+NptsWE)=RESHAPE(F_west, (/NptsWE/))
+      p=p+NptsWE
+      Fpack(p+1:p+NptsWE)=RESHAPE(F_east, (/NptsWE/))
+      p=p+NptsWE
+      Fpack(p+1:p+NptsSN)=RESHAPE(F_south, (/NptsSN/))
+      p=p+NptsSN
+      Fpack(p+1:p+NptsSN)=RESHAPE(F_north, (/NptsSN/))
+
+      CALL mp_assemble (ng, model, Npts, 0.0_r8, Fpack)
+      IF (exit_flag.ne.NoError) RETURN
+
+      p=0
+      F_west=RESHAPE(Fpack(p+1:p+NptsWE), SHAPE(F_west))
+      p=p+NptsWE
+      F_east=RESHAPE(Fpack(p+1:p+NptsWE), SHAPE(F_east))
+      p=p+NptsWE
+      F_south=RESHAPE(Fpack(p+1:p+NptsSN), SHAPE(F_south))
+      p=p+NptsSN
+      F_north=RESHAPE(Fpack(p+1:p+NptsSN), SHAPE(F_north))
+
+      RETURN
+      END SUBROUTINE assemble_tracer_fluxes
+#  endif
 # endif
 !
       SUBROUTINE nesting (ng, model, isection)
@@ -439,7 +511,8 @@
      &                       IminS, ImaxS, JminS, JmaxS,                &
      &                       ILB, IUB, JLB, JUB,                        &
      &                       scale, FX, FE,                             &
-     &                       F_west, F_east, F_south, F_north)
+     &                       F_west, F_east, F_south, F_north,         &
+     &                       Lassemble)
 !
 !=======================================================================
 !                                                                      !
@@ -473,6 +546,7 @@
 !     F_east     Eastern  boundary advective flux (1D array)           !
 !     F_south    Southern boundary advective flux (1D array)           !
 !     F_north    Northerb boundary advective flux (1D array)           !
+!     Lassemble  Switch to assemble this slice immediately (optional)  !
 !                                                                      !
 !=======================================================================
 !
@@ -491,6 +565,8 @@
       integer, intent(in) :: dg, rg, cr, model, tile
       integer, intent(in) :: IminS, ImaxS, JminS, JmaxS
       integer, intent(in) :: ILB, IUB, JLB, JUB
+
+      logical, intent(in), optional :: Lassemble
 
       real(r8), intent(in) :: scale
 !
@@ -514,6 +590,7 @@
 !
 !  Local variable declarations.
 !
+      logical :: do_assemble
       integer :: Istr, Iend, Jstr, Jend
       integer :: Ib_east, Ib_west, Jb_north, Jb_south
       integer :: i, j, m
@@ -527,6 +604,9 @@
 !-----------------------------------------------------------------------
 !  Initialize local variables.
 !-----------------------------------------------------------------------
+!
+      do_assemble=.TRUE.
+      IF (PRESENT(Lassemble)) do_assemble=Lassemble
 !
 !  Set tile starting and ending indices.
 !
@@ -636,10 +716,12 @@
 !  Gather and broadcast data from all nodes.
 !-----------------------------------------------------------------------
 !
-      CALL assemble_boundary_fluxes (dg, model,                        &
-     &                               F_west (JLB:), F_east (JLB:),     &
-     &                               F_south(ILB:), F_north(ILB:))
-      IF (exit_flag.ne.NoError) RETURN
+      IF (do_assemble) THEN
+        CALL assemble_boundary_fluxes (dg, model,                      &
+     &                                 F_west (JLB:), F_east (JLB:),   &
+     &                                 F_south(ILB:), F_north(ILB:))
+        IF (exit_flag.ne.NoError) RETURN
+      END IF
 # endif
 
       RETURN
