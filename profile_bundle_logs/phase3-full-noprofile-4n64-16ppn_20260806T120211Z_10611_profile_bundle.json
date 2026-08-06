@@ -1,0 +1,1220 @@
+{
+  "comparison": {
+    "failures": [],
+    "metrics": {
+      "Dongsha60_avg_0001.nc": {
+        "NH4": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.5168360471725464,
+            "mean": 0.08325760883431897,
+            "minimum": 0.0005859322263859212,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.5168360471725464,
+            "mean": 0.08325760883431897,
+            "minimum": 0.0005859322263859212,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "NO3": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 40.344058990478516,
+            "mean": 21.37746718128302,
+            "minimum": 0.8115823864936829,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 40.344058990478516,
+            "mean": 21.37746718128302,
+            "minimum": 0.8115823864936829,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "PO4": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 2.894313097000122,
+            "mean": 1.6135567412736764,
+            "minimum": 0.21485678851604462,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 2.894313097000122,
+            "mean": 1.6135567412736764,
+            "minimum": 0.21485678851604462,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "TIC": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 2086.560302734375,
+            "mean": 2084.7784770108797,
+            "minimum": 2078.526611328125,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 2086.560302734375,
+            "mean": 2084.7784770108797,
+            "minimum": 2078.526611328125,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "detritus": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.6394363641738892,
+            "mean": 0.12096290153974103,
+            "minimum": 3.215358447050676e-05,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.6394363641738892,
+            "mean": 0.12096290153974103,
+            "minimum": 3.215358447050676e-05,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "diatom": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 1.7930303812026978,
+            "mean": 0.07443259756944884,
+            "minimum": -5.727051757276058e-06,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 1.7930303812026978,
+            "mean": 0.07443259756944884,
+            "minimum": -5.727051757276058e-06,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "microzooplankton": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.48132768273353577,
+            "mean": 0.040395595403369844,
+            "minimum": -6.4995520006050356e-06,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.48132768273353577,
+            "mean": 0.040395595403369844,
+            "minimum": -6.4995520006050356e-06,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "oxygen": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 226.21006774902344,
+            "mean": 148.3848980777467,
+            "minimum": 81.79371643066406,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 226.21006774902344,
+            "mean": 148.3848980777467,
+            "minimum": 81.79371643066406,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "salt": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 34.66224670410156,
+            "mean": 34.34197779788208,
+            "minimum": 33.5123405456543,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 34.66224670410156,
+            "mean": 34.34197779788208,
+            "minimum": 33.5123405456543,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "temp": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 26.407930374145508,
+            "mean": 13.62359759677623,
+            "minimum": 2.064006805419922,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 26.407930374145508,
+            "mean": 13.62359759677623,
+            "minimum": 2.064006805419922,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "u": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.28424760699272156,
+            "mean": -0.06733116932104394,
+            "minimum": -0.8000973463058472,
+            "valid_count": 1981928
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.28424760699272156,
+            "mean": -0.06733116932104394,
+            "minimum": -0.8000973463058472,
+            "valid_count": 1981928
+          },
+          "rmse": 0.0
+        },
+        "v": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.3753753900527954,
+            "mean": 0.013331176586902293,
+            "minimum": -0.2821023464202881,
+            "valid_count": 1982268
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.3753753900527954,
+            "mean": 0.013331176586902293,
+            "minimum": -0.2821023464202881,
+            "valid_count": 1982268
+          },
+          "rmse": 0.0
+        },
+        "zeta": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.5863854289054871,
+            "mean": 0.4276506558232977,
+            "minimum": 0.31087422370910645,
+            "valid_count": 58539
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.5863854289054871,
+            "mean": 0.4276506558232977,
+            "minimum": 0.31087422370910645,
+            "valid_count": 58539
+          },
+          "rmse": 0.0
+        }
+      },
+      "SCS_avg_0001.nc": {
+        "NH4": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 8.699110984802246,
+            "mean": 0.0930286130777681,
+            "minimum": -0.0011705190408974886,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 8.699110984802246,
+            "mean": 0.0930286130777681,
+            "minimum": -0.0011705190408974886,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "NO3": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 200.00918579101562,
+            "mean": 12.552819827448571,
+            "minimum": -0.022160394117236137,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 200.00918579101562,
+            "mean": 12.552819827448571,
+            "minimum": -0.022160394117236137,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "PO4": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 10.000733375549316,
+            "mean": 1.0004846068401716,
+            "minimum": -0.0007429963443428278,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 10.000733375549316,
+            "mean": 1.0004846068401716,
+            "minimum": -0.0007429963443428278,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "TIC": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 2202.970703125,
+            "mean": 2084.766508574206,
+            "minimum": 2043.6578369140625,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 2202.970703125,
+            "mean": 2084.766508574206,
+            "minimum": 2043.6578369140625,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "detritus": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 41.17999267578125,
+            "mean": 0.19857832388540772,
+            "minimum": -0.0002566218317952007,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 41.17999267578125,
+            "mean": 0.19857832388540772,
+            "minimum": -0.0002566218317952007,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "diatom": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 8.154269218444824,
+            "mean": 0.17697618007458665,
+            "minimum": -0.0015784610295668244,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 8.154269218444824,
+            "mean": 0.17697618007458665,
+            "minimum": -0.0015784610295668244,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "microzooplankton": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 1.5650904178619385,
+            "mean": 0.054611558897402074,
+            "minimum": -0.0009412504732608795,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 1.5650904178619385,
+            "mean": 0.054611558897402074,
+            "minimum": -0.0009412504732608795,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "oxygen": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 355.4912109375,
+            "mean": 177.53985494724685,
+            "minimum": 60.30376052856445,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 355.4912109375,
+            "mean": 177.53985494724685,
+            "minimum": 60.30376052856445,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "salt": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 35.55912399291992,
+            "mean": 34.078815617761556,
+            "minimum": 28.305500030517578,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 35.55912399291992,
+            "mean": 34.078815617761556,
+            "minimum": 28.305500030517578,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "temp": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 31.328937530517578,
+            "mean": 18.964753566075444,
+            "minimum": 1.1251652240753174,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 31.328937530517578,
+            "mean": 18.964753566075444,
+            "minimum": 1.1251652240753174,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "u": {
+          "candidate": {
+            "masked_count": 1424056,
+            "maximum": 1.226478934288025,
+            "mean": -0.03218752702144771,
+            "minimum": -1.397756576538086,
+            "valid_count": 2590664
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1424056,
+            "maximum": 1.226478934288025,
+            "mean": -0.03218752702144771,
+            "minimum": -1.397756576538086,
+            "valid_count": 2590664
+          },
+          "rmse": 0.0
+        },
+        "v": {
+          "candidate": {
+            "masked_count": 1415590,
+            "maximum": 1.7279243469238281,
+            "mean": -0.015563232876606714,
+            "minimum": -2.035543203353882,
+            "valid_count": 2598008
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1415590,
+            "maximum": 1.7279243469238281,
+            "mean": -0.015563232876606714,
+            "minimum": -2.035543203353882,
+            "valid_count": 2598008
+          },
+          "rmse": 0.0
+        },
+        "zeta": {
+          "candidate": {
+            "masked_count": 41059,
+            "maximum": 1.1945993900299072,
+            "mean": 0.6718424643018082,
+            "minimum": 0.051624845713377,
+            "valid_count": 77349
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 41059,
+            "maximum": 1.1945993900299072,
+            "mean": 0.6718424643018082,
+            "minimum": 0.051624845713377,
+            "valid_count": 77349
+          },
+          "rmse": 0.0
+        }
+      }
+    },
+    "passed": true,
+    "reference_run": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/phase3-tip-full-profile-4n64-16ppn_20260806T111136Z_35064"
+  },
+  "control_run": null,
+  "kind": "mcc_roms_profile_bundle",
+  "overhead": null,
+  "profile": null,
+  "run": {
+    "allocation": {
+      "end_utc": "2026-08-06T12:53:10Z",
+      "slurm_job_id": "118679841",
+      "slurm_job_nodelist": "j04r2n[00-03]",
+      "slurm_job_num_nodes": "4",
+      "slurm_ntasks": "64",
+      "start_utc": "2026-08-06T12:03:36Z"
+    },
+    "binary_sha256": "4cd23c68180bd3a1151a2e4300395a6d988835dd4cc327d568e3e0c4d27ea65e",
+    "binary_source": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/builds/profiling/no_profile_20260806T110555Z_20776/bin/oceanM",
+    "comparison": {
+      "failures": [],
+      "metrics": {
+        "Dongsha60_avg_0001.nc": {
+          "NH4": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.5168360471725464,
+              "mean": 0.08325760883431897,
+              "minimum": 0.0005859322263859212,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.5168360471725464,
+              "mean": 0.08325760883431897,
+              "minimum": 0.0005859322263859212,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "NO3": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 40.344058990478516,
+              "mean": 21.37746718128302,
+              "minimum": 0.8115823864936829,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 40.344058990478516,
+              "mean": 21.37746718128302,
+              "minimum": 0.8115823864936829,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "PO4": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 2.894313097000122,
+              "mean": 1.6135567412736764,
+              "minimum": 0.21485678851604462,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 2.894313097000122,
+              "mean": 1.6135567412736764,
+              "minimum": 0.21485678851604462,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "TIC": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 2086.560302734375,
+              "mean": 2084.7784770108797,
+              "minimum": 2078.526611328125,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 2086.560302734375,
+              "mean": 2084.7784770108797,
+              "minimum": 2078.526611328125,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "detritus": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.6394363641738892,
+              "mean": 0.12096290153974103,
+              "minimum": 3.215358447050676e-05,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.6394363641738892,
+              "mean": 0.12096290153974103,
+              "minimum": 3.215358447050676e-05,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "diatom": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 1.7930303812026978,
+              "mean": 0.07443259756944884,
+              "minimum": -5.727051757276058e-06,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 1.7930303812026978,
+              "mean": 0.07443259756944884,
+              "minimum": -5.727051757276058e-06,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "microzooplankton": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.48132768273353577,
+              "mean": 0.040395595403369844,
+              "minimum": -6.4995520006050356e-06,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.48132768273353577,
+              "mean": 0.040395595403369844,
+              "minimum": -6.4995520006050356e-06,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "oxygen": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 226.21006774902344,
+              "mean": 148.3848980777467,
+              "minimum": 81.79371643066406,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 226.21006774902344,
+              "mean": 148.3848980777467,
+              "minimum": 81.79371643066406,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "salt": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 34.66224670410156,
+              "mean": 34.34197779788208,
+              "minimum": 33.5123405456543,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 34.66224670410156,
+              "mean": 34.34197779788208,
+              "minimum": 33.5123405456543,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "temp": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 26.407930374145508,
+              "mean": 13.62359759677623,
+              "minimum": 2.064006805419922,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 26.407930374145508,
+              "mean": 13.62359759677623,
+              "minimum": 2.064006805419922,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "u": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.28424760699272156,
+              "mean": -0.06733116932104394,
+              "minimum": -0.8000973463058472,
+              "valid_count": 1981928
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.28424760699272156,
+              "mean": -0.06733116932104394,
+              "minimum": -0.8000973463058472,
+              "valid_count": 1981928
+            },
+            "rmse": 0.0
+          },
+          "v": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.3753753900527954,
+              "mean": 0.013331176586902293,
+              "minimum": -0.2821023464202881,
+              "valid_count": 1982268
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.3753753900527954,
+              "mean": 0.013331176586902293,
+              "minimum": -0.2821023464202881,
+              "valid_count": 1982268
+            },
+            "rmse": 0.0
+          },
+          "zeta": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.5863854289054871,
+              "mean": 0.4276506558232977,
+              "minimum": 0.31087422370910645,
+              "valid_count": 58539
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.5863854289054871,
+              "mean": 0.4276506558232977,
+              "minimum": 0.31087422370910645,
+              "valid_count": 58539
+            },
+            "rmse": 0.0
+          }
+        },
+        "SCS_avg_0001.nc": {
+          "NH4": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 8.699110984802246,
+              "mean": 0.0930286130777681,
+              "minimum": -0.0011705190408974886,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 8.699110984802246,
+              "mean": 0.0930286130777681,
+              "minimum": -0.0011705190408974886,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "NO3": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 200.00918579101562,
+              "mean": 12.552819827448571,
+              "minimum": -0.022160394117236137,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 200.00918579101562,
+              "mean": 12.552819827448571,
+              "minimum": -0.022160394117236137,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "PO4": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 10.000733375549316,
+              "mean": 1.0004846068401716,
+              "minimum": -0.0007429963443428278,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 10.000733375549316,
+              "mean": 1.0004846068401716,
+              "minimum": -0.0007429963443428278,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "TIC": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 2202.970703125,
+              "mean": 2084.766508574206,
+              "minimum": 2043.6578369140625,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 2202.970703125,
+              "mean": 2084.766508574206,
+              "minimum": 2043.6578369140625,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "detritus": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 41.17999267578125,
+              "mean": 0.19857832388540772,
+              "minimum": -0.0002566218317952007,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 41.17999267578125,
+              "mean": 0.19857832388540772,
+              "minimum": -0.0002566218317952007,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "diatom": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 8.154269218444824,
+              "mean": 0.17697618007458665,
+              "minimum": -0.0015784610295668244,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 8.154269218444824,
+              "mean": 0.17697618007458665,
+              "minimum": -0.0015784610295668244,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "microzooplankton": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 1.5650904178619385,
+              "mean": 0.054611558897402074,
+              "minimum": -0.0009412504732608795,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 1.5650904178619385,
+              "mean": 0.054611558897402074,
+              "minimum": -0.0009412504732608795,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "oxygen": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 355.4912109375,
+              "mean": 177.53985494724685,
+              "minimum": 60.30376052856445,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 355.4912109375,
+              "mean": 177.53985494724685,
+              "minimum": 60.30376052856445,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "salt": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 35.55912399291992,
+              "mean": 34.078815617761556,
+              "minimum": 28.305500030517578,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 35.55912399291992,
+              "mean": 34.078815617761556,
+              "minimum": 28.305500030517578,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "temp": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 31.328937530517578,
+              "mean": 18.964753566075444,
+              "minimum": 1.1251652240753174,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 31.328937530517578,
+              "mean": 18.964753566075444,
+              "minimum": 1.1251652240753174,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "u": {
+            "candidate": {
+              "masked_count": 1424056,
+              "maximum": 1.226478934288025,
+              "mean": -0.03218752702144771,
+              "minimum": -1.397756576538086,
+              "valid_count": 2590664
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1424056,
+              "maximum": 1.226478934288025,
+              "mean": -0.03218752702144771,
+              "minimum": -1.397756576538086,
+              "valid_count": 2590664
+            },
+            "rmse": 0.0
+          },
+          "v": {
+            "candidate": {
+              "masked_count": 1415590,
+              "maximum": 1.7279243469238281,
+              "mean": -0.015563232876606714,
+              "minimum": -2.035543203353882,
+              "valid_count": 2598008
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1415590,
+              "maximum": 1.7279243469238281,
+              "mean": -0.015563232876606714,
+              "minimum": -2.035543203353882,
+              "valid_count": 2598008
+            },
+            "rmse": 0.0
+          },
+          "zeta": {
+            "candidate": {
+              "masked_count": 41059,
+              "maximum": 1.1945993900299072,
+              "mean": 0.6718424643018082,
+              "minimum": 0.051624845713377,
+              "valid_count": 77349
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 41059,
+              "maximum": 1.1945993900299072,
+              "mean": 0.6718424643018082,
+              "minimum": 0.051624845713377,
+              "valid_count": 77349
+            },
+            "rmse": 0.0
+          }
+        }
+      },
+      "passed": true,
+      "reference_run": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/phase3-tip-full-profile-4n64-16ppn_20260806T111136Z_35064"
+    },
+    "configuration": {
+      "inner_steps": 12960,
+      "nodes": 4,
+      "outer_steps": 2592,
+      "preserve_output_cadence": true,
+      "ranks": 64,
+      "tiles_i": 8,
+      "tiles_j": 8
+    },
+    "job_id": "118679841",
+    "job_status": 0,
+    "normal_end": true,
+    "outputs": {
+      "failures": [],
+      "passed": true,
+      "shapes": {
+        "Dongsha60_avg_0001.nc": {
+          "NH4": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "NO3": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "PO4": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "TIC": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "detritus": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "diatom": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "microzooplankton": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "oxygen": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "salt": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "temp": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "u": [
+            1,
+            34,
+            247,
+            236
+          ],
+          "v": [
+            1,
+            34,
+            246,
+            237
+          ],
+          "zeta": [
+            1,
+            247,
+            237
+          ]
+        },
+        "SCS_avg_0001.nc": {
+          "NH4": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "NO3": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "PO4": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "TIC": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "detritus": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "diatom": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "microzooplankton": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "oxygen": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "salt": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "temp": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "u": [
+            1,
+            34,
+            328,
+            360
+          ],
+          "v": [
+            1,
+            34,
+            327,
+            361
+          ],
+          "zeta": [
+            1,
+            328,
+            361
+          ]
+        }
+      }
+    },
+    "passed": true,
+    "profile_bundle": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/phase3-tip-full-noprofile-4n64-16ppn_20260806T120211Z_10611/profile_bundle.json",
+    "profile_csv": null,
+    "profile_error": null,
+    "profile_expected": false,
+    "profile_report": null,
+    "resources": {
+      "elapsed_wall_seconds": 2973.35,
+      "error": null,
+      "max_rss_kib": 873372,
+      "system_seconds": 1486.9,
+      "user_seconds": 46020.98
+    },
+    "run_dir": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/phase3-tip-full-noprofile-4n64-16ppn_20260806T120211Z_10611",
+    "schema_version": 1
+  },
+  "schema_version": 1
+}
