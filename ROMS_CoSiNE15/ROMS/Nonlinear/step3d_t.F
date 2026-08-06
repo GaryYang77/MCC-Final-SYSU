@@ -248,7 +248,7 @@
       integer :: dg, cr, rg
 # endif
       integer :: Isrc, Jsrc
-      integer :: i, ic, is, itrc, j, k, ltrc
+      integer :: i, ic, is, itrc, j, k, last_ltrc, ltrc
 # if defined AGE_MEAN && defined T_PASSIVE
       integer :: iage
 # endif
@@ -261,6 +261,7 @@
 
       real(r8), dimension(IminS:ImaxS,0:N(ng)) :: CF
       real(r8), dimension(IminS:ImaxS,0:N(ng)) :: BC
+      real(r8), dimension(IminS:ImaxS,0:N(ng)) :: BF
       real(r8), dimension(IminS:ImaxS,0:N(ng)) :: DC
       real(r8), dimension(IminS:ImaxS,0:N(ng)) :: FC
 
@@ -1027,6 +1028,7 @@
 !  Time-step vertical diffusion term.
 !-----------------------------------------------------------------------
 !
+        last_ltrc=-1
         DO itrc=1,NT(ng)
           ltrc=MIN(NAT,itrc)
 
@@ -1093,40 +1095,55 @@
 !  at horizontal RHO-points and vertical W-points.
 !  Also set FC at the top and bottom levels.
 !
-          cff=-dt(ng)*lambda
-          DO k=1,N(ng)-1
-            DO i=Istr,Iend
-              cff1=1.0_r8/(z_r(i,j,k+1)-z_r(i,j,k))
-              FC(i,k)=cff*cff1*Akt(i,j,k,ltrc)
+          IF (ltrc.ne.last_ltrc) THEN
+            cff=-dt(ng)*lambda
+            DO k=1,N(ng)-1
+              DO i=Istr,Iend
+                cff1=1.0_r8/(z_r(i,j,k+1)-z_r(i,j,k))
+                FC(i,k)=cff*cff1*Akt(i,j,k,ltrc)
+              END DO
             END DO
-          END DO
-          DO i=Istr,Iend
-            FC(i,0)=0.0_r8
-            FC(i,N(ng))=0.0_r8
-          END DO
+            DO i=Istr,Iend
+              FC(i,0)=0.0_r8
+              FC(i,N(ng))=0.0_r8
+            END DO
 !
-!  Compute diagonal matrix coefficients BC and load right-hand-side
-!  terms for the tracer equation into DC.
+!  Compute and factor the tracer-independent tridiagonal matrix. Store
+!  each inverse pivot in BF so tracers sharing Akt reuse the factorization.
+!
+            DO k=1,N(ng)
+              DO i=Istr,Iend
+                BC(i,k)=Hz(i,j,k)-FC(i,k)-FC(i,k-1)
+              END DO
+            END DO
+            DO i=Istr,Iend
+              BF(i,1)=1.0_r8/BC(i,1)
+              CF(i,1)=BF(i,1)*FC(i,1)
+            END DO
+            DO k=2,N(ng)-1
+              DO i=Istr,Iend
+                BF(i,k)=1.0_r8/                                       &
+     &                  (BC(i,k)-FC(i,k-1)*CF(i,k-1))
+                CF(i,k)=BF(i,k)*FC(i,k)
+              END DO
+            END DO
+            last_ltrc=ltrc
+          END IF
+!
+!  Load and solve the tracer-dependent right-hand side with the cached
+!  factorization.
 !
           DO k=1,N(ng)
             DO i=Istr,Iend
-              BC(i,k)=Hz(i,j,k)-FC(i,k)-FC(i,k-1)
               DC(i,k)=t(i,j,k,nnew,itrc)
             END DO
           END DO
-!
-!  Solve the tridiagonal system.
-!
           DO i=Istr,Iend
-            cff=1.0_r8/BC(i,1)
-            CF(i,1)=cff*FC(i,1)
-            DC(i,1)=cff*DC(i,1)
+            DC(i,1)=BF(i,1)*DC(i,1)
           END DO
           DO k=2,N(ng)-1
             DO i=Istr,Iend
-              cff=1.0_r8/(BC(i,k)-FC(i,k-1)*CF(i,k-1))
-              CF(i,k)=cff*FC(i,k)
-              DC(i,k)=cff*(DC(i,k)-FC(i,k-1)*DC(i,k-1))
+              DC(i,k)=BF(i,k)*(DC(i,k)-FC(i,k-1)*DC(i,k-1))
             END DO
           END DO
 !
