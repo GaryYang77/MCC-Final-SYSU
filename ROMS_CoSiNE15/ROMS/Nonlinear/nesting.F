@@ -4821,7 +4821,9 @@
           CALL mp_assemble (dg, model, Npts, 0.0_r8,                  &
      &                      Fine3dCross(1:BlockLen,1:Klen,1:Ncross),  &
      &                      Receiver=contact(cr)%F2Creceiver,          &
-     &                      CellOwner=contact(cr)%F2CcellOwner)
+     &                      CellOwner=contact(cr)%F2CcellOwner,       &
+     &                      PlanKey=-(100000+4*(cr-1)+                &
+     &                                ABS(gtype)-p3dvar+1))
           IF (exit_flag.ne.NoError) RETURN
         END IF
 

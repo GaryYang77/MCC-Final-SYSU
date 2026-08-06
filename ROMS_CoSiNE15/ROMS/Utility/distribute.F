@@ -107,6 +107,7 @@
         integer, allocatable :: send_m(:), send_p(:)
         integer, allocatable :: recv_m(:), recv_p(:)
         integer, allocatable :: zero_m(:)
+        integer, allocatable :: send_i(:), recv_i(:), zero_i(:)
       END TYPE T_Assemble3DPlan
 
       TYPE(T_Assemble3DPlan), target, save ::                          &
@@ -1957,70 +1958,212 @@
      &                                    Asize(1)*Asize(3)
           exit_flag=7
         END IF
-        Counts=0
-        Rcounts=0
-        DO m=1,Asize(3)
-          rank=Receiver(m)
-          IF (rank.ge.numthreads) THEN
-            exit_flag=7
-          ELSE
-            DO i=1,Asize(1)
-              source=CellOwner(i,m)
-              IF (source.ge.numthreads) THEN
+        slot=0
+        IF (PRESENT(PlanKey)) THEN
+          DO q=1,Nassemble3DPlan
+            IF ((Assemble3DPlan(q)%ng.eq.ng).and.                     &
+     &          (Assemble3DPlan(q)%model.eq.model).and.               &
+     &          (Assemble3DPlan(q)%key.eq.PlanKey).and.               &
+     &          (Assemble3DPlan(q)%nthreads.eq.numthreads).and.       &
+     &          (Assemble3DPlan(q)%n1.eq.Asize(1)).and.               &
+     &          (Assemble3DPlan(q)%n2.eq.Asize(2)).and.               &
+     &          (Assemble3DPlan(q)%n3.eq.Asize(3))) THEN
+              slot=q
+              EXIT
+            END IF
+          END DO
+          IF ((slot.eq.0).and.                                        &
+     &        (Nassemble3DPlan.lt.MaxAssemble3DPlans)) THEN
+            Nassemble3DPlan=Nassemble3DPlan+1
+            slot=Nassemble3DPlan
+            Plan=>Assemble3DPlan(slot)
+            Plan%ng=ng
+            Plan%model=model
+            Plan%key=PlanKey
+            Plan%nthreads=numthreads
+            Plan%n1=Asize(1)
+            Plan%n2=Asize(2)
+            Plan%n3=Asize(3)
+            allocate (Plan%counts(0:numthreads-1))
+            allocate (Plan%displs(0:numthreads-1))
+            allocate (Plan%rcounts(0:numthreads-1))
+            allocate (Plan%rdispls(0:numthreads-1))
+            Plan%counts=0
+            Plan%rcounts=0
+            block=Asize(2)
+            Plan%nzero=0
+            DO m=1,Asize(3)
+              rank=Receiver(m)
+              IF (rank.ge.numthreads) THEN
                 exit_flag=7
               ELSE
-                IF ((source.eq.MyRank).and.(rank.ge.0))                &
-     &            Counts(rank)=Counts(rank)+Asize(2)
-                IF ((rank.eq.MyRank).and.(source.ge.0))                &
-     &            Rcounts(source)=Rcounts(source)+Asize(2)
-              END IF
-            END DO
-          END IF
-        END DO
-        Displs(0)=0
-        Rdispls(0)=0
-        DO rank=1,numthreads-1
-          Displs(rank)=Displs(rank-1)+Counts(rank-1)
-          Rdispls(rank)=Rdispls(rank-1)+Rcounts(rank-1)
-        END DO
-        Offset=0
-        DO m=1,Asize(3)
-          rank=Receiver(m)
-          IF (rank.ge.0) THEN
-            DO i=1,Asize(1)
-              IF (CellOwner(i,m).eq.MyRank) THEN
-                p=Displs(rank)+Offset(rank)
-                DO k=1,Asize(2)
-                  p=p+1
-                  Asend(p)=A(i,k,m)
+                DO i=1,Asize(1)
+                  source=CellOwner(i,m)
+                  IF (source.ge.numthreads) THEN
+                    exit_flag=7
+                  ELSE
+                    IF ((source.eq.MyRank).and.(rank.ge.0))            &
+     &                Plan%counts(rank)=Plan%counts(rank)+block
+                    IF ((rank.eq.MyRank).and.(source.ge.0))            &
+     &                Plan%rcounts(source)=Plan%rcounts(source)+block
+                    IF ((rank.eq.MyRank).and.(source.lt.0))            &
+     &                Plan%nzero=Plan%nzero+1
+                  END IF
                 END DO
-                Offset(rank)=Offset(rank)+Asize(2)
+              END IF
+            END DO
+            Plan%displs(0)=0
+            Plan%rdispls(0)=0
+            DO rank=1,numthreads-1
+              Plan%displs(rank)=Plan%displs(rank-1)+                   &
+     &                           Plan%counts(rank-1)
+              Plan%rdispls(rank)=Plan%rdispls(rank-1)+                &
+     &                            Plan%rcounts(rank-1)
+            END DO
+            Plan%nsend=SUM(Plan%counts)/block
+            Plan%nrecv=SUM(Plan%rcounts)/block
+            allocate (Plan%send_i(MAX(1,Plan%nsend)))
+            allocate (Plan%send_m(MAX(1,Plan%nsend)))
+            allocate (Plan%send_p(MAX(1,Plan%nsend)))
+            allocate (Plan%recv_i(MAX(1,Plan%nrecv)))
+            allocate (Plan%recv_m(MAX(1,Plan%nrecv)))
+            allocate (Plan%recv_p(MAX(1,Plan%nrecv)))
+            allocate (Plan%zero_i(MAX(1,Plan%nzero)))
+            allocate (Plan%zero_m(MAX(1,Plan%nzero)))
+            Offset=0
+            q=0
+            DO m=1,Asize(3)
+              rank=Receiver(m)
+              IF (rank.ge.0) THEN
+                DO i=1,Asize(1)
+                  IF (CellOwner(i,m).eq.MyRank) THEN
+                    q=q+1
+                    Plan%send_i(q)=i
+                    Plan%send_m(q)=m
+                    Plan%send_p(q)=Plan%displs(rank)+Offset(rank)
+                    Offset(rank)=Offset(rank)+block
+                  END IF
+                END DO
+              END IF
+            END DO
+            Roffset=0
+            q=0
+            p=0
+            DO m=1,Asize(3)
+              IF (Receiver(m).eq.MyRank) THEN
+                DO i=1,Asize(1)
+                  source=CellOwner(i,m)
+                  IF (source.lt.0) THEN
+                    p=p+1
+                    Plan%zero_i(p)=i
+                    Plan%zero_m(p)=m
+                  ELSE
+                    q=q+1
+                    Plan%recv_i(q)=i
+                    Plan%recv_m(q)=m
+                    Plan%recv_p(q)=Plan%rdispls(source)+Roffset(source)
+                    Roffset(source)=Roffset(source)+block
+                  END IF
+                END DO
               END IF
             END DO
           END IF
-        END DO
-        CALL mpi_alltoallv (Asend, Counts, Displs, MP_FLOAT,           &
-     &                      Arecv, Rcounts, Rdispls, MP_FLOAT,         &
-     &                      OCN_COMM_WORLD, MyError)
-        IF (MyError.eq.MPI_SUCCESS) THEN
-          Roffset=0
+        END IF
+        IF (slot.gt.0) THEN
+          Plan=>Assemble3DPlan(slot)
+          DO q=1,Plan%nsend
+            i=Plan%send_i(q)
+            m=Plan%send_m(q)
+            p=Plan%send_p(q)
+            DO k=1,Asize(2)
+              p=p+1
+              Asend(p)=A(i,k,m)
+            END DO
+          END DO
+          CALL mpi_alltoallv (Asend, Plan%counts, Plan%displs,         &
+     &                        MP_FLOAT, Arecv, Plan%rcounts,            &
+     &                        Plan%rdispls, MP_FLOAT,                  &
+     &                        OCN_COMM_WORLD, MyError)
+          IF (MyError.eq.MPI_SUCCESS) THEN
+            DO q=1,Plan%nzero
+              A(Plan%zero_i(q),:,Plan%zero_m(q))=0.0_r8
+            END DO
+            DO q=1,Plan%nrecv
+              i=Plan%recv_i(q)
+              m=Plan%recv_m(q)
+              p=Plan%recv_p(q)
+              DO k=1,Asize(2)
+                p=p+1
+                A(i,k,m)=Arecv(p)
+              END DO
+            END DO
+          END IF
+        ELSE
+          Counts=0
+          Rcounts=0
           DO m=1,Asize(3)
-            IF (Receiver(m).eq.MyRank) THEN
+            rank=Receiver(m)
+            IF (rank.ge.numthreads) THEN
+              exit_flag=7
+            ELSE
               DO i=1,Asize(1)
                 source=CellOwner(i,m)
-                IF (source.lt.0) THEN
-                  A(i,:,m)=0.0_r8
+                IF (source.ge.numthreads) THEN
+                  exit_flag=7
                 ELSE
-                  p=Rdispls(source)+Roffset(source)
-                  DO k=1,Asize(2)
-                    p=p+1
-                    A(i,k,m)=Arecv(p)
-                  END DO
-                  Roffset(source)=Roffset(source)+Asize(2)
+                  IF ((source.eq.MyRank).and.(rank.ge.0))              &
+     &              Counts(rank)=Counts(rank)+Asize(2)
+                  IF ((rank.eq.MyRank).and.(source.ge.0))              &
+     &              Rcounts(source)=Rcounts(source)+Asize(2)
                 END IF
               END DO
             END IF
           END DO
+          Displs(0)=0
+          Rdispls(0)=0
+          DO rank=1,numthreads-1
+            Displs(rank)=Displs(rank-1)+Counts(rank-1)
+            Rdispls(rank)=Rdispls(rank-1)+Rcounts(rank-1)
+          END DO
+          Offset=0
+          DO m=1,Asize(3)
+            rank=Receiver(m)
+            IF (rank.ge.0) THEN
+              DO i=1,Asize(1)
+                IF (CellOwner(i,m).eq.MyRank) THEN
+                  p=Displs(rank)+Offset(rank)
+                  DO k=1,Asize(2)
+                    p=p+1
+                    Asend(p)=A(i,k,m)
+                  END DO
+                  Offset(rank)=Offset(rank)+Asize(2)
+                END IF
+              END DO
+            END IF
+          END DO
+          CALL mpi_alltoallv (Asend, Counts, Displs, MP_FLOAT,         &
+     &                        Arecv, Rcounts, Rdispls, MP_FLOAT,       &
+     &                        OCN_COMM_WORLD, MyError)
+          IF (MyError.eq.MPI_SUCCESS) THEN
+            Roffset=0
+            DO m=1,Asize(3)
+              IF (Receiver(m).eq.MyRank) THEN
+                DO i=1,Asize(1)
+                  source=CellOwner(i,m)
+                  IF (source.lt.0) THEN
+                    A(i,:,m)=0.0_r8
+                  ELSE
+                    p=Rdispls(source)+Roffset(source)
+                    DO k=1,Asize(2)
+                      p=p+1
+                      A(i,k,m)=Arecv(p)
+                    END DO
+                    Roffset(source)=Roffset(source)+Asize(2)
+                  END IF
+                END DO
+              END IF
+            END DO
+          END IF
         END IF
       ELSE IF (PRESENT(Owner).and.PRESENT(Receiver).and.               &
      &    (NtileI(ng)*NtileJ(ng).eq.numthreads)) THEN
