@@ -42,3 +42,19 @@ contention and is outside the source code.
 - Future experiments should prefer stable regions (compute kernels,
   nesting R39/R55, halo exchanges) over regions containing output I/O, or
   should be evaluated with repeated runs when the targeted gain is small.
+
+## 2026-08-07 addendum: advection loop-fusion experiment failed
+
+`perf/fuse-advection-grad` fused the two-pass 4th-order centered advection
+difference computation (`FX` row + edge fixes + `grad` row, and the
+`FE/grad` Y-direction counterpart) in `pre_step3d.F` and `step3d_t.F`.
+Debugging found a real edge-case trap: for the northernmost tile
+`Jendp2 = MIN(Jend+2, Mm+1)` is clamped, so a fused Y loop can never reach
+`j=Jend+2`; the north-edge fix and `grad(i,Jend+1)` must be applied after
+the loop (the accepted two-pass form does this implicitly).  The composite
+boundary grid (Dongsha60) hid the bug because its north fix is skipped.
+With the fix, the DEMO was bitwise identical, but Grid 2 R22/R35 became
+~1.5-2% slower (`8.269 -> 8.391 s`, `9.367 -> 9.542 s`) and the total
+regressed `76.450 -> 77.264 s`; the candidate was reverted and archived
+under `/tmp/fuse-advection-grad-failed/`.  Loop fusion of these small
+L1-resident rows does not pay on this compiler/hardware.
