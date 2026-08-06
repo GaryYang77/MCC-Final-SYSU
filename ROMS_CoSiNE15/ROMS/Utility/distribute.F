@@ -108,6 +108,8 @@
         integer, allocatable :: recv_m(:), recv_p(:)
         integer, allocatable :: zero_m(:)
         integer, allocatable :: send_i(:), recv_i(:), zero_i(:)
+        integer, allocatable :: src_i(:), src_j(:), src_ip1(:),       &
+     &                          src_jp1(:)
       END TYPE T_Assemble3DPlan
 
       TYPE(T_Assemble3DPlan), target, save ::                          &
@@ -2442,6 +2444,279 @@
 
       RETURN
       END SUBROUTINE mp_assemblef_3d
+!
+      SUBROUTINE mp_assemble_contact3d (ng, model, Npts, Aspv, Ad,    &
+     &                                  Ac, Owner, Receiver, PlanKey, &
+     &                                  Idg, Jdg, Imax, Jmax, LBk,    &
+     &                                  LBi, LBj)
+!
+!***********************************************************************
+!                                                                      !
+!  Specialized variant of MP_ASSEMBLEF_3D for "get_contact3d" donor    !
+!  extraction.  Donor values are packed directly from the donor grid   !
+!  array into the MPI send buffer, skipping the intermediate contact   !
+!  array write and re-read performed by the generic routine.           !
+!                                                                      !
+!  The static route plan is stored in the same Assemble3DPlan cache    !
+!  under a reserved key namespace.  Record order, MPI payload, the     !
+!  Alltoallv call, zero records, and receiver unpack order are         !
+!  identical to the generic Owner+Receiver keyed path, so the result   !
+!  is bitwise identical.                                               !
+!                                                                      !
+!***********************************************************************
+!
+      USE mod_param
+      USE mod_parallel
+      USE mod_iounits
+      USE mod_scalars
+!
+      implicit none
+!
+!  Imported variable declarations.
+!
+      integer, intent(in) :: ng, model, Npts, Imax, Jmax, LBk, LBi, LBj
+
+      real(r8), intent(in) :: Aspv
+
+      real(r8), intent(in) :: Ad(:,:,:)
+
+      real(r8), intent(inout) :: Ac(:,:,:)
+
+      integer, intent(in) :: Owner(:), Receiver(:)
+      integer, intent(in) :: PlanKey
+      integer, intent(in) :: Idg(:), Jdg(:)
+!
+!  Local variable declarations.
+!
+      integer :: Klen, Lk, Lstr, MyError, Serror
+      integer :: block, i, ip1, j, jp1, k, m, p, q, rank, slot, source
+      integer :: AdIlo, AdJlo, AdKlo
+
+      integer :: Asize(3)
+
+      integer, dimension(0:numthreads-1) :: Offset, Roffset
+
+      real(r8), dimension(Npts) :: Asend, Arecv
+
+      TYPE(T_Assemble3DPlan), pointer :: Plan
+
+      character (len=MPI_MAX_ERROR_STRING) :: string
+
+# ifdef PROFILE
+!
+!-----------------------------------------------------------------------
+!  Turn on time clocks.
+!-----------------------------------------------------------------------
+!
+      CALL wclock_on (ng, model, 49)
+# endif
+!
+!-----------------------------------------------------------------------
+!  Check input parameters.
+!-----------------------------------------------------------------------
+!
+      Asize(1)=UBOUND(Ac, DIM=1)
+      Asize(2)=UBOUND(Ac, DIM=2)
+      Asize(3)=UBOUND(Ac, DIM=3)
+      Lk=LBOUND(Ac, DIM=2)
+      Klen=Asize(2)-Lk+1
+      IF (Npts.ne.Asize(1)*Klen*Asize(3)) THEN
+        IF (Master) WRITE (stdout,10) Npts, Asize(1)*Klen*Asize(3)
+        exit_flag=7
+      END IF
+!
+      IF (Aspv.ne.0.0_r8) THEN
+        IF (Master) WRITE (stdout,20) Aspv
+        exit_flag=7
+      END IF
+!
+      IF ((Asize(1).ne.4).or.(SIZE(Owner).ne.Asize(3)).or.             &
+     &    (SIZE(Receiver).ne.Asize(3)).or.                             &
+     &    (SIZE(Idg).ne.Asize(3)).or.(SIZE(Jdg).ne.Asize(3))) THEN
+        IF (Master) WRITE (stdout,10) SIZE(Owner), Asize(3)
+        exit_flag=7
+      END IF
+!
+!-----------------------------------------------------------------------
+!  Locate or build the static route plan.
+!-----------------------------------------------------------------------
+!
+      slot=0
+      DO q=1,Nassemble3DPlan
+        IF ((Assemble3DPlan(q)%ng.eq.ng).and.                         &
+     &      (Assemble3DPlan(q)%model.eq.model).and.                   &
+     &      (Assemble3DPlan(q)%key.eq.PlanKey).and.                   &
+     &      (Assemble3DPlan(q)%nthreads.eq.numthreads).and.           &
+     &      (Assemble3DPlan(q)%n1.eq.Asize(1)).and.                   &
+     &      (Assemble3DPlan(q)%n2.eq.Klen).and.                       &
+     &      (Assemble3DPlan(q)%n3.eq.Asize(3))) THEN
+          slot=q
+          EXIT
+        END IF
+      END DO
+      IF ((slot.eq.0).and.(Nassemble3DPlan.lt.MaxAssemble3DPlans)) THEN
+        Nassemble3DPlan=Nassemble3DPlan+1
+        slot=Nassemble3DPlan
+        Plan=>Assemble3DPlan(slot)
+        Plan%ng=ng
+        Plan%model=model
+        Plan%key=PlanKey
+        Plan%nthreads=numthreads
+        Plan%n1=Asize(1)
+        Plan%n2=Klen
+        Plan%n3=Asize(3)
+        allocate (Plan%counts(0:numthreads-1))
+        allocate (Plan%displs(0:numthreads-1))
+        allocate (Plan%rcounts(0:numthreads-1))
+        allocate (Plan%rdispls(0:numthreads-1))
+        Plan%counts=0
+        Plan%rcounts=0
+        block=Asize(1)*Klen
+        Plan%nzero=0
+        DO m=1,Asize(3)
+          source=Owner(m)
+          rank=Receiver(m)
+          IF ((source.ge.numthreads).or.(rank.ge.numthreads)) THEN
+            exit_flag=7
+          ELSE
+            IF ((source.eq.MyRank).and.(rank.ge.0))                   &
+     &        Plan%counts(rank)=Plan%counts(rank)+block
+            IF ((rank.eq.MyRank).and.(source.ge.0))                   &
+     &        Plan%rcounts(source)=Plan%rcounts(source)+block
+            IF ((rank.eq.MyRank).and.(source.lt.0))                   &
+     &        Plan%nzero=Plan%nzero+1
+          END IF
+        END DO
+        Plan%displs(0)=0
+        Plan%rdispls(0)=0
+        DO rank=1,numthreads-1
+          Plan%displs(rank)=Plan%displs(rank-1)+Plan%counts(rank-1)
+          Plan%rdispls(rank)=Plan%rdispls(rank-1)+Plan%rcounts(rank-1)
+        END DO
+        Plan%nsend=SUM(Plan%counts)/block
+        Plan%nrecv=SUM(Plan%rcounts)/block
+        allocate (Plan%send_m(MAX(1,Plan%nsend)))
+        allocate (Plan%send_p(MAX(1,Plan%nsend)))
+        allocate (Plan%src_i(MAX(1,Plan%nsend)))
+        allocate (Plan%src_j(MAX(1,Plan%nsend)))
+        allocate (Plan%src_ip1(MAX(1,Plan%nsend)))
+        allocate (Plan%src_jp1(MAX(1,Plan%nsend)))
+        allocate (Plan%recv_m(MAX(1,Plan%nrecv)))
+        allocate (Plan%recv_p(MAX(1,Plan%nrecv)))
+        allocate (Plan%zero_m(MAX(1,Plan%nzero)))
+        Offset=0
+        q=0
+        DO m=1,Asize(3)
+          rank=Receiver(m)
+          IF ((Owner(m).eq.MyRank).and.(rank.ge.0)) THEN
+            q=q+1
+            Plan%send_m(q)=m
+            Plan%send_p(q)=Plan%displs(rank)+Offset(rank)
+            Plan%src_i(q)=Idg(m)-LBi+1
+            Plan%src_j(q)=Jdg(m)-LBj+1
+            Plan%src_ip1(q)=MIN(Idg(m)+1,Imax)-LBi+1
+            Plan%src_jp1(q)=MIN(Jdg(m)+1,Jmax)-LBj+1
+            Offset(rank)=Offset(rank)+block
+          END IF
+        END DO
+        Roffset=0
+        q=0
+        p=0
+        DO m=1,Asize(3)
+          IF (Receiver(m).eq.MyRank) THEN
+            source=Owner(m)
+            IF (source.lt.0) THEN
+              p=p+1
+              Plan%zero_m(p)=m
+            ELSE
+              q=q+1
+              Plan%recv_m(q)=m
+              Plan%recv_p(q)=Plan%rdispls(source)+Roffset(source)
+              Roffset(source)=Roffset(source)+block
+            END IF
+          END IF
+        END DO
+      ELSE IF (slot.eq.0) THEN
+        IF (Master) WRITE (stdout,30) MaxAssemble3DPlans
+        exit_flag=7
+      END IF
+      IF (exit_flag.ne.NoError) RETURN
+!
+!-----------------------------------------------------------------------
+!  Pack donor values directly into the send buffer, exchange, and
+!  unpack receiver values into the contact array.
+!-----------------------------------------------------------------------
+!
+      IF (slot.gt.0) THEN
+        Plan=>Assemble3DPlan(slot)
+        AdIlo=LBOUND(Ad, DIM=1)
+        AdJlo=LBOUND(Ad, DIM=2)
+        AdKlo=LBOUND(Ad, DIM=3)
+        DO q=1,Plan%nsend
+          i=Plan%src_i(q)
+          ip1=Plan%src_ip1(q)
+          j=Plan%src_j(q)
+          jp1=Plan%src_jp1(q)
+          p=Plan%send_p(q)
+          DO k=1,Klen
+            Asend(p+1)=Ad(AdIlo+i-1  ,AdJlo+j-1  ,AdKlo+k-1)
+            Asend(p+2)=Ad(AdIlo+ip1-1,AdJlo+j-1  ,AdKlo+k-1)
+            Asend(p+3)=Ad(AdIlo+ip1-1,AdJlo+jp1-1,AdKlo+k-1)
+            Asend(p+4)=Ad(AdIlo+i-1  ,AdJlo+jp1-1,AdKlo+k-1)
+            p=p+4
+          END DO
+        END DO
+        CALL mpi_alltoallv (Asend, Plan%counts, Plan%displs,           &
+     &                      MP_FLOAT, Arecv, Plan%rcounts,             &
+     &                      Plan%rdispls, MP_FLOAT,                    &
+     &                      OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          DO q=1,Plan%nzero
+            Ac(:,:,Plan%zero_m(q))=0.0_r8
+          END DO
+          DO q=1,Plan%nrecv
+            m=Plan%recv_m(q)
+            p=Plan%recv_p(q)
+            DO k=1,Klen
+              DO i=1,Asize(1)
+                p=p+1
+                Ac(i,Lk+k-1,m)=Arecv(p)
+              END DO
+            END DO
+          END DO
+        END IF
+      END IF
+      IF (MyError.ne.MPI_SUCCESS) THEN
+        CALL mpi_error_string (MyError, string, Lstr, Serror)
+        Lstr=LEN_TRIM(string)
+        WRITE (stdout,40) 'MPI_ASSEMBLE_CONTACT3D', MyRank, MyError,   &
+     &                    string(1:Lstr)
+        exit_flag=2
+        RETURN
+      END IF
+!
+# ifdef PROFILE
+!
+!-----------------------------------------------------------------------
+!  Turn off time clocks.
+!-----------------------------------------------------------------------
+!
+      CALL wclock_off (ng, model, 49)
+# endif
+!
+ 10   FORMAT (/,' MP_ASSEMBLE_CONTACT3D - inconsistent array size, ',  &
+     &        'Npts = ',i10,2x,i10,/,19x,'number of addressed array ', &
+     &        'elements is incorrect.')
+ 20   FORMAT (/,' MP_ASSEMBLE_CONTACT3D - illegal special value, ',    &
+     &        1p,e17.10,/,19x,'a zero value is needed for global ',     &
+     &        'reduction.')
+ 30   FORMAT (/,' MP_ASSEMBLE_CONTACT3D - too many route plans, ',     &
+     &        'maximum is ',i4,'.')
+ 40   FORMAT (/,' MP_ASSEMBLE_CONTACT3D - error during ',a,' call, ',  &
+     &        'Node = ',i3.3,' Error = ',i3,/,13x,a)
+
+      RETURN
+      END SUBROUTINE mp_assemble_contact3d
 !
 !
       SUBROUTINE mp_assemblei_1d (ng, model, Npts, Aspv, A)

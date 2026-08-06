@@ -5382,6 +5382,7 @@
 !
       USE mod_parallel, ONLY : MyRank, numthreads
       USE distribute_mod, ONLY : mp_assemble
+      USE distribute_mod, ONLY : mp_assemble_contact3d
 #  endif
 !
 !  Imported variable declarations.
@@ -5575,6 +5576,7 @@
       UseLocalList=.FALSE.
       Nlocal=Npoints
 #  endif
+      IF (.not.(UseLocalList.and.UseReceiver)) THEN
       DO k=LBk,UBk
         DO idx=1,Nlocal
 #  ifdef DISTRIBUTE
@@ -5600,15 +5602,29 @@
           END IF
         END DO
       END DO
+      END IF
 
 #  ifdef DISTRIBUTE
 !
 !  Gather and broadcast data from all nodes.
 !
       IF (UseReceiver) THEN
-        CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),         &
-     &                    contact(cr)%Downer, contact(cr)%Rowner,      &
-     &                    PlanKey=3*(cr-1)+gtype-r3dvar+1)
+        IF (UseLocalList) THEN
+          CALL mp_assemble_contact3d (dg, model, Npts, Aspv, Ad,       &
+     &                                Ac(:,LBk:,:),                    &
+     &                                contact(cr)%Downer,              &
+     &                                contact(cr)%Rowner,              &
+     &                                PlanKey=10000000+                &
+     &                                  3*(cr-1)+gtype-r3dvar+1,       &
+     &                                Idg=contact(cr)%Idg,             &
+     &                                Jdg=contact(cr)%Jdg,             &
+     &                                Imax=Imax, Jmax=Jmax, LBk=LBk,   &
+     &                                LBi=LBi, LBj=LBj)
+        ELSE
+          CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),       &
+     &                      contact(cr)%Downer, contact(cr)%Rowner,    &
+     &                      PlanKey=3*(cr-1)+gtype-r3dvar+1)
+        END IF
       ELSE
         CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),         &
      &                    contact(cr)%Downer)
