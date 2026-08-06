@@ -5578,7 +5578,8 @@
 !
       IF (UseReceiver) THEN
         CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),         &
-     &                    contact(cr)%Downer, contact(cr)%Rowner)
+     &                    contact(cr)%Downer, contact(cr)%Rowner,      &
+     &                    PlanKey=3*(cr-1)+gtype-r3dvar+1)
       ELSE
         CALL mp_assemble (dg, model, Npts, Aspv, Ac(:,LBk:,:),         &
      &                    contact(cr)%Downer)
