@@ -4448,6 +4448,7 @@
       integer :: F_Iend, F_Istr, F_Jend, F_Jstr
       integer :: BlockLen, Klen, LBi, UBi, LBj, UBj, Nlocal, Npts
       integer :: Ncross, Nnodes, Rnodes, ib, ii, jj, kk, rank
+      integer :: NewB, NewK, NewN
 #  endif
 
       real(r8) :: areaC_inv, my_area, my_areasum, ratio
@@ -4455,8 +4456,6 @@
 
 #  ifdef DISTRIBUTE
       real(r8), allocatable :: F(:,:,:)
-      real(r8), allocatable :: Fcross(:,:,:)
-      real(r8), allocatable :: Fsum(:,:)
       real(r8), allocatable :: dxF(:,:)
       real(r8), allocatable :: dyF(:,:)
 #   ifdef MASKING
@@ -4690,11 +4689,33 @@
             F_Jend=BOUNDS(dg)%JendP(MyRank)
         END SELECT
 
-        allocate (Fsum(Klen,Npoints))
-        Fsum=0.0_r8
+        IF (allocated(Fine3dSum)) THEN
+          IF ((SIZE(Fine3dSum,DIM=1).lt.Klen).or.                     &
+     &        (SIZE(Fine3dSum,DIM=2).lt.Npoints)) THEN
+            NewK=MAX(Klen,SIZE(Fine3dSum,DIM=1))
+            NewN=MAX(Npoints,SIZE(Fine3dSum,DIM=2))
+            deallocate (Fine3dSum)
+            allocate (Fine3dSum(NewK,NewN))
+          END IF
+        ELSE
+          allocate (Fine3dSum(Klen,Npoints))
+        END IF
+        Fine3dSum(1:Klen,1:Npoints)=0.0_r8
         IF (Ncross.gt.0) THEN
-          allocate (Fcross(BlockLen,Klen,Ncross))
-          Fcross=0.0_r8
+          IF (allocated(Fine3dCross)) THEN
+            IF ((SIZE(Fine3dCross,DIM=1).lt.BlockLen).or.             &
+     &          (SIZE(Fine3dCross,DIM=2).lt.Klen).or.                 &
+     &          (SIZE(Fine3dCross,DIM=3).lt.Ncross)) THEN
+              NewB=MAX(BlockLen,SIZE(Fine3dCross,DIM=1))
+              NewK=MAX(Klen,SIZE(Fine3dCross,DIM=2))
+              NewN=MAX(Ncross,SIZE(Fine3dCross,DIM=3))
+              deallocate (Fine3dCross)
+              allocate (Fine3dCross(NewB,NewK,NewN))
+            END IF
+          ELSE
+            allocate (Fine3dCross(BlockLen,Klen,Ncross))
+          END IF
+          Fine3dCross(1:BlockLen,1:Klen,1:Ncross)=0.0_r8
         END IF
 
         IF (GetMask) THEN
@@ -4761,10 +4782,12 @@
               DO Jadd=-half,half
                 DO Iadd=-half,half
 #   ifdef MASKING
-                  Fsum(kk,m)=Fsum(kk,m)+A(i+Iadd,j+Jadd,k)*            &
+                  Fine3dSum(kk,m)=Fine3dSum(kk,m)+                    &
+     &                             A(i+Iadd,j+Jadd,k)*                 &
      &                       Amsk(i+Iadd,j+Jadd)
 #   else
-                  Fsum(kk,m)=Fsum(kk,m)+A(i+Iadd,j+Jadd,k)
+                  Fine3dSum(kk,m)=Fine3dSum(kk,m)+                    &
+     &                             A(i+Iadd,j+Jadd,k)
 #   endif
                 END DO
               END DO
@@ -4779,7 +4802,8 @@
                   ib=(Jadd+half)*Rscale+Iadd+half+1
                   IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.         &
      &                ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
-                    Fcross(ib,kk,contact(cr)%F2Ccross(m))=A(ii,jj,k)
+                    Fine3dCross(ib,kk,contact(cr)%F2Ccross(m))=       &
+     &                                                       A(ii,jj,k)
                   END IF
                 END DO
               END DO
@@ -4787,12 +4811,14 @@
           END IF
         END DO
         Npts=Klen*Npoints
-        CALL mp_assemble (dg, model, Npts, 0.0_r8, Fsum,              &
+        CALL mp_assemble (dg, model, Npts, 0.0_r8,                    &
+     &                    Fine3dSum(1:Klen,1:Npoints),                &
      &                    contact(cr)%F2Cowner, contact(cr)%Rowner)
         IF (exit_flag.ne.NoError) RETURN
         IF (Ncross.gt.0) THEN
           Npts=BlockLen*Klen*Ncross
-          CALL mp_assemble (dg, model, Npts, 0.0_r8, Fcross,           &
+          CALL mp_assemble (dg, model, Npts, 0.0_r8,                  &
+     &                      Fine3dCross(1:BlockLen,1:Klen,1:Ncross),  &
      &                      Receiver=contact(cr)%F2Creceiver,          &
      &                      CellOwner=contact(cr)%F2CcellOwner)
           IF (exit_flag.ne.NoError) RETURN
@@ -4810,7 +4836,7 @@
               my_avg=0.0_r8
               IF (contact(cr)%F2Cowner(m).ge.0) THEN
                 IF (Fine3dCount(m).gt.0.0_r8) THEN
-                  my_avg=Fsum(kk,m)/Fine3dCount(m)
+                  my_avg=Fine3dSum(kk,m)/Fine3dCount(m)
                 END IF
               ELSE
                 my_count=0.0_r8
@@ -4820,7 +4846,8 @@
                     ib=(Jadd+half)*Rscale+Iadd+half+1
 #   ifdef MASKING
                     my_sum=my_sum+                                   &
-     &                     Fcross(ib,kk,contact(cr)%F2Ccross(m))*     &
+     &                     Fine3dCross                               &
+     &                     (ib,kk,contact(cr)%F2Ccross(m))*           &
      &                     Fine3dCrossMask                            &
      &                     (ib,contact(cr)%F2Ccross(m))
                     my_count=my_count+                                &
@@ -4829,7 +4856,8 @@
      &                           (ib,contact(cr)%F2Ccross(m)))
 #   else
                     my_sum=my_sum+                                   &
-     &                     Fcross(ib,kk,contact(cr)%F2Ccross(m))
+     &                     Fine3dCross                               &
+     &                     (ib,kk,contact(cr)%F2Ccross(m))
                     my_count=my_count+1.0_r8
 #   endif
                   END DO
@@ -4843,8 +4871,6 @@
             END DO
           END IF
         END DO
-        deallocate (Fsum)
-        IF (allocated(Fcross)) deallocate (Fcross)
         RETURN
       END IF
 !

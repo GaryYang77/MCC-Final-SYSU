@@ -164,6 +164,14 @@
       real(r8), allocatable :: Fine3dCrossMask(:,:)
 !$OMP THREADPRIVATE (Fine3dCount, Fine3dCrossMask)
 !
+!  Reusable work arrays for distributed three-dimensional fine-to-coarse
+!  coupling.  They grow on demand and avoid allocating the same tracer-sized
+!  arrays for every coupled variable.
+!
+      real(r8), allocatable :: Fine3dSum(:,:)
+      real(r8), allocatable :: Fine3dCross(:,:,:)
+!$OMP THREADPRIVATE (Fine3dSum, Fine3dCross)
+!
 !  Refined time-steps counter with respect the coarse grid (ng=1)
 !  single time-step.
 !
