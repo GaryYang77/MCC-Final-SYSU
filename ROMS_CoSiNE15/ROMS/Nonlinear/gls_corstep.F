@@ -772,13 +772,13 @@
 !!
 !! Parabolic wall function + free surface correction
 !
+            gls_power=gls(i,j,k,nstp)**( gls_exp1)
+            tke_power=tke(i,j,k,nstp)**(-tke_exp1)
             wall_fac=1.0_r8+gls_E2/(vonKar*vonKar)*                     &
-     &                (gls(i,j,k,nstp)**( gls_exp1)*cmu_fac1*           &
-     &                 tke(i,j,k,nstp)**(-tke_exp1)*                    &
+     &                (gls_power*cmu_fac1*tke_power*                    &
      &                 (1.0_r8/ (z_w(i,j,k)-z_w(i,j,0))))**2+           &
      &                0.25_r8/(vonKar*vonKar)*                          &
-     &                (gls(i,j,k,nstp)**( gls_exp1)*cmu_fac1*           &
-     &                 tke(i,j,k,nstp)**(-tke_exp1)*                    &
+     &                (gls_power*cmu_fac1*tke_power*                    &
      &                 (1.0_r8/ (z_w(i,j,N(ng))-z_w(i,j,k))))**2
             END IF
 !
