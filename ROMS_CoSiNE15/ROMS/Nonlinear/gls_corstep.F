@@ -219,6 +219,7 @@
       real(r8) :: gls_fac4, gls_fac5, gls_fac6, ql, sqrt2, strat2
       real(r8) :: tke_exp1, tke_exp2, tke_exp3, tke_exp4, wall_fac
       real(r8) :: gls_d, gls_sigp_cb, ogls_sigp, sig_eff
+      real(r8) :: gls_power, tke_power
       real(r8) :: L_sft
 # if defined CRAIG_BANNER || defined TKE_WAVEDISS
       real(r8) :: cb_wallE
@@ -781,16 +782,16 @@
      &                 (1.0_r8/ (z_w(i,j,N(ng))-z_w(i,j,k))))**2
             END IF
 !
+            gls_power=gls(i,j,k,nstp)**(-gls_exp1)
+            tke_power=tke(i,j,k,nstp)**( tke_exp2)
             BCK(i,k)=cff*(1.0_r8+dt(ng)*                                &
-     &                    gls(i,j,k,nstp)**(-gls_exp1)*cmu_fac2*        &
-     &                    tke(i,j,k,nstp)**( tke_exp2)+                 &
+     &                    gls_power*cmu_fac2*tke_power+                 &
      &                    dt(ng)*(1.0_r8-cff1)*strat2*                  &
      &                    (Akt(i,j,k,itemp)-Akt_bak(itemp,ng))/         &
      &                    tke(i,j,k,nstp))-                             &
      &                    FCK(i,k)-FCK(i,k+1)
             BCP(i,k)=cff*(1.0_r8+dt(ng)*gls_c2(ng)*wall_fac*            &
-     &                    gls(i,j,k,nstp)**(-gls_exp1)*cmu_fac2*        &
-     &                    tke(i,j,k,nstp)**( tke_exp2)+                 &
+     &                    gls_power*cmu_fac2*tke_power+                 &
      &                    dt(ng)*(1.0_r8-cff2)*gls_c3*strat2*           &
      &                    (Akt(i,j,k,itemp)-Akt_bak(itemp,ng))/         &
      &                    tke(i,j,k,nstp))-                             &
