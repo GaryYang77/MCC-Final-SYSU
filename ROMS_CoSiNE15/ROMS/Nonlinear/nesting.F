@@ -4813,7 +4813,8 @@
         Npts=Klen*Npoints
         CALL mp_assemble (dg, model, Npts, 0.0_r8,                    &
      &                    Fine3dSum(1:Klen,1:Npoints),                &
-     &                    contact(cr)%F2Cowner, contact(cr)%Rowner)
+     &                    contact(cr)%F2Cowner, contact(cr)%Rowner,   &
+     &                    PlanKey=-(4*(cr-1)+ABS(gtype)-p3dvar+1))
         IF (exit_flag.ne.NoError) RETURN
         IF (Ncross.gt.0) THEN
           Npts=BlockLen*Klen*Ncross
