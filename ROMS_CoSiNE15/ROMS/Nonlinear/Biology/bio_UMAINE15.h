@@ -387,6 +387,9 @@
 !  Compute inverse thickness to avoid repeated divisions.
 !
       J_LOOP : DO j=Jstr,Jend
+#ifdef MASKING
+        IF (MAXVAL(rmask(Istr:Iend,j)).le.0.0_r8) CYCLE J_LOOP
+#endif
       
       
         DO k=1,N(ng)
@@ -2735,7 +2738,6 @@
       RETURN
       END SUBROUTINE optic_property
 #endif
-
 
 
 
