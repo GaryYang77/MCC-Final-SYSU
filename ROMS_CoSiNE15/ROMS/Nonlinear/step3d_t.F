@@ -1131,19 +1131,16 @@
           END IF
 !
 !  Load and solve the tracer-dependent right-hand side with the cached
-!  factorization.
+!  factorization. Read each level directly from t as it enters the
+!  forward substitution, avoiding an intermediate full-column copy.
 !
-          DO k=1,N(ng)
-            DO i=Istr,Iend
-              DC(i,k)=t(i,j,k,nnew,itrc)
-            END DO
-          END DO
           DO i=Istr,Iend
-            DC(i,1)=BF(i,1)*DC(i,1)
+            DC(i,1)=BF(i,1)*t(i,j,1,nnew,itrc)
           END DO
           DO k=2,N(ng)-1
             DO i=Istr,Iend
-              DC(i,k)=BF(i,k)*(DC(i,k)-FC(i,k-1)*DC(i,k-1))
+              DC(i,k)=BF(i,k)*(t(i,j,k,nnew,itrc)-                     &
+     &                         FC(i,k-1)*DC(i,k-1))
             END DO
           END DO
 !
@@ -1153,7 +1150,8 @@
 #  ifdef DIAGNOSTICS_TS
              cff1=t(i,j,N(ng),nnew,itrc)*oHz(i,j,N(ng))
 #  endif
-             DC(i,N(ng))=(DC(i,N(ng))-FC(i,N(ng)-1)*DC(i,N(ng)-1))/     &
+             DC(i,N(ng))=(t(i,j,N(ng),nnew,itrc)-                      &
+     &                    FC(i,N(ng)-1)*DC(i,N(ng)-1))/                &
      &                   (BC(i,N(ng))-FC(i,N(ng)-1)*CF(i,N(ng)-1))
              t(i,j,N(ng),nnew,itrc)=DC(i,N(ng))
 #  ifdef DIAGNOSTICS_TS
