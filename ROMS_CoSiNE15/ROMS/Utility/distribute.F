@@ -102,10 +102,8 @@
         integer :: ng, model, key, nthreads
         integer :: n1, n2, n3
         integer :: nsend, nrecv, nzero
-        integer :: nsendpeers, nrecvpeers
         integer, allocatable :: counts(:), displs(:)
         integer, allocatable :: rcounts(:), rdispls(:)
-        integer, allocatable :: send_peer(:), recv_peer(:)
         integer, allocatable :: send_m(:), send_p(:)
         integer, allocatable :: recv_m(:), recv_p(:)
         integer, allocatable :: zero_m(:)
@@ -120,6 +118,73 @@
       integer, save :: SparseContactTag = 0
 !
       CONTAINS
+!
+      SUBROUTINE mp_sparse_exchange (Plan, Asend, Arecv, MyError)
+!
+!***********************************************************************
+!                                                                      !
+!  Exchange the packed send buffer with active peers only, using       !
+!  cached per-rank counts and displacements.  Receives are posted      !
+!  before sends so large rendezvous messages cannot deadlock.  The     !
+!  per-call tag is identical on every rank because all keyed assembly  !
+!  calls execute in the same order on every rank.                      !
+!                                                                      !
+!***********************************************************************
+!
+      USE mod_parallel
+!
+      implicit none
+!
+!  Imported variable declarations.
+!
+      TYPE(T_Assemble3DPlan), intent(in) :: Plan
+
+      real(r8), intent(in) :: Asend(:)
+
+      real(r8), intent(inout) :: Arecv(:)
+
+      integer, intent(out) :: MyError
+!
+!  Local variable declarations.
+!
+      integer :: nreq, q, rank
+
+      integer :: Req(2*numthreads)
+      integer :: Statuses(MPI_STATUS_SIZE,2*numthreads)
+!
+      SparseContactTag=MOD(SparseContactTag+1,100000)
+      nreq=0
+      MyError=MPI_SUCCESS
+      DO rank=0,numthreads-1
+        IF (Plan%rcounts(rank).gt.0) THEN
+          nreq=nreq+1
+          CALL mpi_irecv (Arecv(Plan%rdispls(rank)+1),                 &
+     &                    Plan%rcounts(rank), MP_FLOAT, rank,          &
+     &                    SparseContactTag, OCN_COMM_WORLD, Req(nreq), &
+     &                    MyError)
+          IF (MyError.ne.MPI_SUCCESS) EXIT
+        END IF
+      END DO
+      IF (MyError.eq.MPI_SUCCESS) THEN
+        DO rank=0,numthreads-1
+          IF (Plan%counts(rank).gt.0) THEN
+            nreq=nreq+1
+            CALL mpi_isend (Asend(Plan%displs(rank)+1),                &
+     &                      Plan%counts(rank), MP_FLOAT, rank,         &
+     &                      SparseContactTag, OCN_COMM_WORLD, Req(nreq),&
+     &                      MyError)
+            IF (MyError.ne.MPI_SUCCESS) EXIT
+          END IF
+        END DO
+      END IF
+      IF (MyError.eq.MPI_SUCCESS) THEN
+        IF (nreq.gt.0) THEN
+          CALL mpi_waitall (nreq, Req, Statuses, MyError)
+        END IF
+      END IF
+
+      RETURN
+      END SUBROUTINE mp_sparse_exchange
 !
       SUBROUTINE mp_barrier (ng)
 !
@@ -1698,10 +1763,7 @@
               Asend(p+i)=A(i,m)
             END DO
           END DO
-          CALL mpi_alltoallv (Asend, Plan%counts, Plan%displs,         &
-     &                        MP_FLOAT, Arecv, Plan%rcounts,            &
-     &                        Plan%rdispls, MP_FLOAT,                  &
-     &                        OCN_COMM_WORLD, MyError)
+          CALL mp_sparse_exchange (Plan, Asend, Arecv, MyError)
           IF (MyError.eq.MPI_SUCCESS) THEN
             DO q=1,Plan%nzero
               A(:,Plan%zero_m(q))=0.0_r8
@@ -2085,10 +2147,7 @@
               Asend(p)=A(i,k,m)
             END DO
           END DO
-          CALL mpi_alltoallv (Asend, Plan%counts, Plan%displs,         &
-     &                        MP_FLOAT, Arecv, Plan%rcounts,            &
-     &                        Plan%rdispls, MP_FLOAT,                  &
-     &                        OCN_COMM_WORLD, MyError)
+          CALL mp_sparse_exchange (Plan, Asend, Arecv, MyError)
           IF (MyError.eq.MPI_SUCCESS) THEN
             DO q=1,Plan%nzero
               A(Plan%zero_i(q),:,Plan%zero_m(q))=0.0_r8
@@ -2494,13 +2553,10 @@
       integer :: Klen, Lk, Lstr, MyError, Serror
       integer :: block, i, ip1, j, jp1, k, m, p, q, rank, slot, source
       integer :: AdIlo, AdJlo, AdKlo
-      integer :: nreq
 
       integer :: Asize(3)
 
       integer, dimension(0:numthreads-1) :: Offset, Roffset
-      integer :: Req(2*numthreads)
-      integer :: Statuses(MPI_STATUS_SIZE,2*numthreads)
 
       real(r8), dimension(Npts) :: Asend, Arecv
 
@@ -2601,32 +2657,6 @@
         END DO
         Plan%nsend=SUM(Plan%counts)/block
         Plan%nrecv=SUM(Plan%rcounts)/block
-        Plan%nsendpeers=0
-        DO rank=0,numthreads-1
-          IF (Plan%counts(rank).gt.0) Plan%nsendpeers=                 &
-     &                                    Plan%nsendpeers+1
-        END DO
-        Plan%nrecvpeers=0
-        DO rank=0,numthreads-1
-          IF (Plan%rcounts(rank).gt.0) Plan%nrecvpeers=                &
-     &                                    Plan%nrecvpeers+1
-        END DO
-        allocate (Plan%send_peer(MAX(1,Plan%nsendpeers)))
-        allocate (Plan%recv_peer(MAX(1,Plan%nrecvpeers)))
-        q=0
-        DO rank=0,numthreads-1
-          IF (Plan%counts(rank).gt.0) THEN
-            q=q+1
-            Plan%send_peer(q)=rank
-          END IF
-        END DO
-        q=0
-        DO rank=0,numthreads-1
-          IF (Plan%rcounts(rank).gt.0) THEN
-            q=q+1
-            Plan%recv_peer(q)=rank
-          END IF
-        END DO
         allocate (Plan%send_m(MAX(1,Plan%nsend)))
         allocate (Plan%send_p(MAX(1,Plan%nsend)))
         allocate (Plan%src_i(MAX(1,Plan%nsend)))
@@ -2698,34 +2728,7 @@
             p=p+4
           END DO
         END DO
-        SparseContactTag=MOD(SparseContactTag+1,100000)
-        nreq=0
-        MyError=MPI_SUCCESS
-        DO q=1,Plan%nrecvpeers
-          rank=Plan%recv_peer(q)
-          nreq=nreq+1
-          CALL mpi_irecv (Arecv(Plan%rdispls(rank)+1),                 &
-     &                    Plan%rcounts(rank), MP_FLOAT, rank,          &
-     &                    SparseContactTag, OCN_COMM_WORLD, Req(nreq), &
-     &                    MyError)
-          IF (MyError.ne.MPI_SUCCESS) EXIT
-        END DO
-        IF (MyError.eq.MPI_SUCCESS) THEN
-          DO q=1,Plan%nsendpeers
-            rank=Plan%send_peer(q)
-            nreq=nreq+1
-            CALL mpi_isend (Asend(Plan%displs(rank)+1),                &
-     &                      Plan%counts(rank), MP_FLOAT, rank,         &
-     &                      SparseContactTag, OCN_COMM_WORLD, Req(nreq),&
-     &                      MyError)
-            IF (MyError.ne.MPI_SUCCESS) EXIT
-          END DO
-        END IF
-        IF (MyError.eq.MPI_SUCCESS) THEN
-          IF (nreq.gt.0) THEN
-            CALL mpi_waitall (nreq, Req, Statuses, MyError)
-          END IF
-        END IF
+        CALL mp_sparse_exchange (Plan, Asend, Arecv, MyError)
         IF (MyError.eq.MPI_SUCCESS) THEN
           DO q=1,Plan%nzero
             Ac(:,:,Plan%zero_m(q))=0.0_r8
