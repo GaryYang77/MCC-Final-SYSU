@@ -2777,6 +2777,274 @@
       RETURN
       END SUBROUTINE mp_assemble_contact3d
 !
+      SUBROUTINE mp_assemble_f2csum (ng, model, Klen, Npoints, Aspv,  &
+     &                               A, Amsk, FsumOut, Owner, Receiver,&
+     &                               PlanKey, Idg, Jdg, LBi, LBj,    &
+     &                               LBkF, half)
+!
+!***********************************************************************
+!                                                                      !
+!  Specialized fine-to-coarse block-sum assembly.  Complete donor      !
+!  blocks are summed directly into the MPI send buffer in the cached   !
+!  route-plan order, skipping the intermediate Sum array write and     !
+!  re-read performed by the generic routine.  The within-block         !
+!  accumulation order (Jadd outer, Iadd inner, k outer) is identical   !
+!  to the accepted implementation, so results are bitwise identical.   !
+!                                                                      !
+!***********************************************************************
+!
+      USE mod_param
+      USE mod_parallel
+      USE mod_iounits
+      USE mod_scalars
+!
+      implicit none
+!
+!  Imported variable declarations.
+!
+      integer, intent(in) :: ng, model, Klen, Npoints
+      integer, intent(in) :: PlanKey, LBi, LBj, LBkF, half
+
+      real(r8), intent(in) :: Aspv
+
+      real(r8), intent(in) :: A(:,:,:)
+#  ifdef MASKING
+      real(r8), intent(in) :: Amsk(:,:)
+#  endif
+
+      real(r8), intent(inout) :: FsumOut(:,:)
+
+      integer, intent(in) :: Owner(:), Receiver(:)
+      integer, intent(in) :: Idg(:), Jdg(:)
+!
+!  Local variable declarations.
+!
+      integer :: ALo, AMLo, AMJlo, BLo, CLo
+      integer :: Lstr, MyError, Serror
+      integer :: i0, ii, j0, jj
+      integer :: Iadd, Jadd, k, kk, m, p, q, rank, slot, source
+
+      integer :: Asize(2)
+
+      integer, dimension(0:numthreads-1) :: Offset, Roffset
+
+      real(r8) :: acc
+
+      real(r8), dimension(Klen*Npoints) :: Asend, Arecv
+
+      TYPE(T_Assemble3DPlan), pointer :: Plan
+
+      character (len=MPI_MAX_ERROR_STRING) :: string
+
+# ifdef PROFILE
+!
+!-----------------------------------------------------------------------
+!  Turn on time clocks.
+!-----------------------------------------------------------------------
+!
+      CALL wclock_on (ng, model, 49)
+# endif
+!
+!-----------------------------------------------------------------------
+!  Check input parameters.
+!-----------------------------------------------------------------------
+!
+      Asize(1)=UBOUND(FsumOut, DIM=1)
+      Asize(2)=UBOUND(FsumOut, DIM=2)
+      IF ((Klen.ne.Asize(1)).or.(Npoints.ne.Asize(2)).or.             &
+     &    (SIZE(Owner).ne.Npoints).or.(SIZE(Receiver).ne.Npoints).or. &
+     &    (SIZE(Idg).ne.Npoints).or.(SIZE(Jdg).ne.Npoints)) THEN
+        IF (Master) WRITE (stdout,10) Klen, Npoints
+        exit_flag=7
+      END IF
+!
+      IF (Aspv.ne.0.0_r8) THEN
+        IF (Master) WRITE (stdout,20) Aspv
+        exit_flag=7
+      END IF
+!
+!-----------------------------------------------------------------------
+!  Locate or build the static route plan.
+!-----------------------------------------------------------------------
+!
+      slot=0
+      DO q=1,Nassemble3DPlan
+        IF ((Assemble3DPlan(q)%ng.eq.ng).and.                         &
+     &      (Assemble3DPlan(q)%model.eq.model).and.                   &
+     &      (Assemble3DPlan(q)%key.eq.PlanKey).and.                   &
+     &      (Assemble3DPlan(q)%nthreads.eq.numthreads).and.           &
+     &      (Assemble3DPlan(q)%n1.eq.Klen).and.                       &
+     &      (Assemble3DPlan(q)%n2.eq.Npoints).and.                    &
+     &      (Assemble3DPlan(q)%n3.eq.0)) THEN
+          slot=q
+          EXIT
+        END IF
+      END DO
+      IF ((slot.eq.0).and.(Nassemble3DPlan.lt.MaxAssemble3DPlans)) THEN
+        Nassemble3DPlan=Nassemble3DPlan+1
+        slot=Nassemble3DPlan
+        Plan=>Assemble3DPlan(slot)
+        Plan%ng=ng
+        Plan%model=model
+        Plan%key=PlanKey
+        Plan%nthreads=numthreads
+        Plan%n1=Klen
+        Plan%n2=Npoints
+        Plan%n3=0
+        allocate (Plan%counts(0:numthreads-1))
+        allocate (Plan%displs(0:numthreads-1))
+        allocate (Plan%rcounts(0:numthreads-1))
+        allocate (Plan%rdispls(0:numthreads-1))
+        Plan%counts=0
+        Plan%rcounts=0
+        Plan%nzero=0
+        DO m=1,Npoints
+          source=Owner(m)
+          rank=Receiver(m)
+          IF ((source.ge.numthreads).or.(rank.ge.numthreads)) THEN
+            exit_flag=7
+          ELSE
+            IF ((source.eq.MyRank).and.(rank.ge.0))                   &
+     &        Plan%counts(rank)=Plan%counts(rank)+Klen
+            IF ((rank.eq.MyRank).and.(source.ge.0))                   &
+     &        Plan%rcounts(source)=Plan%rcounts(source)+Klen
+            IF ((rank.eq.MyRank).and.(source.lt.0))                   &
+     &        Plan%nzero=Plan%nzero+1
+          END IF
+        END DO
+        Plan%displs(0)=0
+        Plan%rdispls(0)=0
+        DO rank=1,numthreads-1
+          Plan%displs(rank)=Plan%displs(rank-1)+Plan%counts(rank-1)
+          Plan%rdispls(rank)=Plan%rdispls(rank-1)+Plan%rcounts(rank-1)
+        END DO
+        Plan%nsend=SUM(Plan%counts)/Klen
+        Plan%nrecv=SUM(Plan%rcounts)/Klen
+        allocate (Plan%send_m(MAX(1,Plan%nsend)))
+        allocate (Plan%send_p(MAX(1,Plan%nsend)))
+        allocate (Plan%recv_m(MAX(1,Plan%nrecv)))
+        allocate (Plan%recv_p(MAX(1,Plan%nrecv)))
+        allocate (Plan%zero_m(MAX(1,Plan%nzero)))
+        Offset=0
+        q=0
+        DO m=1,Npoints
+          rank=Receiver(m)
+          IF ((Owner(m).eq.MyRank).and.(rank.ge.0)) THEN
+            q=q+1
+            Plan%send_m(q)=m
+            Plan%send_p(q)=Plan%displs(rank)+Offset(rank)
+            Offset(rank)=Offset(rank)+Klen
+          END IF
+        END DO
+        Roffset=0
+        q=0
+        p=0
+        DO m=1,Npoints
+          IF (Receiver(m).eq.MyRank) THEN
+            source=Owner(m)
+            IF (source.lt.0) THEN
+              p=p+1
+              Plan%zero_m(p)=m
+            ELSE
+              q=q+1
+              Plan%recv_m(q)=m
+              Plan%recv_p(q)=Plan%rdispls(source)+Roffset(source)
+              Roffset(source)=Roffset(source)+Klen
+            END IF
+          END IF
+        END DO
+      ELSE IF (slot.eq.0) THEN
+        IF (Master) WRITE (stdout,30) MaxAssemble3DPlans
+        exit_flag=7
+      END IF
+      IF (exit_flag.ne.NoError) RETURN
+!
+!-----------------------------------------------------------------------
+!  Accumulate complete donor blocks directly into the send buffer,
+!  exchange, and unpack receiver values into the Sum array.
+!-----------------------------------------------------------------------
+!
+      IF (slot.gt.0) THEN
+        Plan=>Assemble3DPlan(slot)
+        ALo=LBOUND(A, DIM=1)
+        BLo=LBOUND(A, DIM=2)
+        CLo=LBOUND(A, DIM=3)
+#  ifdef MASKING
+        AMLo=LBOUND(Amsk, DIM=1)
+        AMJlo=LBOUND(Amsk, DIM=2)
+#  endif
+        DO q=1,Plan%nsend
+          m=Plan%send_m(q)
+          i0=Idg(m)-LBi+1
+          j0=Jdg(m)-LBj+1
+          p=Plan%send_p(q)
+          DO kk=1,Klen
+            k=LBkF+kk-1
+            acc=0.0_r8
+            DO Jadd=-half,half
+              jj=j0+Jadd
+              DO Iadd=-half,half
+                ii=i0+Iadd
+#  ifdef MASKING
+                acc=acc+A(ALo+ii-1,BLo+jj-1,CLo+k-LBkF)*              &
+     &                    Amsk(AMLo+ii-1,AMJlo+jj-1)
+#  else
+                acc=acc+A(ALo+ii-1,BLo+jj-1,CLo+k-LBkF)
+#  endif
+              END DO
+            END DO
+            Asend(p+kk)=acc
+          END DO
+        END DO
+        CALL mpi_alltoallv (Asend, Plan%counts, Plan%displs,           &
+     &                      MP_FLOAT, Arecv, Plan%rcounts,             &
+     &                      Plan%rdispls, MP_FLOAT,                    &
+     &                      OCN_COMM_WORLD, MyError)
+        IF (MyError.eq.MPI_SUCCESS) THEN
+          DO q=1,Plan%nzero
+            FsumOut(:,Plan%zero_m(q))=0.0_r8
+          END DO
+          DO q=1,Plan%nrecv
+            m=Plan%recv_m(q)
+            p=Plan%recv_p(q)
+            DO kk=1,Klen
+              FsumOut(kk,m)=Arecv(p+kk)
+            END DO
+          END DO
+        END IF
+      END IF
+      IF (MyError.ne.MPI_SUCCESS) THEN
+        CALL mpi_error_string (MyError, string, Lstr, Serror)
+        Lstr=LEN_TRIM(string)
+        WRITE (stdout,40) 'MPI_ASSEMBLE_F2CSUM', MyRank, MyError,      &
+     &                    string(1:Lstr)
+        exit_flag=2
+        RETURN
+      END IF
+!
+# ifdef PROFILE
+!
+!-----------------------------------------------------------------------
+!  Turn off time clocks.
+!-----------------------------------------------------------------------
+!
+      CALL wclock_off (ng, model, 49)
+# endif
+!
+ 10   FORMAT (/,' MP_ASSEMBLE_F2CSUM - inconsistent array size, ',     &
+     &        'Klen/Npoints = ',2i10,/,19x,'or owner/receiver/Idg/',   &
+     &        'Jdg length mismatch.')
+ 20   FORMAT (/,' MP_ASSEMBLE_F2CSUM - illegal special value, ',       &
+     &        1p,e17.10,/,19x,'a zero value is needed for global ',     &
+     &        'reduction.')
+ 30   FORMAT (/,' MP_ASSEMBLE_F2CSUM - too many route plans, ',        &
+     &        'maximum is ',i4,'.')
+ 40   FORMAT (/,' MP_ASSEMBLE_F2CSUM - error during ',a,' call, ',     &
+     &        'Node = ',i3.3,' Error = ',i3,/,13x,a)
+
+      RETURN
+      END SUBROUTINE mp_assemble_f2csum
+!
 !
       SUBROUTINE mp_assemblei_1d (ng, model, Npts, Aspv, A)
 !
