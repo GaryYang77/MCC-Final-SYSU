@@ -5,17 +5,14 @@ commits (`dbe0535`, `8196341`).
 
 ## Evidence
 
-The 4n64-16ppn DEMO writes the AVERAGE files every outer step
-(`NAVG == 60 300` in the runner-generated `ocean_profile.in`).  The
-produced files contain 172 variables (SCS) and 164 variables (Dongsha60),
-and every write call performs:
-
-1. `OutThread`: `nf90_put_var` (the actual file write), then
-2. all ranks: `mp_bcasti(ng, model, status)`.
-
-See `nf_fwrite2d.F` / `nf_fwrite3d.F`.  Non-I/O ranks therefore spend the
-whole per-variable wait (write + broadcast) inside profile region 44
-(`mpi_broadcast`).
+The 4n64-16ppn DEMO writes each AVERAGE file exactly once (60/300 steps,
+`NAVG == 60 300`, one record per file), so output I/O contributes only a
+few hundred of the 340480 Grid-1 region-44 calls.  The dominant R44
+traffic is the per-outer-step distribution of forcing/data fields:
+`nf_fread2d`/`nf_fread3d` and the boundary readers perform two broadcasts
+per read (a small status/attribute buffer, then the full data array
+`mp_bcastf(A)`), and the DEMO reads roughly 40-90 such fields per outer
+step on the 60-step path.
 
 Across otherwise identical accepted runs, Grid 1 region 44 measured
 `3.35 / 4.05 / 4.86 / 5.24 s` and Grid 2 measured `1.53 / 1.82 / 1.90 /
@@ -25,10 +22,15 @@ DEMO runs showed total regressions while their target regions improved.
 
 ## Consequence
 
-Do not spend effort batching the per-write status broadcasts: the wait is
-dominated by the file write on the I/O thread, so moving the broadcast
-does not reduce total wall.  The variance is filesystem/network
-contention and is outside the source code.
+Do not spend effort on compact AVERAGE output for the DEMO KPI: the file
+has a single record, so skipping later records has no measurable effect
+(the full three-day runs write only ~3-4 AVERAGE records per grid as
+well).  The real R44 lever is the full-field read broadcast: the accepted
+`scatterv-input-fields` work replaced the initial-input broadcast with a
+per-rank `MPI_Scatterv`, but the per-step forcing path still broadcasts
+every field to every rank.  Extending the scatter distribution to that
+path is the largest remaining R44 opportunity (~2-4 s on the DEMO plus
+contention sensitivity).
 
 ## Measurement implications
 
