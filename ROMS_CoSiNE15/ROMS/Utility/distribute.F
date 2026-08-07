@@ -2996,10 +2996,7 @@
             Asend(p+kk)=acc
           END DO
         END DO
-        CALL mpi_alltoallv (Asend, Plan%counts, Plan%displs,           &
-     &                      MP_FLOAT, Arecv, Plan%rcounts,             &
-     &                      Plan%rdispls, MP_FLOAT,                    &
-     &                      OCN_COMM_WORLD, MyError)
+        CALL mp_sparse_exchange (Plan, Asend, Arecv, MyError)
         IF (MyError.eq.MPI_SUCCESS) THEN
           DO q=1,Plan%nzero
             FsumOut(:,Plan%zero_m(q))=0.0_r8
