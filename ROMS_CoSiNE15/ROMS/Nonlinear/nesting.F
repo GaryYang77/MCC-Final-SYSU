@@ -4383,6 +4383,7 @@
       USE distribute_mod, ONLY : mp_aggregate2d
       USE distribute_mod, ONLY : mp_aggregate3d
       USE distribute_mod, ONLY : mp_assemble
+      USE distribute_mod, ONLY : mp_assemble_f2csum
 #  endif
 !
 !  Imported variable declarations.
@@ -4700,7 +4701,9 @@
         ELSE
           allocate (Fine3dSum(Klen,Npoints))
         END IF
-        Fine3dSum(1:Klen,1:Npoints)=0.0_r8
+        IF (NtileI(dg)*NtileJ(dg).ne.numthreads) THEN
+          Fine3dSum(1:Klen,1:Npoints)=0.0_r8
+        END IF
         IF (Ncross.gt.0) THEN
           IF (allocated(Fine3dCross)) THEN
             IF ((SIZE(Fine3dCross,DIM=1).lt.BlockLen).or.             &
@@ -4773,48 +4776,86 @@
           END IF
         END IF
 
-        DO m=1,Npoints
-          i=contact(cr)%Idg(m)
-          j=contact(cr)%Jdg(m)
-          IF (contact(cr)%F2Cowner(m).eq.MyRank) THEN
-            DO k=LBkF,UBkF
-              kk=k-LBkF+1
-              DO Jadd=-half,half
-                DO Iadd=-half,half
-#   ifdef MASKING
-                  Fine3dSum(kk,m)=Fine3dSum(kk,m)+                    &
-     &                             A(i+Iadd,j+Jadd,k)*                 &
-     &                       Amsk(i+Iadd,j+Jadd)
-#   else
-                  Fine3dSum(kk,m)=Fine3dSum(kk,m)+                    &
-     &                             A(i+Iadd,j+Jadd,k)
-#   endif
-                END DO
-              END DO
-            END DO
-          ELSE IF (contact(cr)%F2Ccross(m).gt.0) THEN
-            DO k=LBkF,UBkF
-              kk=k-LBkF+1
-              DO Jadd=-half,half
-                jj=j+Jadd
-                DO Iadd=-half,half
-                  ii=i+Iadd
-                  ib=(Jadd+half)*Rscale+Iadd+half+1
-                  IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.         &
-     &                ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
-                    Fine3dCross(ib,kk,contact(cr)%F2Ccross(m))=       &
+        IF (NtileI(dg)*NtileJ(dg).eq.numthreads) THEN
+          IF (Ncross.gt.0) THEN
+            DO m=1,Npoints
+              i=contact(cr)%Idg(m)
+              j=contact(cr)%Jdg(m)
+              IF (contact(cr)%F2Ccross(m).gt.0) THEN
+                DO k=LBkF,UBkF
+                  kk=k-LBkF+1
+                  DO Jadd=-half,half
+                    jj=j+Jadd
+                    DO Iadd=-half,half
+                      ii=i+Iadd
+                      ib=(Jadd+half)*Rscale+Iadd+half+1
+                      IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.     &
+     &                    ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
+                        Fine3dCross(ib,kk,contact(cr)%F2Ccross(m))=   &
      &                                                       A(ii,jj,k)
-                  END IF
+                      END IF
+                    END DO
+                  END DO
                 END DO
-              END DO
+              END IF
             END DO
           END IF
-        END DO
-        Npts=Klen*Npoints
-        CALL mp_assemble (dg, model, Npts, 0.0_r8,                    &
-     &                    Fine3dSum(1:Klen,1:Npoints),                &
-     &                    contact(cr)%F2Cowner, contact(cr)%Rowner,   &
-     &                    PlanKey=-(4*(cr-1)+ABS(gtype)-p3dvar+1))
+          Npts=Klen*Npoints
+          CALL mp_assemble_f2csum (dg, model, Klen, Npoints, 0.0_r8,  &
+     &                             A, Amsk,                           &
+     &                             Fine3dSum(1:Klen,1:Npoints),       &
+     &                             contact(cr)%F2Cowner,              &
+     &                             contact(cr)%Rowner,                &
+     &                             PlanKey=-(20000000+4*(cr-1)+       &
+     &                               ABS(gtype)-p3dvar+1),            &
+     &                             Idg=contact(cr)%Idg,               &
+     &                             Jdg=contact(cr)%Jdg,               &
+     &                             LBi=LBiF, LBj=LBjF, LBkF=LBkF,     &
+     &                             half=half)
+        ELSE
+          DO m=1,Npoints
+            i=contact(cr)%Idg(m)
+            j=contact(cr)%Jdg(m)
+            IF (contact(cr)%F2Cowner(m).eq.MyRank) THEN
+              DO k=LBkF,UBkF
+                kk=k-LBkF+1
+                DO Jadd=-half,half
+                  DO Iadd=-half,half
+#   ifdef MASKING
+                    Fine3dSum(kk,m)=Fine3dSum(kk,m)+                  &
+     &                               A(i+Iadd,j+Jadd,k)*               &
+     &                         Amsk(i+Iadd,j+Jadd)
+#   else
+                    Fine3dSum(kk,m)=Fine3dSum(kk,m)+                  &
+     &                               A(i+Iadd,j+Jadd,k)
+#   endif
+                  END DO
+                END DO
+              END DO
+            ELSE IF (contact(cr)%F2Ccross(m).gt.0) THEN
+              DO k=LBkF,UBkF
+                kk=k-LBkF+1
+                DO Jadd=-half,half
+                  jj=j+Jadd
+                  DO Iadd=-half,half
+                    ii=i+Iadd
+                    ib=(Jadd+half)*Rscale+Iadd+half+1
+                    IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.       &
+     &                  ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
+                      Fine3dCross(ib,kk,contact(cr)%F2Ccross(m))=     &
+     &                                                       A(ii,jj,k)
+                    END IF
+                  END DO
+                END DO
+              END DO
+            END IF
+          END DO
+          Npts=Klen*Npoints
+          CALL mp_assemble (dg, model, Npts, 0.0_r8,                  &
+     &                      Fine3dSum(1:Klen,1:Npoints),              &
+     &                      contact(cr)%F2Cowner, contact(cr)%Rowner, &
+     &                      PlanKey=-(4*(cr-1)+ABS(gtype)-p3dvar+1))
+        END IF
         IF (exit_flag.ne.NoError) RETURN
         IF (Ncross.gt.0) THEN
           Npts=BlockLen*Klen*Ncross
