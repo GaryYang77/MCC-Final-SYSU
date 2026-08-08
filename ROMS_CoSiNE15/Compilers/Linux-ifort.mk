@@ -125,6 +125,12 @@ ifdef USE_TANGENT
 $(SCRATCH_DIR)/tl_biology.o: FFLAGS += -free
 endif
 
+# The high-call 2-D kernel and 3-D predictor benefit from stack-backed
+# automatic work arrays.  Keep the conservative heap default for the other
+# kernels, whose working sets respond differently on the competition nodes.
+$(SCRATCH_DIR)/step2d.o $(SCRATCH_DIR)/pre_step3d.o: FFLAGS :=           \
+  $(filter-out -heap-arrays,$(FFLAGS))
+
 #
 # Supress free format in SWAN source files since there are comments
 # beyond column 72.

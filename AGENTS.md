@@ -46,7 +46,7 @@
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
-- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/predictor-horizontal-k-order-4n64-16ppn_20260808T135659Z_14464`（job `118787413`，profile total `93.01s`，26 变量逐位一致；binary SHA-256 `55f5db49967fa9b18615907230b06458c11d6d0971806aa1f773a07aa659e620`）。该 allocation 的非目标计算区整体慢 `14-35%`，因此只作为下一项实验的输出基准和 region 结构对照，**不得把 `93.01s` 当作 steady-state 退化或新的性能基线**；候选 R22 相对周围计算 slowdown 少 `8-29` 个百分点。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
+- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/stack-arrays-step2d-prestep3d-4n64-16ppn_20260808T142714Z_24979`（job `118787917`，profile total `77.95s`，26 变量逐位一致；binary SHA-256 `3571d33be688aeb9e9787817858426dcc595aee583e9deb9c90390c092635af3`）。该 run 同时是当前较低噪声的 region reference：相对此前 `79.75s` run，R09 双网格下降 `3.4/2.7%`、R22 下降 `12.4/11.5%`，R19/R35 约为中性。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
 
 ### profiler-v2 三层用途
 
