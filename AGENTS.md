@@ -46,7 +46,7 @@
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
-- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/profiler-v2-current-score-4n64-16ppn_20260808T122050Z_36051`（commit `64cec19`，job `118785072`，profile total `80.61s`，26 变量逐位一致；binary SHA-256 `a7c0fd61ce1d85b0d69ee478c267e3b6d27502e1bf992ce30ff6551492a752dd`）。同一 binary 在 Phase-D allocations 测得 `75.13--77.25s`，因此单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和首个 4n64 reference 仅作历史对照。
+- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/tracer-horizontal-k-order-4n64-16ppn_20260808T130839Z_46165`（job `118786248`，profile total `79.75s`，26 变量逐位一致；binary SHA-256 `144aa2ff7a38de593d616f7b605ee430204730d89ed43c4537c310417ec4db9f`）。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
 
 ### profiler-v2 三层用途
 

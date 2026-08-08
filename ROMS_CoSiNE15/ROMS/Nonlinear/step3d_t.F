@@ -352,8 +352,8 @@
 # ifdef PROFILE_DIAGNOSTIC
       CALL profile_site_on (ng, iNLM, 132)
 # endif
-      T_LOOP : DO itrc=1,NT(ng)
-        K_LOOP : DO k=1,N(ng)
+      K_LOOP : DO k=1,N(ng)
+        T_LOOP : DO itrc=1,NT(ng)
 
 # if defined TS_C2HADVECTION
 !
@@ -663,8 +663,8 @@
             END DO
           END DO
 # endif
-        END DO K_LOOP
-      END DO T_LOOP
+        END DO T_LOOP
+      END DO K_LOOP
 # if defined DISTRIBUTE && defined NESTING && !defined ONE_WAY
 !
 !  The complete tracer/level flux set is not consumed inside T_LOOP.
