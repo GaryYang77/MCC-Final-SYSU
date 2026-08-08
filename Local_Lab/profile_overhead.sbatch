@@ -24,10 +24,19 @@ module load \
 profile_run_dir=${MCC_PROFILE_ON_RUN_DIR:?MCC_PROFILE_ON_RUN_DIR is not set}
 control_run_dir=${MCC_PROFILE_OFF_RUN_DIR:?MCC_PROFILE_OFF_RUN_DIR is not set}
 run_order=${MCC_PROFILE_RUN_ORDER:-off-on}
+profile_mode=${MCC_PROFILE_MODE:-score}
 
 run_case() {
   local run_dir=$1
   local case_name=$2
+  local mode=score
+  if [[ "$case_name" == profile-on ]]; then
+    mode=$profile_mode
+  fi
+  export MCC_PROFILE_MODE=$mode
+  export MCC_PROFILE_DIAG_DIR=$run_dir
+  export MCC_TRACE_RANKS=${MCC_TRACE_RANKS:-0}
+  export MCC_TRACE_MAX_EVENTS=${MCC_TRACE_MAX_EVENTS:-100000}
   cd "$run_dir"
   {
     echo "case=$case_name"

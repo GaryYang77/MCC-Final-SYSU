@@ -301,6 +301,9 @@
 !
 !  Compute inverse thickness.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 131)
+# endif
 # ifdef TS_MPDATA
 #  define I_RANGE Istrm2,Iendp2
 #  define J_RANGE Jstrm2,Jendp2
@@ -340,9 +343,15 @@
      &                    t(:,:,:,nnew,:))
 #  endif
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 131, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 !  Compute horizontal tracer advection fluxes.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 132)
+# endif
       T_LOOP : DO itrc=1,NT(ng)
         K_LOOP : DO k=1,N(ng)
 
@@ -681,7 +690,16 @@
 !  Time-step vertical advection term.
 !-----------------------------------------------------------------------
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 132, 0.0_r8, 0.0_r8, 0)
+#  ifdef TS_MPDATA
+      CALL profile_site_on (ng, iNLM, 133)
+#  endif
+# endif
       DO j=J_RANGE
+# if defined PROFILE_DIAGNOSTIC && !defined TS_MPDATA
+        CALL profile_site_on (ng, iNLM, 133)
+# endif
         DO itrc=1,NT(ng)
 
 # if defined TS_SVADVECTION
@@ -909,6 +927,9 @@
             END DO
           END DO
         END DO
+# if defined PROFILE_DIAGNOSTIC && !defined TS_MPDATA
+        CALL profile_site_off (ng, iNLM, 133, 0.0_r8, 0.0_r8, 0)
+# endif
 # undef I_RANGE
 # undef J_RANGE
 # ifdef TS_MPDATA
@@ -1023,11 +1044,17 @@
 !
       DO j=Jstr,Jend
 # endif /* TS_MPDATA */
+# if defined PROFILE_DIAGNOSTIC && defined TS_MPDATA
+      CALL profile_site_off (ng, iNLM, 133, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Time-step vertical diffusion term.
 !-----------------------------------------------------------------------
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 134)
+# endif
         last_ltrc=-1
         DO itrc=1,NT(ng)
           ltrc=MIN(NAT,itrc)
@@ -1175,6 +1202,9 @@
           END DO
 # endif
         END DO
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 134, 0.0_r8, 0.0_r8, 0)
+# endif
       END DO
 
 # if defined AGE_MEAN && defined T_PASSIVE
@@ -1220,6 +1250,9 @@
 !  to the NTCLM fields that need to be processed. This is done to
 !  reduce memory.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 135)
+# endif
       ic=0
 !
       DO itrc=1,NT(ng)
@@ -1333,6 +1366,9 @@
 #  endif
 # endif
 
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 135, 0.0_r8, 0.0_r8, 0)
+# endif
       RETURN
       END SUBROUTINE step3d_t_tile
 #endif

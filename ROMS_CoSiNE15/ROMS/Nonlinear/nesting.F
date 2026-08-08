@@ -6743,6 +6743,9 @@
       real(r8) :: my_value
 
 #  include "set_bounds.h"
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 121)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Interpolate (space, time) refinement grid contact points for 2D state
@@ -6949,6 +6952,9 @@
      &          3x,'time(told) = ',i7.7,                                &
      &          3x,'time(tnew) = ',i7.7)
 
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 121, 0.0_r8, 0.0_r8, 0)
+# endif
       RETURN
       END SUBROUTINE put_refine3d
 # endif

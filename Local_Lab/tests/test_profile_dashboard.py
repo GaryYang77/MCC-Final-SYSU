@@ -22,6 +22,7 @@ def test_dashboard_surfaces_hotspots_rank_ranges_and_physical_value_ranges() -> 
         'id="gridPanels"',
         'id="nestingPanels"',
         'id="imbalancePanels"',
+        'id="diagnosticTable"',
         'id="variableTable"',
         'id="recordTable"',
     ):
@@ -35,3 +36,4 @@ def test_dashboard_surfaces_hotspots_rank_ranges_and_physical_value_ranges() -> 
     assert "RMSE" in source
     assert "Max abs" in source
     assert "inclusive" in source
+    assert "events_dropped" in source

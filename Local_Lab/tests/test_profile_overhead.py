@@ -7,6 +7,7 @@ import Local_Lab.profile_overhead as profile_overhead
 from Local_Lab.profile_overhead import (
     completed_job_status,
     elapsed_seconds,
+    submit_pair,
     write_pair_bundle,
 )
 
@@ -40,6 +41,41 @@ def test_completed_job_status_requires_completed_primary_state(monkeypatch) -> N
 
     monkeypatch.setattr(profile_overhead.subprocess, "run", lambda *args, **kwargs: Result())
     assert completed_job_status("123") == (True, "COMPLETED")
+
+
+def test_submit_pair_overrides_sbatch_for_daily_4n64(monkeypatch, tmp_path: Path) -> None:
+    captured = {}
+
+    class Result:
+        returncode = 0
+        stdout = "12345;cluster\n"
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return Result()
+
+    monkeypatch.setattr(profile_overhead.subprocess, "run", fake_run)
+    job_id, status = submit_pair(
+        tmp_path / "on",
+        tmp_path / "off",
+        "off-on",
+        "trace",
+        4,
+        64,
+        16,
+        "0,16,32,48",
+        100000,
+    )
+
+    command = captured["command"]
+    assert (job_id, status) == ("12345", 0)
+    assert "--nodes=4" in command
+    assert "--ntasks=64" in command
+    assert "--ntasks-per-node=16" in command
+    exported = next(item for item in command if item.startswith("--export="))
+    assert "MCC_PROFILE_MODE=trace" in exported
+    assert "MCC_TRACE_RANKS=0:16:32:48" in exported
+    assert "MCC_TRACE_MAX_EVENTS=100000" in exported
 
 
 def test_pair_bundle_promotes_comparison_into_profile_run(tmp_path: Path) -> None:

@@ -78,6 +78,9 @@
 !$OMP CRITICAL (START_WCLOCK)
 #ifdef DISTRIBUTE
         CALL mp_barrier (ng)
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_diag_initialize
+# endif
         WRITE (stdout,10) ' Node #', MyRank,                            &
      &                    ' (pid=',proc(0,MyModel,ng),') is active.'
         CALL my_flush (stdout)
@@ -191,6 +194,10 @@
         DO imodel=1,4
           proc(1,imodel,ng)=0
         END DO
+
+#if defined PROFILE_DIAGNOSTIC && defined DISTRIBUTE
+        IF (ng.eq.Ngrids) CALL profile_clock_calibrate (2)
+#endif
 
 !$OMP CRITICAL (FINALIZE_WCLOCK)
 !
@@ -480,8 +487,315 @@
      &            5x,f12.3,' rank-seconds',/,                          &
      &            ' Total CPU time =',20x,f12.3,' rank-seconds',/)
 #endif
+#if defined PROFILE_DIAGNOSTIC && defined DISTRIBUTE
+          CALL profile_diag_flush (ng, MyModel)
+#endif
         END IF
 !$OMP END CRITICAL (FINALIZE_WCLOCK)
       END IF
       RETURN
       END SUBROUTINE wclock_off
+
+#if defined PROFILE_DIAGNOSTIC && defined DISTRIBUTE
+      SUBROUTINE profile_diag_initialize
+!
+!=======================================================================
+!  Initialize profiler-v2 runtime controls once per MPI process.
+!=======================================================================
+!
+      USE mod_param
+      USE mod_parallel
+
+      implicit none
+
+      integer :: diag_ierr, env_status, io_status, name_length
+      integer :: rank_pos, separator
+      character (len=512) :: env_value
+      character (len=32) :: rank_value
+
+      IF (ProfileInitialized) RETURN
+
+      ProfileMode='summary'
+      CALL get_environment_variable ('MCC_PROFILE_MODE', env_value,     &
+     &                               status=env_status)
+      IF (env_status.eq.0) ProfileMode=ADJUSTL(TRIM(env_value))
+      ProfileDiagnostic=(TRIM(ProfileMode).eq.'summary').or.            &
+     &                  (TRIM(ProfileMode).eq.'trace')
+      ProfileTrace=TRIM(ProfileMode).eq.'trace'
+
+      CALL get_environment_variable ('MCC_PROFILE_DIAG_DIR',           &
+     &                               ProfileDiagDir, status=env_status)
+      IF (env_status.ne.0) ProfileDiagDir='.'
+
+      ProfileNode='unknown'
+      CALL mpi_get_processor_name (ProfileNode, name_length, diag_ierr)
+      IF (diag_ierr.ne.MPI_SUCCESS) ProfileNode='unknown'
+
+      env_value='0'
+      CALL get_environment_variable ('OMPI_COMM_WORLD_LOCAL_RANK',     &
+     &                               env_value, status=env_status)
+      IF (env_status.ne.0) THEN
+        CALL get_environment_variable ('SLURM_LOCALID', env_value,      &
+     &                                 status=env_status)
+      END IF
+      READ (env_value,*,IOSTAT=io_status) ProfileLocalRank
+      IF (io_status.ne.0) ProfileLocalRank=0
+
+      env_value='100000'
+      CALL get_environment_variable ('MCC_TRACE_MAX_EVENTS', env_value,&
+     &                               status=env_status)
+      READ (env_value,*,IOSTAT=io_status) ProfileTraceLimit
+      IF (io_status.ne.0) ProfileTraceLimit=100000
+      ProfileTraceLimit=MAX(1,MIN(ProfileTraceLimit,                    &
+     &                             MaxProfileTraceEvents))
+
+      ProfileTraceRank=.FALSE.
+      env_value='0'
+      CALL get_environment_variable ('MCC_TRACE_RANKS', env_value,     &
+     &                               status=env_status)
+      DO separator=1,LEN_TRIM(env_value)
+        IF (env_value(separator:separator).eq.':')                     &
+     &    env_value(separator:separator)=','
+      END DO
+      IF (TRIM(env_value).eq.'all') THEN
+        ProfileTraceRank=.TRUE.
+      ELSE
+        WRITE (rank_value,'(i0)') MyRank
+        rank_pos=INDEX(','//TRIM(env_value)//',',                       &
+     &                 ','//TRIM(rank_value)//',')
+        ProfileTraceRank=rank_pos.gt.0
+      END IF
+
+      ProfileInitialized=.TRUE.
+      IF (ProfileDiagnostic) CALL profile_clock_calibrate (1)
+
+      RETURN
+      END SUBROUTINE profile_diag_initialize
+
+      SUBROUTINE profile_clock_calibrate (stage)
+!
+!=======================================================================
+!  Estimate each MPI_Wtime clock's offset from rank zero.  The minimum
+!  round-trip sample limits queueing bias.  Start/end samples allow the
+!  offline converter to linearly account for clock drift.
+!=======================================================================
+!
+      USE mod_param
+      USE mod_parallel
+
+      implicit none
+
+      integer, intent(in) :: stage
+
+      integer, parameter :: Nsample = 5
+      integer :: MyError, ping, rank, token
+      integer :: status(MPI_STATUS_SIZE)
+      real(r8) :: best_offset, best_rtt, offset, remote, t0, t1
+      real(r8) :: offsets(0:numthreads-1), rtts(0:numthreads-1)
+      real(r8) :: my_wtime, wtime(2)
+
+      offsets=0.0_r8
+      rtts=0.0_r8
+      token=stage
+      IF (MyRank.eq.MyMaster) THEN
+        DO rank=1,numthreads-1
+          best_rtt=HUGE(1.0_r8)
+          best_offset=0.0_r8
+          DO ping=1,Nsample
+            t0=my_wtime(wtime)
+            CALL mpi_send (token, 1, MPI_INTEGER, rank, 29100+stage,   &
+     &                     OCN_COMM_WORLD, MyError)
+            CALL mpi_recv (remote, 1, MP_FLOAT, rank, 29200+stage,     &
+     &                     OCN_COMM_WORLD, status, MyError)
+            t1=my_wtime(wtime)
+            IF ((t1-t0).lt.best_rtt) THEN
+              best_rtt=t1-t0
+              best_offset=remote-0.5_r8*(t0+t1)
+            END IF
+          END DO
+          offsets(rank)=best_offset
+          rtts(rank)=best_rtt
+        END DO
+      ELSE
+        DO ping=1,Nsample
+          CALL mpi_recv (token, 1, MPI_INTEGER, MyMaster, 29100+stage,&
+     &                   OCN_COMM_WORLD, status, MyError)
+          remote=my_wtime(wtime)
+          CALL mpi_send (remote, 1, MP_FLOAT, MyMaster, 29200+stage,  &
+     &                   OCN_COMM_WORLD, MyError)
+        END DO
+      END IF
+
+      CALL mpi_bcast (offsets, numthreads, MP_FLOAT, MyMaster,         &
+     &                OCN_COMM_WORLD, MyError)
+      CALL mpi_bcast (rtts, numthreads, MP_FLOAT, MyMaster,            &
+     &                OCN_COMM_WORLD, MyError)
+      IF (stage.eq.1) THEN
+        ProfileClockStartLocal=my_wtime(wtime)
+        ProfileClockStartOffset=offsets(MyRank)
+        ProfileClockStartRtt=rtts(MyRank)
+      ELSE
+        ProfileClockEndLocal=my_wtime(wtime)
+        ProfileClockEndOffset=offsets(MyRank)
+        ProfileClockEndRtt=rtts(MyRank)
+      END IF
+
+      RETURN
+      END SUBROUTINE profile_clock_calibrate
+
+      SUBROUTINE profile_site_on (ng, model, site)
+!
+!=======================================================================
+!  Start a profiler-v2 site timer.  Sites are stable IDs defined by the
+!  offline mapping and are compiled only into diagnostic binaries.
+!=======================================================================
+!
+      USE mod_param
+      USE mod_parallel
+
+      implicit none
+
+      integer, intent(in) :: ng, model, site
+      integer :: MyModel
+      real(r8) :: my_wtime, wtime(2)
+
+      IF (.not.ProfileDiagnostic) RETURN
+      IF ((site.lt.1).or.(site.gt.MaxProfileSites)) RETURN
+      MyModel=MAX(1,model)
+      PsiteStart(site,MyModel,ng)=my_wtime(wtime)
+
+      RETURN
+      END SUBROUTINE profile_site_on
+
+      SUBROUTINE profile_site_off (ng, model, site, bytes_sent,        &
+     &                             bytes_recv, peers)
+!
+!=======================================================================
+!  Stop a site timer, update streaming aggregates, and optionally retain
+!  one bounded trace event in memory.
+!=======================================================================
+!
+      USE mod_param
+      USE mod_parallel
+
+      implicit none
+
+      integer, intent(in) :: ng, model, site, peers
+      real(r8), intent(in) :: bytes_sent, bytes_recv
+
+      integer :: event, MyModel
+      real(r8) :: finish, my_wtime, wtime(2)
+
+      IF (.not.ProfileDiagnostic) RETURN
+      IF ((site.lt.1).or.(site.gt.MaxProfileSites)) RETURN
+      MyModel=MAX(1,model)
+      finish=my_wtime(wtime)
+      PsiteWall(site,MyModel,ng)=PsiteWall(site,MyModel,ng)+           &
+     &                            finish-PsiteStart(site,MyModel,ng)
+      PsiteCalls(site,MyModel,ng)=PsiteCalls(site,MyModel,ng)+1.0_r8
+      PsiteBytesSent(site,MyModel,ng)=                                &
+     &  PsiteBytesSent(site,MyModel,ng)+MAX(0.0_r8,bytes_sent)
+      PsiteBytesRecv(site,MyModel,ng)=                                &
+     &  PsiteBytesRecv(site,MyModel,ng)+MAX(0.0_r8,bytes_recv)
+      PsitePeersMax(site,MyModel,ng)=                                 &
+     &  MAX(PsitePeersMax(site,MyModel,ng),peers)
+
+      IF (ProfileTrace.and.ProfileTraceRank) THEN
+        IF (ProfileTraceCount.lt.ProfileTraceLimit) THEN
+          ProfileTraceCount=ProfileTraceCount+1
+          event=ProfileTraceCount
+          PtraceGrid(event)=ng
+          PtraceModel(event)=MyModel
+          PtraceSite(event)=site
+          PtracePeers(event)=peers
+          PtraceStart(event)=PsiteStart(site,MyModel,ng)
+          PtraceEnd(event)=finish
+          PtraceBytesSent(event)=MAX(0.0_r8,bytes_sent)
+          PtraceBytesRecv(event)=MAX(0.0_r8,bytes_recv)
+        ELSE
+          ProfileTraceDropped=ProfileTraceDropped+1
+        END IF
+      END IF
+
+      RETURN
+      END SUBROUTINE profile_site_off
+
+      SUBROUTINE profile_diag_flush (ng, model)
+!
+!=======================================================================
+!  Write one bounded per-rank diagnostic file at model finalization.
+!=======================================================================
+!
+      USE mod_param
+      USE mod_parallel
+
+      implicit none
+
+      integer, intent(in) :: ng, model
+
+      integer, parameter :: DiagUnit = 97
+      integer :: event, io_status, MyModel, site
+      character (len=5) :: rank_value
+      character (len=1024) :: path
+
+      IF (.not.ProfileDiagnostic) RETURN
+      MyModel=MAX(1,model)
+      WRITE (rank_value,'(i5.5)') MyRank
+      path=TRIM(ProfileDiagDir)//'/profile_diag_rank_'//               &
+     &     rank_value//'.log'
+      OPEN (unit=DiagUnit, file=TRIM(path), status='unknown',          &
+     &      position='append', action='write', iostat=io_status)
+      IF (io_status.ne.0) RETURN
+
+      DO site=1,MaxProfileSites
+        IF (PsiteCalls(site,MyModel,ng).gt.0.0_r8) THEN
+          WRITE (DiagUnit,10) MyRank, TRIM(ProfileNode),               &
+     &                        ProfileLocalRank, ng, MyModel, site,     &
+     &                        INT(PsiteCalls(site,MyModel,ng)),        &
+     &                        PsiteWall(site,MyModel,ng),              &
+     &                        PsiteBytesSent(site,MyModel,ng),         &
+     &                        PsiteBytesRecv(site,MyModel,ng),         &
+     &                        PsitePeersMax(site,MyModel,ng)
+        END IF
+      END DO
+ 10   FORMAT ('PROFILE_SITE rank=',i0,' node=',a,' local_rank=',i0,   &
+     &        ' grid=',i0,' model=',i0,' site=',i0,' calls=',i0,     &
+     &        ' wall=',es24.16,' bytes_sent=',es24.16,                &
+     &        ' bytes_recv=',es24.16,' peers_max=',i0)
+
+      IF (ng.eq.Ngrids) THEN
+        WRITE (DiagUnit,20) MyRank, TRIM(ProfileNode),                 &
+     &                      ProfileLocalRank, TRIM(ProfileMode),       &
+     &                      ProfileClockStartLocal,                   &
+     &                      ProfileClockStartOffset,                  &
+     &                      ProfileClockStartRtt,                     &
+     &                      ProfileClockEndLocal,                     &
+     &                      ProfileClockEndOffset,                    &
+     &                      ProfileClockEndRtt, ProfileTraceDropped
+ 20     FORMAT ('PROFILE_DIAG rank=',i0,' node=',a,                   &
+     &          ' local_rank=',i0,' mode=',a,                         &
+     &          ' clock_start_local=',es24.16,                        &
+     &          ' clock_start_offset=',es24.16,                       &
+     &          ' clock_start_rtt=',es24.16,                          &
+     &          ' clock_end_local=',es24.16,                          &
+     &          ' clock_end_offset=',es24.16,                         &
+     &          ' clock_end_rtt=',es24.16,' events_dropped=',i0)
+        DO event=1,ProfileTraceCount
+          WRITE (DiagUnit,30) MyRank, PtraceGrid(event),               &
+     &                        PtraceModel(event), PtraceSite(event),   &
+     &                        event, PtraceStart(event),               &
+     &                        PtraceEnd(event),                        &
+     &                        PtraceBytesSent(event),                  &
+     &                        PtraceBytesRecv(event),                  &
+     &                        PtracePeers(event)
+        END DO
+ 30     FORMAT ('PROFILE_EVENT rank=',i0,' grid=',i0,' model=',i0,   &
+     &          ' site=',i0,' sequence=',i0,' start=',es24.16,        &
+     &          ' end=',es24.16,' bytes_sent=',es24.16,               &
+     &          ' bytes_recv=',es24.16,' peers=',i0)
+      END IF
+      CLOSE (DiagUnit)
+
+      RETURN
+      END SUBROUTINE profile_diag_flush
+#endif

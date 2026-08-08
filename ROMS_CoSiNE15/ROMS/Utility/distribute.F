@@ -272,7 +272,17 @@
 !-----------------------------------------------------------------------
 !
 # ifdef MPI
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 141)
+#  endif
       CALL mpi_bcast (A, 1, MP_FLOAT, MyMaster, OCN_COMM_WORLD, MyError)
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 141,                          &
+     &       MERGE(8.0_r8*REAL(numthreads-1,r8),0.0_r8,              &
+     &             MyRank.eq.MyMaster),                              &
+     &       MERGE(0.0_r8,8.0_r8,MyRank.eq.MyMaster),               &
+     &       numthreads-1)
+#  endif
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
         Lstr=LEN_TRIM(string)
@@ -350,8 +360,18 @@
       Npts=UBOUND(A, DIM=1)
 
 # ifdef MPI
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 142)
+#  endif
       CALL mpi_bcast (A, Npts, MP_FLOAT, MyMaster, OCN_COMM_WORLD,      &
      &                MyError)
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 142,                          &
+     &       MERGE(REAL(Npts,r8)*8.0_r8*REAL(numthreads-1,r8),       &
+     &             0.0_r8,MyRank.eq.MyMaster),                      &
+     &       MERGE(0.0_r8,REAL(Npts,r8)*8.0_r8,                     &
+     &             MyRank.eq.MyMaster),numthreads-1)
+#  endif
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
         Lstr=LEN_TRIM(string)
@@ -433,8 +453,18 @@
       Npts=Asize(1)*Asize(2)
 
 # ifdef MPI
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 143)
+#  endif
       CALL mpi_bcast (A, Npts, MP_FLOAT, MyMaster, OCN_COMM_WORLD,      &
      &                MyError)
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 143,                          &
+     &       MERGE(REAL(Npts,r8)*8.0_r8*REAL(numthreads-1,r8),       &
+     &             0.0_r8,MyRank.eq.MyMaster),                      &
+     &       MERGE(0.0_r8,REAL(Npts,r8)*8.0_r8,                     &
+     &             MyRank.eq.MyMaster),numthreads-1)
+#  endif
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
         Lstr=LEN_TRIM(string)
@@ -517,8 +547,18 @@
       Npts=Asize(1)*Asize(2)*Asize(3)
 
 # ifdef MPI
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 144)
+#  endif
       CALL mpi_bcast (A, Npts, MP_FLOAT, MyMaster, OCN_COMM_WORLD,      &
      &                MyError)
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 144,                          &
+     &       MERGE(REAL(Npts,r8)*8.0_r8*REAL(numthreads-1,r8),       &
+     &             0.0_r8,MyRank.eq.MyMaster),                      &
+     &       MERGE(0.0_r8,REAL(Npts,r8)*8.0_r8,                     &
+     &             MyRank.eq.MyMaster),numthreads-1)
+#  endif
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
         Lstr=LEN_TRIM(string)
@@ -602,8 +642,18 @@
       Npts=Asize(1)*Asize(2)*Asize(3)*Asize(4)
 
 # ifdef MPI
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 145)
+#  endif
       CALL mpi_bcast (A, Npts, MP_FLOAT, MyMaster, OCN_COMM_WORLD,      &
      &                MyError)
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 145,                          &
+     &       MERGE(REAL(Npts,r8)*8.0_r8*REAL(numthreads-1,r8),       &
+     &             0.0_r8,MyRank.eq.MyMaster),                      &
+     &       MERGE(0.0_r8,REAL(Npts,r8)*8.0_r8,                     &
+     &             MyRank.eq.MyMaster),numthreads-1)
+#  endif
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
         Lstr=LEN_TRIM(string)
@@ -2572,6 +2622,9 @@
 !
       CALL wclock_on (ng, model, 49)
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 101)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Check input parameters.
@@ -2603,6 +2656,9 @@
 !  Locate or build the static route plan.
 !-----------------------------------------------------------------------
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 102)
+# endif
       slot=0
       DO q=1,Nassemble3DPlan
         IF ((Assemble3DPlan(q)%ng.eq.ng).and.                         &
@@ -2702,6 +2758,9 @@
         IF (Master) WRITE (stdout,30) MaxAssemble3DPlans
         exit_flag=7
       END IF
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 102, 0.0_r8, 0.0_r8, 0)
+# endif
       IF (exit_flag.ne.NoError) RETURN
 !
 !-----------------------------------------------------------------------
@@ -2714,6 +2773,9 @@
         AdIlo=LBOUND(Ad, DIM=1)
         AdJlo=LBOUND(Ad, DIM=2)
         AdKlo=LBOUND(Ad, DIM=3)
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, model, 103)
+# endif
         DO q=1,Plan%nsend
           i=Plan%src_i(q)
           ip1=Plan%src_ip1(q)
@@ -2728,7 +2790,18 @@
             p=p+4
           END DO
         END DO
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 103, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, model, 104)
+# endif
         CALL mp_sparse_exchange (Plan, Asend, Arecv, MyError)
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 104,                        &
+     &       REAL(SUM(Plan%counts),r8)*8.0_r8,                       &
+     &       REAL(SUM(Plan%rcounts),r8)*8.0_r8,                     &
+     &       COUNT((Plan%counts.gt.0).or.(Plan%rcounts.gt.0)))
+        CALL profile_site_on (ng, model, 105)
+# endif
         IF (MyError.eq.MPI_SUCCESS) THEN
           DO q=1,Plan%nzero
             Ac(:,:,Plan%zero_m(q))=0.0_r8
@@ -2744,6 +2817,9 @@
             END DO
           END DO
         END IF
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 105, 0.0_r8, 0.0_r8, 0)
+# endif
       END IF
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
@@ -2754,6 +2830,9 @@
         RETURN
       END IF
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 101, 0.0_r8, 0.0_r8, 0)
+# endif
 # ifdef PROFILE
 !
 !-----------------------------------------------------------------------
@@ -2844,6 +2923,9 @@
 !
       CALL wclock_on (ng, model, 49)
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 111)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Check input parameters.
@@ -2867,6 +2949,9 @@
 !  Locate or build the static route plan.
 !-----------------------------------------------------------------------
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 112)
+# endif
       slot=0
       DO q=1,Nassemble3DPlan
         IF ((Assemble3DPlan(q)%ng.eq.ng).and.                         &
@@ -2957,6 +3042,9 @@
         IF (Master) WRITE (stdout,30) MaxAssemble3DPlans
         exit_flag=7
       END IF
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 112, 0.0_r8, 0.0_r8, 0)
+# endif
       IF (exit_flag.ne.NoError) RETURN
 !
 !-----------------------------------------------------------------------
@@ -2973,6 +3061,9 @@
         AMLo=LBOUND(Amsk, DIM=1)
         AMJlo=LBOUND(Amsk, DIM=2)
 #  endif
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, model, 113)
+# endif
         DO q=1,Plan%nsend
           m=Plan%send_m(q)
           i0=Idg(m)-LBi+1
@@ -2996,7 +3087,18 @@
             Asend(p+kk)=acc
           END DO
         END DO
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 113, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, model, 114)
+# endif
         CALL mp_sparse_exchange (Plan, Asend, Arecv, MyError)
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 114,                        &
+     &       REAL(SUM(Plan%counts),r8)*8.0_r8,                       &
+     &       REAL(SUM(Plan%rcounts),r8)*8.0_r8,                     &
+     &       COUNT((Plan%counts.gt.0).or.(Plan%rcounts.gt.0)))
+        CALL profile_site_on (ng, model, 115)
+# endif
         IF (MyError.eq.MPI_SUCCESS) THEN
           DO q=1,Plan%nzero
             FsumOut(:,Plan%zero_m(q))=0.0_r8
@@ -3009,6 +3111,9 @@
             END DO
           END DO
         END IF
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 115, 0.0_r8, 0.0_r8, 0)
+# endif
       END IF
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
@@ -3019,6 +3124,9 @@
         RETURN
       END IF
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 111, 0.0_r8, 0.0_r8, 0)
+# endif
 # ifdef PROFILE
 !
 !-----------------------------------------------------------------------

@@ -263,6 +263,18 @@
         <div id="imbalancePanels" class="grid-panels"></div>
       </section>
 
+      <section class="section" id="diagnosticSection">
+        <div class="section-head">
+          <div><div class="section-kicker">04 / Diagnostic</div><h2>通信与计算阶段细分</h2></div>
+          <div class="section-note">仅 diagnostic binary 生成。按 rank mean wall 排序；p95/max 和最慢 rank 用于区分本地工作、MPI 等待与节点偏斜。</div>
+        </div>
+        <div class="toolbar">
+          <input id="diagnosticSearch" class="search" type="search" placeholder="搜索 contact3d / pack / mpi / tracer / broadcast">
+          <span id="diagnosticCount" class="mono section-note"></span>
+        </div>
+        <div class="table-wrap"><table id="diagnosticTable"></table></div>
+      </section>
+
       <section class="section" id="variablesSection">
         <div class="section-head">
           <div><div class="section-kicker">04 / Physics sanity</div><h2>输出变量量值与误差</h2></div>
@@ -439,6 +451,24 @@
       }).join("");
     }
 
+    function renderDiagnostics(query = "") {
+      const rows = state?.diagnostics?.groups || [];
+      const needle = query.trim().toLowerCase();
+      const filtered = rows
+        .filter(row => `${row.name} ${row.category} ${row.operation} ${row.phase} ${row.parent_region}`.toLowerCase().includes(needle))
+        .sort((a, b) => (b.wall?.mean || 0) - (a.wall?.mean || 0));
+      el("diagnosticSection").style.display = rows.length ? "block" : "none";
+      const trace = state?.diagnostics?.trace || {};
+      el("diagnosticCount").textContent = `${filtered.length} / ${rows.length} sites · ${trace.event_count || 0} trace events · ${trace.events_dropped || 0} dropped`;
+      el("diagnosticTable").innerHTML = `<thead><tr><th>Grid / parent</th><th>Operation</th><th>Phase</th><th class="num">Calls/rank</th><th class="num">Mean</th><th class="num">P95</th><th class="num">Max</th><th class="num">Max/mean</th><th class="num">Time/call</th><th class="num">Payload</th><th>Slow ranks</th></tr></thead><tbody>${filtered.map(row => {
+        const wall = row.wall || {};
+        const skew = finite(wall.max) && finite(wall.mean) && wall.mean > 0 ? wall.max / wall.mean : null;
+        const payload = (row.bytes_sent_total || 0) + (row.bytes_recv_total || 0);
+        const slow = (row.slow_ranks || []).slice(0, 3).map(item => `r${item.rank}@${item.node}`).join(", ");
+        return `<tr><td>G${esc(row.grid)} · R${esc(row.parent_region)}</td><td>${esc(row.operation)}</td><td><span class="badge ${row.category === "mpi" ? "mpi" : "compute"}">${esc(row.phase)}</span></td><td class="num">${fmt(row.calls_per_rank_mean, 1)}</td><td class="num">${seconds(wall.mean)}</td><td class="num">${seconds(wall.p95)}</td><td class="num">${seconds(wall.max)}</td><td class="num">×${fmt(skew)}</td><td class="num">${seconds(row.wall_per_call_mean)}</td><td class="num">${payload ? `${fmt(payload / 1048576, 2)} MiB` : "—"}</td><td>${esc(slow || "—")}</td></tr>`;
+      }).join("")}</tbody>`;
+    }
+
     function variableRows(comparison) {
       const rows = [];
       for (const [filename, variables] of Object.entries(comparison?.metrics || {})) {
@@ -499,6 +529,7 @@
       renderHotspots(bundle.profile);
       renderNesting(bundle.profile);
       renderImbalance(bundle.profile);
+      renderDiagnostics(el("diagnosticSearch").value);
       renderVariables(el("variableSearch").value);
       renderRecords(el("recordSearch").value);
       el("loadedFile").textContent = filename;
@@ -527,6 +558,7 @@
     el("fileInput").addEventListener("change", event => loadFile(event.target.files[0]));
     el("variableSearch").addEventListener("input", event => renderVariables(event.target.value));
     el("recordSearch").addEventListener("input", event => renderRecords(event.target.value));
+    el("diagnosticSearch").addEventListener("input", event => renderDiagnostics(event.target.value));
     dropZone.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); el("fileInput").click(); } });
     ["dragenter", "dragover"].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add("drag"); }));
     ["dragleave", "drop"].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove("drag"); }));

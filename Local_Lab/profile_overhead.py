@@ -29,16 +29,33 @@ except ImportError:
 SBATCH_SCRIPT = REPOSITORY_ROOT / "Local_Lab" / "profile_overhead.sbatch"
 
 
-def submit_pair(profile_run: Path, control_run: Path, order: str) -> tuple[str, int]:
+def submit_pair(
+    profile_run: Path,
+    control_run: Path,
+    order: str,
+    profile_mode: str,
+    nodes: int,
+    ranks: int,
+    ranks_per_node: int,
+    trace_ranks: str,
+    trace_max_events: int,
+) -> tuple[str, int]:
+    trace_ranks_export = trace_ranks.replace(",", ":")
     command = [
         "sbatch",
         "--wait",
         "--parsable",
+        f"--nodes={nodes}",
+        f"--ntasks={ranks}",
+        f"--ntasks-per-node={ranks_per_node}",
         (
             "--export=ALL,"
             f"MCC_PROFILE_ON_RUN_DIR={profile_run},"
             f"MCC_PROFILE_OFF_RUN_DIR={control_run},"
-            f"MCC_PROFILE_RUN_ORDER={order}"
+            f"MCC_PROFILE_RUN_ORDER={order},"
+            f"MCC_PROFILE_MODE={profile_mode},"
+            f"MCC_TRACE_RANKS={trace_ranks_export},"
+            f"MCC_TRACE_MAX_EVENTS={trace_max_events}"
         ),
         "-o",
         str(profile_run / "pair_slurm_%j.out"),
@@ -94,6 +111,12 @@ def write_pair_bundle(
         if profile_path.is_file()
         else None
     )
+    diagnostics_path = profile_run / "profile_diagnostics.json"
+    diagnostics_data = (
+        json.loads(diagnostics_path.read_text(encoding="utf-8"))
+        if diagnostics_path.is_file()
+        else None
+    )
     return write_profile_bundle(
         profile_run,
         run_report=profile_report,
@@ -101,6 +124,7 @@ def write_pair_bundle(
         comparison=control_report["comparison"],
         control_run=control_report,
         overhead=overhead_report,
+        diagnostics=diagnostics_data,
     )
 
 
@@ -110,10 +134,18 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--control-binary", type=Path, required=True)
     parser.add_argument("--label", default="profile-overhead")
     parser.add_argument("--order", choices=("off-on", "on-off"), default="off-on")
+    parser.add_argument(
+        "--profile-mode", choices=("score", "summary", "trace"), default="score"
+    )
     parser.add_argument("--outer-steps", type=int, default=60)
     parser.add_argument("--inner-steps", type=int, default=300)
+    parser.add_argument("--nodes", type=int, default=4)
+    parser.add_argument("--ranks", type=int, default=64)
+    parser.add_argument("--ranks-per-node", type=int, default=16)
     parser.add_argument("--tiles-i", type=int, default=8)
-    parser.add_argument("--tiles-j", type=int, default=16)
+    parser.add_argument("--tiles-j", type=int, default=8)
+    parser.add_argument("--trace-ranks", default="0")
+    parser.add_argument("--trace-max-events", type=int, default=100000)
     parser.add_argument("--resume-profile-run", type=Path)
     parser.add_argument("--resume-control-run", type=Path)
     parser.add_argument("--resume-job-id")
@@ -122,6 +154,12 @@ def _arguments() -> argparse.Namespace:
 
 def main() -> int:
     arguments = _arguments()
+    if arguments.ranks_per_node * arguments.nodes != arguments.ranks:
+        raise SystemExit(
+            "--ranks-per-node * --nodes must equal --ranks for paired runs"
+        )
+    if arguments.trace_max_events <= 0:
+        raise SystemExit("--trace-max-events must be positive")
     profile_binary = arguments.profile_binary.resolve()
     control_binary = arguments.control_binary.resolve()
     common = {
@@ -129,6 +167,8 @@ def main() -> int:
         "inner_steps": arguments.inner_steps,
         "tiles_i": arguments.tiles_i,
         "tiles_j": arguments.tiles_j,
+        "nodes": arguments.nodes,
+        "ranks": arguments.ranks,
     }
     resume_values = (
         arguments.resume_profile_run,
@@ -155,7 +195,17 @@ def main() -> int:
         )
         print(f"[profile-overhead] profile_run={profile_run}")
         print(f"[profile-overhead] control_run={control_run}")
-        job_id, status = submit_pair(profile_run, control_run, arguments.order)
+        job_id, status = submit_pair(
+            profile_run,
+            control_run,
+            arguments.order,
+            arguments.profile_mode,
+            arguments.nodes,
+            arguments.ranks,
+            arguments.ranks_per_node,
+            arguments.trace_ranks,
+            arguments.trace_max_events,
+        )
         print(f"[profile-overhead] job_id={job_id} exit_status={status}")
 
     profile_report = finalize_report(
@@ -164,6 +214,7 @@ def main() -> int:
         job_id=job_id,
         job_status=status,
         expect_profile=True,
+        expect_diagnostics=arguments.profile_mode in ("summary", "trace"),
         reference_run=None,
         **common,
     )
@@ -173,6 +224,7 @@ def main() -> int:
         job_id=job_id,
         job_status=status,
         expect_profile=False,
+        expect_diagnostics=False,
         reference_run=profile_run,
         **common,
     )
@@ -195,6 +247,9 @@ def main() -> int:
         "control_seconds": control_seconds,
         "overhead_percent": overhead_percent,
         "same_allocation": True,
+        "nodes": arguments.nodes,
+        "ranks": arguments.ranks,
+        "ranks_per_node": arguments.ranks_per_node,
         "comparison": control_report["comparison"],
     }
     output_path = profile_run / "overhead_report.json"

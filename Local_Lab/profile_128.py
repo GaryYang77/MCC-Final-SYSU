@@ -18,8 +18,18 @@ import numpy as np
 
 try:
     from .profile_report import build_report, parse_profile_lines, write_csv
+    from .profile_diagnostics import (
+        validate_diagnostic_report,
+        validate_profile_consistency,
+        write_diagnostic_artifacts,
+    )
 except ImportError:
     from profile_report import build_report, parse_profile_lines, write_csv
+    from profile_diagnostics import (
+        validate_diagnostic_report,
+        validate_profile_consistency,
+        write_diagnostic_artifacts,
+    )
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -199,6 +209,7 @@ def write_profile_bundle(
     comparison: dict[str, object] | None = None,
     control_run: dict[str, object] | None = None,
     overhead: dict[str, object] | None = None,
+    diagnostics: dict[str, object] | None = None,
 ) -> Path:
     """Write the single JSON artifact consumed by the offline dashboard."""
     bundle = {
@@ -211,6 +222,7 @@ def write_profile_bundle(
         ),
         "control_run": control_run,
         "overhead": overhead,
+        "diagnostics": diagnostics,
     }
     bundle_path = run_dir / PROFILE_BUNDLE_NAME
     bundle_path.write_text(
@@ -279,8 +291,22 @@ def submit(
     ranks: int = 128,
     time_limit: str | None = None,
     job_name: str = "mcc-profile",
+    diagnostic_mode: str | None = None,
+    trace_ranks: str = "0",
+    trace_max_events: int = 100000,
 ) -> tuple[str, int]:
     tasks_per_node = ranks // nodes
+    exports = ["ALL", f"MCC_PROFILE_RUN_DIR={run_dir}"]
+    if diagnostic_mode is not None:
+        trace_ranks_export = trace_ranks.replace(",", ":")
+        exports.extend(
+            (
+                f"MCC_PROFILE_MODE={diagnostic_mode}",
+                f"MCC_PROFILE_DIAG_DIR={run_dir}",
+                f"MCC_TRACE_RANKS={trace_ranks_export}",
+                f"MCC_TRACE_MAX_EVENTS={trace_max_events}",
+            )
+        )
     command = [
         "sbatch",
         "--wait",
@@ -293,7 +319,7 @@ def submit(
         str(tasks_per_node),
         "--job-name",
         job_name,
-        f"--export=ALL,MCC_PROFILE_RUN_DIR={run_dir}",
+        f"--export={','.join(exports)}",
         "-o",
         str(run_dir / "slurm_%j.out"),
         "-e",
@@ -358,6 +384,7 @@ def finalize_report(
     nodes: int = 4,
     ranks: int = 128,
     preserve_output_cadence: bool = False,
+    expect_diagnostics: bool = False,
 ) -> dict[str, object]:
     model_log = run_dir / "model.log"
     normal_end = model_log.is_file() and "ROMS/TOMS: DONE" in model_log.read_text(
@@ -403,11 +430,43 @@ def finalize_report(
         except (OSError, ValueError) as error:
             profile_error = str(error)
 
+    diagnostic_error = None
+    diagnostics = None
+    diagnostic_validation = None
+    diagnostic_path = run_dir / "profile_diagnostics.json"
+    trace_path = run_dir / "profile_trace.perfetto.json"
+    diagnostic_files = sorted(run_dir.glob("profile_diag_rank_*.log"))
+    if expect_diagnostics or diagnostic_files:
+        try:
+            written_diagnostic, written_trace = write_diagnostic_artifacts(run_dir)
+            diagnostics = json.loads(written_diagnostic.read_text(encoding="utf-8"))
+            diagnostic_validation = validate_diagnostic_report(
+                diagnostics, expected_ranks=ranks, expected_nodes=nodes
+            )
+            if profile is not None:
+                profile_consistency = validate_profile_consistency(
+                    diagnostics, profile
+                )
+                diagnostic_validation["profile_consistency"] = profile_consistency
+                if not profile_consistency["passed"]:
+                    diagnostic_validation["passed"] = False
+                    diagnostic_validation["failures"].extend(
+                        profile_consistency["failures"]
+                    )
+            if expect_diagnostics and not diagnostic_validation["passed"]:
+                diagnostic_error = "; ".join(diagnostic_validation["failures"])
+            diagnostic_path = written_diagnostic
+            if written_trace is not None:
+                trace_path = written_trace
+        except (OSError, ValueError, json.JSONDecodeError) as error:
+            diagnostic_error = str(error)
+
     passed = (
         job_status == 0
         and normal_end
         and bool(output_report["passed"])
         and profile_error is None
+        and diagnostic_error is None
         and (comparison is None or bool(comparison["passed"]))
     )
     report = {
@@ -437,11 +496,20 @@ def finalize_report(
         "profile_report": str(profile_path) if profile_path.is_file() else None,
         "profile_csv": str(csv_path) if csv_path.is_file() else None,
         "profile_bundle": str(run_dir / PROFILE_BUNDLE_NAME),
+        "diagnostics_expected": expect_diagnostics,
+        "diagnostics_error": diagnostic_error,
+        "diagnostics_validation": diagnostic_validation,
+        "diagnostics_report": (
+            str(diagnostic_path) if diagnostic_path.is_file() else None
+        ),
+        "perfetto_trace": str(trace_path) if trace_path.is_file() else None,
     }
     (run_dir / "run_report.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
-    write_profile_bundle(run_dir, run_report=report, profile=profile)
+    write_profile_bundle(
+        run_dir, run_report=report, profile=profile, diagnostics=diagnostics
+    )
     return report
 
 
@@ -475,11 +543,24 @@ def _arguments() -> argparse.Namespace:
         type=Path,
         help="compare the same 2x13 output contract against an earlier run",
     )
+    parser.add_argument(
+        "--diagnostic-mode",
+        choices=("score", "summary", "trace"),
+        help="enable profiler-v2 diagnostics in a PROFILE_DIAGNOSTIC binary",
+    )
+    parser.add_argument(
+        "--trace-ranks",
+        default="0",
+        help="trace-mode ranks: all or a comma-separated rank list",
+    )
+    parser.add_argument("--trace-max-events", type=int, default=100000)
     return parser.parse_args()
 
 
 def main() -> int:
     arguments = _arguments()
+    if arguments.trace_max_events <= 0:
+        raise SystemExit("--trace-max-events must be positive")
     binary = arguments.binary.resolve()
     reference_run = arguments.reference_run.resolve() if arguments.reference_run else None
     if reference_run is not None and not reference_run.is_dir():
@@ -502,6 +583,9 @@ def main() -> int:
         ranks=arguments.ranks,
         time_limit=arguments.time_limit,
         job_name=f"mcc-prof-{arguments.nodes}n",
+        diagnostic_mode=arguments.diagnostic_mode,
+        trace_ranks=arguments.trace_ranks,
+        trace_max_events=arguments.trace_max_events,
     )
     print(f"[profile128] job_id={job_id} exit_status={status}")
     report = finalize_report(
@@ -518,6 +602,7 @@ def main() -> int:
         nodes=arguments.nodes,
         ranks=arguments.ranks,
         preserve_output_cadence=arguments.preserve_output_cadence,
+        expect_diagnostics=arguments.diagnostic_mode in ("summary", "trace"),
     )
     if report["passed"]:
         print(f"[profile128] PASS: {run_dir / 'run_report.json'}")

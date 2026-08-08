@@ -94,6 +94,52 @@
       real(r8), allocatable :: Ccalls(:,:,:)
       real(r8), allocatable :: Csum_calls(:,:,:)
 
+#if defined PROFILE_DIAGNOSTIC && defined DISTRIBUTE
+!
+!  Profiler-v2 diagnostic state.  These arrays exist only in a dedicated
+!  diagnostic binary; the score PROFILE binary has no calls or storage.
+!
+      integer, parameter :: MaxProfileSites = 200
+      integer, parameter :: MaxProfileTraceEvents = 200000
+
+      logical :: ProfileDiagnostic = .FALSE.
+      logical :: ProfileTrace = .FALSE.
+      logical :: ProfileTraceRank = .FALSE.
+      logical :: ProfileInitialized = .FALSE.
+
+      integer :: ProfileTraceCount = 0
+      integer :: ProfileTraceDropped = 0
+      integer :: ProfileTraceLimit = 100000
+      integer :: ProfileLocalRank = 0
+
+      character (len=16) :: ProfileMode = 'score'
+      character (len=64) :: ProfileNode = 'unknown'
+      character (len=512) :: ProfileDiagDir = '.'
+
+      real(r8) :: ProfileClockStartLocal = 0.0_r8
+      real(r8) :: ProfileClockStartOffset = 0.0_r8
+      real(r8) :: ProfileClockStartRtt = 0.0_r8
+      real(r8) :: ProfileClockEndLocal = 0.0_r8
+      real(r8) :: ProfileClockEndOffset = 0.0_r8
+      real(r8) :: ProfileClockEndRtt = 0.0_r8
+
+      real(r8), allocatable :: PsiteStart(:,:,:)
+      real(r8), allocatable :: PsiteWall(:,:,:)
+      real(r8), allocatable :: PsiteCalls(:,:,:)
+      real(r8), allocatable :: PsiteBytesSent(:,:,:)
+      real(r8), allocatable :: PsiteBytesRecv(:,:,:)
+      integer, allocatable :: PsitePeersMax(:,:,:)
+
+      integer, allocatable :: PtraceGrid(:)
+      integer, allocatable :: PtraceModel(:)
+      integer, allocatable :: PtraceSite(:)
+      integer, allocatable :: PtracePeers(:)
+      real(r8), allocatable :: PtraceStart(:)
+      real(r8), allocatable :: PtraceEnd(:)
+      real(r8), allocatable :: PtraceBytesSent(:)
+      real(r8), allocatable :: PtraceBytesRecv(:)
+#endif
+
 !$OMP THREADPRIVATE (proc)
 !$OMP THREADPRIVATE (Cstr, Cend, Cstr_cpu, Cend_cpu, Ccalls)
 
@@ -195,6 +241,38 @@
 
       allocate ( Csum_calls(0:Nregion,4,Ngrids) )
       Csum_calls(0:Nregion,1:4,1:Ngrids)=0.0_r8
+
+#if defined PROFILE_DIAGNOSTIC && defined DISTRIBUTE
+      allocate (PsiteStart(MaxProfileSites,4,Ngrids))
+      allocate (PsiteWall(MaxProfileSites,4,Ngrids))
+      allocate (PsiteCalls(MaxProfileSites,4,Ngrids))
+      allocate (PsiteBytesSent(MaxProfileSites,4,Ngrids))
+      allocate (PsiteBytesRecv(MaxProfileSites,4,Ngrids))
+      allocate (PsitePeersMax(MaxProfileSites,4,Ngrids))
+      PsiteStart=0.0_r8
+      PsiteWall=0.0_r8
+      PsiteCalls=0.0_r8
+      PsiteBytesSent=0.0_r8
+      PsiteBytesRecv=0.0_r8
+      PsitePeersMax=0
+
+      allocate (PtraceGrid(MaxProfileTraceEvents))
+      allocate (PtraceModel(MaxProfileTraceEvents))
+      allocate (PtraceSite(MaxProfileTraceEvents))
+      allocate (PtracePeers(MaxProfileTraceEvents))
+      allocate (PtraceStart(MaxProfileTraceEvents))
+      allocate (PtraceEnd(MaxProfileTraceEvents))
+      allocate (PtraceBytesSent(MaxProfileTraceEvents))
+      allocate (PtraceBytesRecv(MaxProfileTraceEvents))
+      PtraceGrid=0
+      PtraceModel=0
+      PtraceSite=0
+      PtracePeers=0
+      PtraceStart=0.0_r8
+      PtraceEnd=0.0_r8
+      PtraceBytesSent=0.0_r8
+      PtraceBytesRecv=0.0_r8
+#endif
 
 #if defined DISTRIBUTE && defined PROFILE
 !

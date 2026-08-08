@@ -126,6 +126,38 @@ def test_submit_overrides_sbatch_resources_for_requested_node_count(
     assert command[command.index("--time") + 1] == "12:00:00"
 
 
+def test_submit_exports_bounded_diagnostic_configuration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    captured = {}
+
+    class Result:
+        returncode = 0
+        stdout = "12345\n"
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        return Result()
+
+    monkeypatch.setattr(profile_128.subprocess, "run", fake_run)
+    profile_128.submit(
+        run_dir,
+        diagnostic_mode="trace",
+        trace_ranks="0,16",
+        trace_max_events=321,
+    )
+
+    export = next(
+        item for item in captured["command"] if item.startswith("--export=")
+    )
+    assert "MCC_PROFILE_MODE=trace" in export
+    assert f"MCC_PROFILE_DIAG_DIR={run_dir}" in export
+    assert "MCC_TRACE_RANKS=0:16" in export
+    assert "MCC_TRACE_MAX_EVENTS=321" in export
+
+
 def test_resource_summary_exposes_dashboard_measurements(tmp_path: Path) -> None:
     resource_log = tmp_path / "resource.log"
     resource_log.write_text(
@@ -176,6 +208,7 @@ def test_profile_bundle_is_one_self_describing_json_file(tmp_path: Path) -> None
         profile=profile,
         comparison=comparison,
         overhead={"overhead_percent": 0.89},
+        diagnostics={"schema_version": 2},
     )
     payload = json.loads(path.read_text(encoding="utf-8"))
 
@@ -185,6 +218,7 @@ def test_profile_bundle_is_one_self_describing_json_file(tmp_path: Path) -> None
     assert payload["profile"] == profile
     assert payload["comparison"] == comparison
     assert payload["overhead"]["overhead_percent"] == pytest.approx(0.89)
+    assert payload["diagnostics"]["schema_version"] == 2
 
 
 def test_no_profile_control_build_only_disables_instrumentation() -> None:
