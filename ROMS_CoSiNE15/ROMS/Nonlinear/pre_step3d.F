@@ -289,6 +289,7 @@
       real(r8), parameter :: eps = 1.0E-16_r8
 
       real(r8) :: cff, cff1, cff2, cff3, cff4
+      real(r8) :: cff_time, cff1_time, cff2_time
 
       real(r8), dimension(IminS:ImaxS,0:N(ng)) :: CF
       real(r8), dimension(IminS:ImaxS,0:N(ng)) :: DC
@@ -299,6 +300,7 @@
 # endif
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: FE
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: FX
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: cffpmnp
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: curv
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: grad
 
@@ -340,6 +342,20 @@
 !  Compute time rate of change of intermediate tracer due to
 !  horizontal advection.
 !
+      IF (iic(ng).eq.ntfirst(ng)) THEN
+        cff_time=0.5_r8*dt(ng)
+        cff1_time=1.0_r8
+        cff2_time=0.0_r8
+      ELSE
+        cff_time=(1.0_r8-Gamma)*dt(ng)
+        cff1_time=0.5_r8+Gamma
+        cff2_time=0.5_r8-Gamma
+      END IF
+      DO j=Jstr,Jend
+        DO i=Istr,Iend
+          cffpmnp(i,j)=cff_time*pm(i,j)*pn(i,j)
+        END DO
+      END DO
       K_LOOP: DO k=1,N(ng)
         T_LOOP1 :DO itrc=1,NT(ng)
 
@@ -538,20 +554,12 @@
 !
 !  Time-step horizontal advection (m Tunits).
 !
-          IF (iic(ng).eq.ntfirst(ng)) THEN
-            cff=0.5_r8*dt(ng)
-            cff1=1.0_r8
-            cff2=0.0_r8
-          ELSE
-            cff=(1.0_r8-Gamma)*dt(ng)
-            cff1=0.5_r8+Gamma
-            cff2=0.5_r8-Gamma
-          END IF
           DO j=Jstr,Jend
             DO i=Istr,Iend
-              t(i,j,k,3,itrc)=Hz(i,j,k)*(cff1*t(i,j,k,nstp,itrc)+       &
-     &                                   cff2*t(i,j,k,nnew,itrc))-      &
-     &                        cff*pm(i,j)*pn(i,j)*                      &
+              t(i,j,k,3,itrc)=Hz(i,j,k)*                               &
+     &                        (cff1_time*t(i,j,k,nstp,itrc)+           &
+     &                         cff2_time*t(i,j,k,nnew,itrc))-          &
+     &                        cffpmnp(i,j)*                             &
      &                        (FX(i+1,j)-FX(i,j)+                       &
      &                         FE(i,j+1)-FE(i,j))
             END DO
@@ -590,15 +598,10 @@
 !  load it into private array DC (1/m). Notice pipelined J-loop.
 !
       J_LOOP1 : DO j=Jstr,Jend
-        IF (iic(ng).eq.ntfirst(ng)) THEN
-          cff=0.5_r8*dt(ng)
-        ELSE
-          cff=(1.0_r8-Gamma)*dt(ng)
-        END IF
         DO k=1,N(ng)
           DO i=Istr,Iend
             DC(i,k)=1.0_r8/(Hz(i,j,k)-                                  &
-     &                      cff*pm(i,j)*pn(i,j)*                        &
+     &                      cffpmnp(i,j)*                               &
      &                      (Huon(i+1,j,k)-Huon(i,j,k)+                 &
      &                       Hvom(i,j+1,k)-Hvom(i,j,k)+                 &
      &                      (W(i,j,k)-W(i,j,k-1))))

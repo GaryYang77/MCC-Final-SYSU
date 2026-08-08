@@ -46,7 +46,7 @@
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
-- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/cache-tracer-horizontal-metric-4n64-16ppn_20260808T171455Z_24574`（job `118792838`，profile total `76.23s`，26 变量逐位一致；binary SHA-256 `5a857c894ad86dd6c6638643143e013ebf402296a952c4bf104b30bdcc26161f`）。相对此前 `77.95s` reference，目标 R35 双网格下降 `1.01/0.65%`；total 还包含 R44 allocation 噪声，不能把全部 `2.2%` 变化归因于源码。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
+- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/cache-predictor-time-metric-4n64-16ppn_20260808T173126Z_64643`（job `118793509`，profile total `74.70s`，26 变量逐位一致；binary SHA-256 `a14557fba38eb2a04dc771e3d4e23f118478a436a9e689897d57a2855ea7982b`）。相对此前 `76.23s` reference，目标 R22 双网格下降 `1.89/0.52%`；total 还包含 R44 allocation 噪声，不能把全部 `2.0%` 变化归因于源码。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
 
 ### profiler-v2 三层用途
 
