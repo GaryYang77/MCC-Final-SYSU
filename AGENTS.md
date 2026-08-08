@@ -24,7 +24,8 @@
 - **禁止重新运行 `baseline`**。日常候选默认执行 `build` 后直接进入 4n64
   profiling；`validate` 只在下文列出的风险条件或最终累计候选时运行。
   仅当基线缺失、源码树干净且团队明确要求时才可重建 baseline。
-- profiling 基线（`feat-improve-profiling`，2026-08-04）：wall-only、per-rank min/mean/max、调用次数、I/O/MPI 分类、region 39 与子阶段 51–56、JSON/CSV、HTML dashboard。默认 profiler 同节点顺序平衡开销约 `+0.89%`。
+- score profiling 基线（`feat-improve-profiling`，2026-08-04）：wall-only、per-rank min/mean/max、调用次数、I/O/MPI 分类、region 39 与子阶段 51–56、JSON/CSV、HTML dashboard。该轻量模式用于日常候选的性能门禁。
+- profiler-v2（commit `64cec19`，2026-08-08）已通过 Phase-D：score、summary、trace 三种用途分离；summary 可细分 contact/f2csum 的 plan-pack-MPI-unpack、tracer corrector 子阶段、broadcast 和 `put_refine3d`，并记录 rank/node；trace 可为选定 ranks 离线生成 Perfetto JSON。普通 score build 不含 `PROFILE_DIAGNOSTIC`，新增诊断不会进入最终 no-profile 二进制。详见 `Local_Lab/profiler-v2-design.md` 和 `Local_Lab/profiler-v2-phase-d.md`。
 - 4 节点 128 ranks `8x16` 完整三天 profiling：job `118507345`，wall `9589 s`，官方 `vali.py` 已通过。注意：`9589 s` 与公开基准 `01:50:06` 不是同一边界/二进制，**不得直接算 speedup**；最终成绩以 no-profile 二进制对齐。
 - 2 节点 64 ranks `8x8` 完整三天：job `118500776`，wall `10588 s`，输出与 4 节点逐位一致——仅用于 scaling 诊断。
 - 1 节点 32 ranks `4x8` 在首次 nesting 通信处触发 `MPI_Bcast/MPI_ERR_TRUNCATE`：**该结果不得用于任何 scaling 结论，也不要默认其他 32-rank tile 形状可用**。
@@ -36,13 +37,24 @@
   - 优化前完整三天 scaling：`profile_bundle.json`（4 节点 demo）、`2nodes-64ranks_profile_bundle.json`、`4nodes-128ranks_profile_bundle.json`
   - 优化后完整三天：`2nodes-64ranks_optimized_20260804T152030Z_profile_bundle.json`、`4nodes-128ranks_optimized_20260804T152030Z_profile_bundle.json`
   - **优化后 4nodes-64ranks-16ppn（当前最快）**：`4nodes-64ranks-16ppn_optimized_20260805T014345Z_profile_bundle.json`
+  - profiler-v2 Phase-D：`profile_bundle_logs/profiler-v2-summary-final_20260808T111308Z_profile_bundle.json`、`profile_bundle_logs/profiler-v2-trace-final_20260808T111910Z_profile_bundle.json`
+  - **当前 main score reference**：`profile_bundle_logs/profiler-v2-current-score-4n64-16ppn_20260808T122050Z_profile_bundle.json`
 - 细节见 `Local_Lab/profiling-analysis.md`；服务器 profiling reference：`Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。
 - **必须先读 bundle 和分析文档再选热点，不得脱离证据凭直觉优化**；完整任务 bundle 只用于确认热点代表性，不替代日常 reference。
+- 当前 profiler-v2 结论见 `Local_Lab/profiler-v2-current-analysis.md`：Grid-2 R35 以 horizontal tracer advection 为主，`put_refine3d` 是第二个明确计算热点；已细分 contact3d/f2csum 只覆盖 R49 的小部分，继续修改 R49 前应先补齐剩余 assemble 模式的诊断覆盖。
 
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
-- **reference 规则**：每个新 accepted commit 的 DEMO profiling run 直接成为下一项实验的 `--reference-run`。首个 4node-64rank-16ppn DEMO reference 为 `Local_Lab/runs/profile128/baseline-4n64-16ppn_20260805T034227Z_9444`（job `118597954`，Slurm wall **122.0s**，PASS；二进制 `Local_Lab/runs/validation/candidate_20260804T143831Z_9553/bin/oceanM`，SHA-256 `bdcdfeafbd1f48c6c0725c3f336470a451d12a237ebab01ae2768c4c668da08d`）。旧的 2 节点 reference 和 4 节点 128-rank reference 仅作历史对照。
+- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/profiler-v2-current-score-4n64-16ppn_20260808T122050Z_36051`（commit `64cec19`，job `118785072`，profile total `80.61s`，26 变量逐位一致；binary SHA-256 `a7c0fd61ce1d85b0d69ee478c267e3b6d27502e1bf992ce30ff6551492a752dd`）。同一 binary 在 Phase-D allocations 测得 `75.13--77.25s`，因此单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和首个 4n64 reference 仅作历史对照。
+
+### profiler-v2 三层用途
+
+- **no-profile**：唯一的最终成绩口径。只用于阶段性累计候选、完整三天和最终验收，不作为每个小优化的日常门禁。
+- **score PROFILE**：唯一的日常性能与正确性门禁。默认每个候选只跑一次 4n64 DEMO；不附带 summary/trace，不要求同次 no-profile 配对，也不因结果接近噪声自动追加作业。
+- **diagnostic summary/trace**：只用于形成和解释性能假设，不用于判定候选 speedup。summary 回答子阶段、payload 和 rank/node 不平衡；只有怀疑调用时序、MPI 等待或跨节点差异时才运行 trace，默认每节点选一个 rank 并设置事件上限。
+
+score PROFILE 的提升通常能预测 no-profile 的提升，但不是逻辑保证：插桩可能改变编译布局、cache 和 MPI 时序。因此，日常可用“数值门禁通过 + score total/目标 region 方向有效”接受候选；只有阶段性累计候选和最终提交才用同源码 no-profile 确认真实成绩。不得把 diagnostic wall 与 score reference 直接比较来接受模型优化。
 
 ## 修改边界
 
@@ -50,6 +62,7 @@
 
 - 物理计算方案、模型方程及其科学含义；主办方提供的初始场、边界场、强迫场和输入数据。
 - 为提速跳过必需计算、缩短最终模拟时长、放宽/绕过验证。
+- 在模型性能实验分支修改 profiler、region 定义、计时开关、验证器或 comparison 逻辑；profiler 本身的改版必须使用独立分支和独立开销/一致性验收，不能与模型优化混合。
 - 修改 `Local_Lab/baselines/mcc_4x20/outputs_valid/` 及其 `manifest.json`；日常运行 `baseline`。
 - 用提高容差、减少变量、修改输入、重建基线、跳过计算来挽救失败候选。
 
@@ -66,7 +79,7 @@
 
 一个分支只处理一个主要性能假设；不得把算法改写、编译 flags、MPI 分块等多个变量混在同一次实验。
 
-1. **开分支**：从干净 `main` 创建 `perf/<single-hypothesis>`，记录 `accepted_commit=$(git rev-parse HEAD)` 的完整 SHA 到实验记录（不要只依赖 shell 变量）。`git status --short` 必须为空；确认 `main` 已含 `Local_Lab/profile_128.py` 和 `Local_Lab/profile_dashboard.html`，否则停止。先从 bundle 写下可证伪假设：目标 region、预期变化、不应变化的数值行为；区分计算 / MPI 通信等待 / I/O。
+1. **开分支**：从干净 `main` 创建 `perf/<single-hypothesis>`，记录 `accepted_commit=$(git rev-parse HEAD)` 的完整 SHA 到实验记录（不要只依赖 shell 变量）。`git status --short` 必须为空；确认 `main` 已含 `Local_Lab/profile_128.py`、`Local_Lab/profile_diagnostics.py` 和 `Local_Lab/profile_dashboard.html`，否则停止。先从 bundle 写下可证伪假设：目标 region、预期变化、不应变化的数值行为；区分计算 / MPI 通信等待 / I/O。
 2. **改代码**：一次一个可解释的等价实现优化，保留可审查 diff；日常 DEMO 完成前不 commit。
 3. **本地快测**（WSL 仓库根目录）：`python -m pytest -q Local_Lab/tests`。该测试通常只需数秒，继续保留以避免把接口、脚本和预处理错误带到集群。缺依赖时用专用环境装 `Local_Lab/requirements-validation.txt`，不得改测试规避环境问题。
 4. **干净构建 PROFILE 候选**：同步后只编译，不运行慢速 1-rank 模型——
@@ -79,7 +92,7 @@
    ```
 
    包装脚本会等待 Slurm 作业并把 stdout/stderr 打到终端；自动化调用必须检查退出码。只有退出码 0、终端显示 `[build] PASS`、`build_report.json` 的 `passed=true` 三者同时满足才可运行模型。不得在登录节点编译或运行模型。
-5. **唯一日常运行门禁：4n64 profiling DEMO**。candidate 目录必须取自本次 build 输出，不能用 `ls | head` 猜。运行前验证构建报告、二进制并记录 SHA-256：
+5. **唯一日常运行门禁：一次 4n64 score profiling DEMO**。candidate 目录必须取自本次 build 输出，不能用 `ls | head` 猜。普通候选不额外跑 no-profile、summary/trace 或 1-rank；运行前验证构建报告、二进制并记录 SHA-256：
 
    ```bash
    candidate_dir=Local_Lab/runs/validation/candidate_<exact-timestamp>
@@ -97,7 +110,7 @@
      --reference-run Local_Lab/runs/profile128/<accepted-4n64-16ppn-reference-run>
    ```
 
-   该 DEMO 同时承担并行正确性与性能门禁。判据：`run_report.json` 满足 `passed=true`、`normal_end=true`、`outputs.passed=true`、`comparison.passed=true`，26 个变量均检查 shape、mask、NaN/Inf、`RMSE <= 1e-5`、`max_abs <= 1e-5`，且存在 `profile_report.json`。同时检查 total wall、目标 region wall/调用次数、rank imbalance 和非目标热点（inclusive region 不得相加成 100%）。无有用方向则恢复重设计，不自动重复。
+   该单次 DEMO 同时承担并行正确性与日常性能门禁。判据：`run_report.json` 满足 `passed=true`、`normal_end=true`、`outputs.passed=true`、`comparison.passed=true`，26 个变量均检查 shape、mask、NaN/Inf、`RMSE <= 1e-5`、`max_abs <= 1e-5`，且存在 `profile_report.json`。性能判断同时看 total wall、目标 region wall/调用次数、rank imbalance 和非目标热点（inclusive region 不得相加成 100%）：目标 region 应按假设改善、调用次数符合设计，稳定计算 region 不得出现足以抵消收益的退化；通常 total 也应改善。如果 total 与目标 region 矛盾，但差额可由 R03 输入分发、R44 broadcast 等已知易受 filesystem/到达时序影响的 region 完整解释，则记录不确定性并由团队直接决定接受、拒绝或复测，默认不自动追加作业。score 是日常筛选依据而非 no-profile 成绩证明。
 6. **触发式 1-rank validate**：普通、逐位一致的候选不再运行。出现以下任一情况时，commit 前仍须运行 `bash Local_Lab/run_cluster_gate.sh validate`，并满足退出码 0、`[validate] PASS`、`validation_report.json passed=true`：
    - DEMO 任一变量出现非零误差，即使仍在 `1e-5` 容限内；
    - 修改数值精度、浮点运算顺序、mask/边界索引、CPP 分支或非 DISTRIBUTE fallback；
@@ -111,8 +124,39 @@
    ```
 
    `git restore` 不处理新增未跟踪文件：用 `git status --short` 对照实验开始时的文件清单，逐个移到 `/tmp/<experiment>-failed/` 留档。**禁止 `git clean`、禁止 `git reset --hard`**；确认工作树无他人修改才可恢复；commit 后才发现问题用 `git revert <bad-commit>`。恢复后确认 diff 与新增文件已清除，重新同步并让适用门禁 PASS，才能开始下一设计。结果接近噪声由团队决定是否复测，默认不加作业。
-8. **commit**：4n64 DEMO 及任何触发的 validate 通过且性能方向有效后，运行 `git diff --check`、审查 diff，用明确文件列表 `git add`（禁止 `git add .`）。该 commit 成为新 accepted commit，本次 profiling run 成为下一实验的 reference。MPI/分块/通信/同步类改动，commit 前额外检查正常结束、输出齐全、NaN/Inf、13 变量 comparison、rank 离散。
+8. **commit**：4n64 DEMO 及任何触发的 validate 通过且性能方向有效后，运行 `git diff --check`、审查 diff，用明确文件列表 `git add`（禁止 `git add .`）。该 commit 成为新 accepted commit，本次 profiling run 成为下一实验的 reference。MPI/分块/通信/同步类改动，commit 前额外检查正常结束、输出齐全、NaN/Inf、26 变量 comparison、rank 离散。
 9. **完整三天与官方验证不是普通 commit 的门禁**：只有团队选出的最终累计候选才运行（见下节），至少一个候选必须完成，时间允许再重复测量。
+
+### profiler-v2 按需诊断流程
+
+只有 score 的宽 region 无法回答下一步优化问题时才构建 diagnostic binary；该流程用于诊断，不替代上面的 score 门禁：
+
+```bash
+bash Local_Lab/run_build_diagnostic.sh
+diagnostic_binary=Local_Lab/builds/profiling/diagnostic_<exact-build>/bin/oceanM
+test -x "$diagnostic_binary" && sha256sum "$diagnostic_binary"
+
+# 默认先跑 summary；仍使用相同 4n64、60/300 配置。
+python Local_Lab/profile_128.py \
+  --binary "$diagnostic_binary" \
+  --label <hypothesis>-diagnostic-summary \
+  --outer-steps 60 --inner-steps 300 \
+  --nodes 4 --ranks 64 --tiles-i 8 --tiles-j 8 \
+  --diagnostic-mode summary \
+  --reference-run Local_Lab/runs/profile128/<accepted-score-run>
+
+# 仅当 summary 指向时序/等待问题时使用；先每节点一个 rank。
+python Local_Lab/profile_128.py \
+  --binary "$diagnostic_binary" \
+  --label <hypothesis>-diagnostic-trace \
+  --outer-steps 60 --inner-steps 300 \
+  --nodes 4 --ranks 64 --tiles-i 8 --tiles-j 8 \
+  --diagnostic-mode trace --trace-ranks 0,16,32,48 \
+  --trace-max-events 150000 \
+  --reference-run Local_Lab/runs/profile128/<accepted-score-run>
+```
+
+summary/trace 必须满足正常结束、26 变量 comparison 通过、`diagnostics_validation.passed=true`、真实 node/local-rank 元数据完整、父子 region 一致性通过；trace 还必须 `events_dropped=0` 且 artifact 不超过 256 MiB。诊断开销只记录为 observer effect，不设低开销硬门槛。只有修改 profiler 本身并准备固定新版时，才需要用 `profile_overhead.py` 做 score/no-profile 或 diagnostic/no-profile 配对开销验收；普通模型优化不跑这类配对。
 
 ### 触发式 1-rank 正确性门禁判定标准
 
@@ -122,7 +166,7 @@
 
 `sync_to_cluster.sh`（WSL 同步，排除输入大文件与远端基线/runs/builds/日志）→ `finalize_cluster_sync.sh`（检查输入、建 `Inputfiles` 软链、存源码快照）→ `run_cluster_gate.sh build`（提交并等待 Slurm，透传退出码）→ `cluster_gate.sbatch`（队列/官方环境）→ `valid_test.py build`（干净编译、SHA-256、报告）→ `profile_128.py`（4n64 并行运行、数值 comparison、profiling 报告）。触发风险条件时，在 commit 前额外执行 `run_cluster_gate.sh validate`。
 
-故障定位：同步/输入链接失败看同步脚本输出；编译看 `build.log` 和 `build_report.json`；MPI/运行异常看 `model.log` 和 Slurm stderr；数值失败看 profiling run 的 `run_report.json`，触发式 1-rank 门禁失败再看 `validation_report.json`；资源看 `resource.log`。构建产物目录 `Local_Lab/runs/validation/candidate_*/`，DEMO 产物目录 `Local_Lab/runs/profile128/<label>_*/`。
+故障定位：同步/输入链接失败看同步脚本输出；编译看 `build.log` 和 `build_report.json`；MPI/运行异常看 `model.log` 和 Slurm stderr；数值失败看 profiling run 的 `run_report.json`，触发式 1-rank 门禁失败再看 `validation_report.json`；资源看 `resource.log`；diagnostic 看 `profile_diagnostics.json`、`diagnostics_validation` 和各 rank 的 `profile_diag_rank_*.log`，trace 再看 `profile_trace.perfetto.json`。构建产物目录 `Local_Lab/runs/validation/candidate_*/`，DEMO 产物目录 `Local_Lab/runs/profile128/<label>_*/`。
 
 ## 决赛运行与最终验收
 
