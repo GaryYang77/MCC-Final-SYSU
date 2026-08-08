@@ -268,6 +268,7 @@
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: FE
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: FX
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: curv
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: dtpmnp
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: grad
 
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS,N(ng)) :: oHz
@@ -352,6 +353,18 @@
 # ifdef PROFILE_DIAGNOSTIC
       CALL profile_site_on (ng, iNLM, 132)
 # endif
+# ifdef TS_MPDATA
+#  define I_RANGE IstrUm2,Iendp2i
+#  define J_RANGE JstrVm2,Jendp2i
+# else
+#  define I_RANGE Istr,Iend
+#  define J_RANGE Jstr,Jend
+# endif
+      DO j=J_RANGE
+        DO i=I_RANGE
+          dtpmnp(i,j)=dt(ng)*pm(i,j)*pn(i,j)
+        END DO
+      END DO
       K_LOOP : DO k=1,N(ng)
         T_LOOP : DO itrc=1,NT(ng)
 
@@ -623,16 +636,9 @@
 !  of Tunits m3/s.  The new tracer has units of m Tunits.
 # endif
 !
-# ifdef TS_MPDATA
-#  define I_RANGE IstrUm2,Iendp2i
-#  define J_RANGE JstrVm2,Jendp2i
-# else
-#  define I_RANGE Istr,Iend
-#  define J_RANGE Jstr,Jend
-# endif
           DO j=J_RANGE
             DO i=I_RANGE
-              cff=dt(ng)*pm(i,j)*pn(i,j)
+              cff=dtpmnp(i,j)
               cff1=cff*(FX(i+1,j)-FX(i,j))
               cff2=cff*(FE(i,j+1)-FE(i,j))
               cff3=cff1+cff2
