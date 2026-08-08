@@ -131,3 +131,23 @@ measurement is therefore `75.53 s`, down from the prior phase pair's
 `78.75 s`. This pair reinforces the workflow distinction: score regions can
 establish a causal kernel improvement, but a phase-boundary no-profile run is
 still required to state the actual score.
+
+## 2026-08-09 C4 transport phase boundary
+
+After accepting the corrector C4 half-transport cache, `main` was `d68e187`.
+The new no-profile build was job `118802582` at
+`Local_Lab/builds/profiling/no_profile_20260808T204414Z_52068`; binary SHA-256
+was `6a92f9cd82c97fb341108eb4cd83c0b65bdf99529ee1435fd0f220184dbfb40f`.
+
+Same-allocation `off-on` pair job `118802758` passed:
+
+- no-profile/control:
+  `Local_Lab/runs/profile128/c4-transport-phase-paired-overhead-off_20260808T205120Z_23679`,
+  `75.03 s`;
+- score PROFILE:
+  `Local_Lab/runs/profile128/c4-transport-phase-paired-overhead-on_20260808T205120Z_23679`,
+  `72.44 s`.
+
+The apparent `-3.45%` overhead is again execution-order noise. The actual
+current phase score is the `75.03 s` no-profile control, a further `0.50 s`
+improvement over the preceding `75.53 s` phase pair.

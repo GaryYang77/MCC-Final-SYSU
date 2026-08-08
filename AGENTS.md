@@ -47,7 +47,7 @@
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
 - **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/cache-c4-transport-halves-4n64-16ppn_20260808T200411Z_51013`（job `118801701`，profile total `72.41s`，26 变量逐位一致；binary SHA-256 `2fb6b838415fbfc83f9477932e44ce5b1b004f4a48d0b64ad9fed57e8a419fbc`）。相对此前 `73.18s` reference，目标 R35 双网格下降 `1.36/1.50%`，total 下降 `1.05%`；Grid-1 R44 有小幅反向波动但不影响目标 compute 证据。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
-- **当前 no-profile 阶段成绩**（commit `07f8d83`）：同 allocation `off-on` 配对 job `118798959`，4n64/16ppn、8x8、60/300；no-profile `75.53s`，score PROFILE `73.83s`，两者均正常结束且 comparison 通过。no-profile binary SHA-256 `d2ed66a500699fb9245339276c10a3867eb614e25adb0c7d55c692a6b8dd7ccb`。本次表观 overhead `-2.25%` 是顺序/运行噪声，不能解释为 profiler 加速；阶段成绩以 `75.53s` no-profile 为准。
+- **当前 no-profile 阶段成绩**（commit `d68e187`）：同 allocation `off-on` 配对 job `118802758`，4n64/16ppn、8x8、60/300；no-profile `75.03s`，score PROFILE `72.44s`，两者均正常结束且 comparison 通过。no-profile binary SHA-256 `6a92f9cd82c97fb341108eb4cd83c0b65bdf99529ee1435fd0f220184dbfb40f`。本次表观 overhead `-3.45%` 是顺序/运行噪声，不能解释为 profiler 加速；阶段成绩以 `75.03s` no-profile 为准。此前 commit `07f8d83` 的配对 no-profile 为 `75.53s`。
 
 ### profiler-v2 三层用途
 
