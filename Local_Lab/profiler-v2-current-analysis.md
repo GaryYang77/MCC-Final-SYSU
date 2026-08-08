@@ -105,3 +105,29 @@ or MPI arrival order differently between builds. The efficient policy is:
 This retains nearly all of the proposed throughput improvement without making
 the scientifically false claim that score and no-profile speedups are always
 identical.
+
+## 2026-08-09 phase-boundary no-profile measurement
+
+After the accepted tracer metric caches and two narrow K-kl unit-power
+specializations, current `main` was `07f8d83`. The no-profile build was job
+`118798584` at
+`Local_Lab/builds/profiling/no_profile_20260808T190838Z_44010`; its binary
+SHA-256 is
+`d2ed66a500699fb9245339276c10a3867eb614e25adb0c7d55c692a6b8dd7ccb`.
+
+The prescribed same-allocation `off-on` pair was job `118798959`:
+
+- control/no-profile run:
+  `Local_Lab/runs/profile128/gls-unit-powers-phase-paired-overhead-off_20260808T191501Z_43554`,
+  `75.53 s`;
+- score PROFILE run:
+  `Local_Lab/runs/profile128/gls-unit-powers-phase-paired-overhead-on_20260808T191501Z_43554`,
+  `73.83 s`.
+
+Both runs ended normally and their output comparisons passed. The apparent
+`-2.25%` profiler overhead is runtime/order noise, not evidence that
+instrumentation accelerates the model. The defensible current no-profile DEMO
+measurement is therefore `75.53 s`, down from the prior phase pair's
+`78.75 s`. This pair reinforces the workflow distinction: score regions can
+establish a causal kernel improvement, but a phase-boundary no-profile run is
+still required to state the actual score.

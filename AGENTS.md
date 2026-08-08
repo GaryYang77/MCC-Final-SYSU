@@ -47,6 +47,7 @@
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
 - **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/gls-kkl-recompute-unit-powers-4n64-16ppn_20260808T185203Z_3250`（job `118797618`，profile total `73.18s`，26 变量逐位一致；binary SHA-256 `3b70eea949c4ec47672a054391618a85ebaffbb59f2cc5c689a0bdeb1792cd6b`）。相对此前同为 `73.18s` 的 reference，目标 R19 双网格下降 `10.98/11.10%`；本轮 R44 和 Grid-2 R09 反向波动，说明不能用单次 total 否定清晰的目标 region 收益。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
+- **当前 no-profile 阶段成绩**（commit `07f8d83`）：同 allocation `off-on` 配对 job `118798959`，4n64/16ppn、8x8、60/300；no-profile `75.53s`，score PROFILE `73.83s`，两者均正常结束且 comparison 通过。no-profile binary SHA-256 `d2ed66a500699fb9245339276c10a3867eb614e25adb0c7d55c692a6b8dd7ccb`。本次表观 overhead `-2.25%` 是顺序/运行噪声，不能解释为 profiler 加速；阶段成绩以 `75.53s` no-profile 为准。
 
 ### profiler-v2 三层用途
 
