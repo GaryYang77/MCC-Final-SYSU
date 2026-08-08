@@ -772,7 +772,7 @@
 !!
 !! Parabolic wall function + free surface correction
 !
-            gls_power=gls(i,j,k,nstp)**( gls_exp1)
+            gls_power=gls(i,j,k,nstp)
             tke_power=tke(i,j,k,nstp)**(-tke_exp1)
             wall_fac=1.0_r8+gls_E2/(vonKar*vonKar)*                     &
      &                (gls_power*cmu_fac1*tke_power*                    &
@@ -960,8 +960,13 @@
      &                                  buoy2(i,j,k)))+eps)**           &
      &                            (-gls_n(ng)))
             END IF
+            IF (Lmy25) THEN
+              gls_power=gls(i,j,k,nnew)
+            ELSE
+              gls_power=gls(i,j,k,nnew)**(gls_exp1)
+            END IF
             Ls_unlmt=MAX(eps,                                           &
-     &                   gls(i,j,k,nnew)**( gls_exp1)*cmu_fac1*         &
+     &                   gls_power*cmu_fac1*                            &
      &                   tke(i,j,k,nnew)**(-tke_exp1))
             IF (buoy2(i,j,k).gt.0.0_r8) THEN
               Ls_lmt=MIN(Ls_unlmt,                                      &
