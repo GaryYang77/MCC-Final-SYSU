@@ -151,3 +151,26 @@ Same-allocation `off-on` pair job `118802758` passed:
 The apparent `-3.45%` overhead is again execution-order noise. The actual
 current phase score is the `75.03 s` no-profile control, a further `0.50 s`
 improvement over the preceding `75.53 s` phase pair.
+
+## 2026-08-09 t3dmix4 phase boundary
+
+After accepting the two `t3dmix4_s` coefficient-cache changes, `main` was
+`c76d25c`. The fresh no-profile build was job `118804097` at
+`Local_Lab/builds/profiling/no_profile_20260808T215642Z_10570`; its binary
+SHA-256 was
+`ae33988f6e8560dfcb4e777a092343b3781425fa8357a1845236d8508440efbe`.
+
+Same-allocation `off-on` pair job `118804317` passed:
+
+- no-profile/control:
+  `Local_Lab/runs/profile128/t3dmix4-phase-paired-overhead-off_20260808T220627Z_2975`,
+  `73.10 s`;
+- score PROFILE:
+  `Local_Lab/runs/profile128/t3dmix4-phase-paired-overhead-on_20260808T220626Z_2975`,
+  `72.87 s`.
+
+Both runs ended normally and their 26-variable comparisons passed. The
+observed `-0.31%` difference is within runtime noise. The authoritative
+no-profile phase score is therefore `73.10 s`, leaving `3.10 s` to the
+`70.0 s` objective. The bounded evidence bundle is
+`profile_bundle_logs/t3dmix4-phase-paired-overhead-on_20260808T220626Z_profile_bundle.json`.
