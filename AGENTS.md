@@ -38,7 +38,7 @@
   - 优化后完整三天：`2nodes-64ranks_optimized_20260804T152030Z_profile_bundle.json`、`4nodes-128ranks_optimized_20260804T152030Z_profile_bundle.json`
   - **优化后 4nodes-64ranks-16ppn（当前最快）**：`4nodes-64ranks-16ppn_optimized_20260805T014345Z_profile_bundle.json`
   - profiler-v2 Phase-D：`profile_bundle_logs/profiler-v2-summary-final_20260808T111308Z_profile_bundle.json`、`profile_bundle_logs/profiler-v2-trace-final_20260808T111910Z_profile_bundle.json`
-  - **当前 main score reference**：`profile_bundle_logs/combine-t3dmix4-face-coefficients-4n64-16ppn_20260808T213949Z_profile_bundle.json`
+  - **当前 main score reference**：`profile_bundle_logs/nonblocking-mp-exchange4d-4n64-16ppn_20260808T222611Z_profile_bundle.json`
 - 细节见 `Local_Lab/profiling-analysis.md`；服务器 profiling reference：`Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。
 - **必须先读 bundle 和分析文档再选热点，不得脱离证据凭直觉优化**；完整任务 bundle 只用于确认热点代表性，不替代日常 reference。
 - 当前 profiler-v2 结论见 `Local_Lab/profiler-v2-current-analysis.md`：Grid-2 R35 以 horizontal tracer advection 为主，`put_refine3d` 是第二个明确计算热点；已细分 contact3d/f2csum 只覆盖 R49 的小部分，继续修改 R49 前应先补齐剩余 assemble 模式的诊断覆盖。
@@ -46,7 +46,7 @@
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
-- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/combine-t3dmix4-face-coefficients-4n64-16ppn_20260808T213949Z_52705`（job `118803796`，profile total `71.59s`，26 变量逐位一致；binary SHA-256 `d6fc9fcb71f6386f032ac501d5d81d5ece015f76a57c03de597608d78b7be153`）。相对此前 `71.65s` reference，目标 R27 双网格下降 `11.01/6.15%`；Grid-1 R44 同次增加约 `1.18s`，因此 total 只下降约 `0.06s`，但 R35/R39/R54 也同向下降，未见 compute 抵消。独立 1-rank validate job `118803885` 以全部零误差通过。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
+- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/nonblocking-mp-exchange4d-4n64-16ppn_20260808T222611Z_22748`（job `118805000`，profile total `71.20s`，26 变量逐位一致；binary SHA-256 `3044d068d05a7523803993c73c636c689ab32205d8dc6985b090e5c7793b8917`）。相对此前 `71.59s` reference，目标 R42 在 Grid 1/2 下降 `4.06/5.52%`，调用次数不变；独立 1-rank validate job `118805052` 以全部零误差通过。单次 total 受节点噪声影响；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
 - **当前 no-profile 阶段成绩**（commit `c76d25c`）：同 allocation `off-on` 配对 job `118804317`，4n64/16ppn、8x8、60/300；no-profile `73.10s`，score PROFILE `72.87s`，两者均正常结束且 26 变量 comparison 通过。no-profile binary SHA-256 `ae33988f6e8560dfcb4e777a092343b3781425fa8357a1845236d8508440efbe`。本次表观 overhead `-0.31%` 属于运行噪声；阶段成绩以 `73.10s` no-profile 为准。证据 bundle 为 `profile_bundle_logs/t3dmix4-phase-paired-overhead-on_20260808T220626Z_profile_bundle.json`。此前 commit `d68e187` 的配对 no-profile 为 `75.03s`。
 
 ### profiler-v2 三层用途

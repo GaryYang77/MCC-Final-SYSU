@@ -2764,6 +2764,8 @@
       integer :: Stile, GsendS, GrecvS, Stag, Serror, Srequest
       integer :: Etile, GsendE, GrecvE, Etag, Eerror, Erequest
       integer :: Ntile, GsendN, GrecvN, Ntag, Nerror, Nrequest
+      integer :: WsendRequest, SsendRequest
+      integer :: EsendRequest, NsendRequest
       integer :: EWsize, sizeW, sizeE
       integer :: NSsize, sizeS, sizeN
 
@@ -2970,12 +2972,12 @@
      &                  OCN_COMM_WORLD, Erequest, Eerror)
       END IF
       IF (Wexchange) THEN
-        CALL mpi_send  (sendW, sizeW, MP_FLOAT, Wtile, Wtag,            &
-     &                  OCN_COMM_WORLD, Werror)
+        CALL mpi_isend (sendW, sizeW, MP_FLOAT, Wtile, Wtag,            &
+     &                  OCN_COMM_WORLD, WsendRequest, Werror)
       END IF
       IF (Eexchange) THEN
-        CALL mpi_send  (sendE, sizeE, MP_FLOAT, Etile, Etag,            &
-     &                  OCN_COMM_WORLD, Eerror)
+        CALL mpi_isend (sendE, sizeE, MP_FLOAT, Etile, Etag,            &
+     &                  OCN_COMM_WORLD, EsendRequest, Eerror)
       END IF
 # endif
 !
@@ -3108,6 +3110,34 @@
           END DO
         END IF
       END IF
+# ifdef MPI
+!
+!  Complete nonblocking sends after receive unpacking has provided useful
+!  local work for communication progress.
+!
+      IF (Wexchange) THEN
+        CALL mpi_wait (WsendRequest, status(1,1), Werror)
+        IF (Werror.ne.MPI_SUCCESS) THEN
+          CALL mpi_error_string (Werror, string, Lstr, Ierror)
+          Lstr=LEN_TRIM(string)
+          WRITE (stdout,20) 'MPI_ISEND (Western Edge)', MyRank,         &
+     &                      Werror, string(1:Lstr)
+          exit_flag=2
+          RETURN
+        END IF
+      END IF
+      IF (Eexchange) THEN
+        CALL mpi_wait (EsendRequest, status(1,3), Eerror)
+        IF (Eerror.ne.MPI_SUCCESS) THEN
+          CALL mpi_error_string (Eerror, string, Lstr, Ierror)
+          Lstr=LEN_TRIM(string)
+          WRITE (stdout,20) 'MPI_ISEND (Eastern Edge)', MyRank,         &
+     &                      Eerror, string(1:Lstr)
+          exit_flag=2
+          RETURN
+        END IF
+      END IF
+# endif
 !
 !-----------------------------------------------------------------------
 !  Pack Southern and Northern tile boundary data including ghost-points.
@@ -3237,12 +3267,12 @@
      &                  OCN_COMM_WORLD, Nrequest, Nerror)
       END IF
       IF (Sexchange) THEN
-        CALL mpi_send  (sendS, sizeS, MP_FLOAT, Stile, Stag,            &
-     &                  OCN_COMM_WORLD, Serror)
+        CALL mpi_isend (sendS, sizeS, MP_FLOAT, Stile, Stag,            &
+     &                  OCN_COMM_WORLD, SsendRequest, Serror)
       END IF
       IF (Nexchange) THEN
-        CALL mpi_send  (sendN, sizeN, MP_FLOAT, Ntile, Ntag,            &
-     &                  OCN_COMM_WORLD, Nerror)
+        CALL mpi_isend (sendN, sizeN, MP_FLOAT, Ntile, Ntag,            &
+     &                  OCN_COMM_WORLD, NsendRequest, Nerror)
       END IF
 # endif
 !
@@ -3373,6 +3403,33 @@
           END DO
         END IF
       END IF
+# ifdef MPI
+!
+!  Ensure that all send buffers are reusable before returning.
+!
+      IF (Sexchange) THEN
+        CALL mpi_wait (SsendRequest, status(1,2), Serror)
+        IF (Serror.ne.MPI_SUCCESS) THEN
+          CALL mpi_error_string (Serror, string, Lstr, Ierror)
+          Lstr=LEN_TRIM(string)
+          WRITE (stdout,20) 'MPI_ISEND (Southern Edge)', MyRank,        &
+     &                      Serror, string(1:Lstr)
+          exit_flag=2
+          RETURN
+        END IF
+      END IF
+      IF (Nexchange) THEN
+        CALL mpi_wait (NsendRequest, status(1,4), Nerror)
+        IF (Nerror.ne.MPI_SUCCESS) THEN
+          CALL mpi_error_string (Nerror, string, Lstr, Ierror)
+          Lstr=LEN_TRIM(string)
+          WRITE (stdout,20) 'MPI_ISEND (Northern Edge)', MyRank,        &
+     &                      Nerror, string(1:Lstr)
+          exit_flag=2
+          RETURN
+        END IF
+      END IF
+# endif
 # ifdef PROFILE
 !
 !-----------------------------------------------------------------------
