@@ -978,9 +978,14 @@
 !
 ! Recompute gls based on limited length scale
 !
-            gls(i,j,k,nnew)=MAX(gls_cmu0(ng)**gls_p(ng)*                &
-     &                          tke(i,j,k,nnew)**gls_m(ng)*             &
-     &                          Ls_lmt**gls_n(ng), gls_Pmin(ng))
+            IF (Lmy25) THEN
+              gls(i,j,k,nnew)=MAX(tke(i,j,k,nnew)*Ls_lmt,              &
+     &                            gls_Pmin(ng))
+            ELSE
+              gls(i,j,k,nnew)=MAX(gls_cmu0(ng)**gls_p(ng)*             &
+     &                            tke(i,j,k,nnew)**gls_m(ng)*          &
+     &                            Ls_lmt**gls_n(ng), gls_Pmin(ng))
+            END IF
 !
 !  Compute nondimensional stability functions for tracers (Sh) and
 !  momentum (Sm).
