@@ -193,6 +193,13 @@
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: FX
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: LapT
 
+#if defined DIFF_3DCOEF && defined TS_U3ADV_SPLIT
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS,N(ng)) :: cffU
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS,N(ng)) :: cffV
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS,N(ng)) :: HzU
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS,N(ng)) :: HzV
+#endif
+
 #include "set_bounds.h"
 !
 !-----------------------------------------------------------------------
@@ -221,6 +228,26 @@
         Jmin=MAX(Jstr-1,1)
         Jmax=MIN(Jend+1,Mm(ng))
       END IF
+#if defined DIFF_3DCOEF && defined TS_U3ADV_SPLIT
+!
+!  Cache tracer-independent diffusion factors and layer thickness sums.
+!  They are reused by both harmonic operators for every tracer.
+!
+      DO k=1,N(ng)
+        DO j=Jmin,Jmax
+          DO i=Imin,Imax+1
+            cffU(i,j,k)=0.5_r8*diff3d_u(i,j,k)*pmon_u(i,j)
+            HzU(i,j,k)=Hz(i,j,k)+Hz(i-1,j,k)
+          END DO
+        END DO
+        DO j=Jmin,Jmax+1
+          DO i=Imin,Imax
+            cffV(i,j,k)=0.5_r8*diff3d_v(i,j,k)*pnom_v(i,j)
+            HzV(i,j,k)=Hz(i,j,k)+Hz(i,j-1,k)
+          END DO
+        END DO
+      END DO
+#endif
 !
 !  Compute horizontal tracer flux in the XI- and ETA-directions.
 !
@@ -230,7 +257,7 @@
             DO i=Imin,Imax+1
 #ifdef DIFF_3DCOEF
 # ifdef TS_U3ADV_SPLIT
-              cff=0.5_r8*diff3d_u(i,j,k)*pmon_u(i,j)
+              cff=cffU(i,j,k)
 # else
               cff=0.25_r8*(diff3d_r(i,j,k)+diff3d_r(i-1,j,k))*          &
      &            pmon_u(i,j)
@@ -247,7 +274,7 @@
 #endif
 #if defined TS_MIX_STABILITY
               FX(i,j)=cff*                                              &
-     &                (Hz(i,j,k)+Hz(i-1,j,k))*                          &
+     &                HzU(i,j,k)*                                      &
      &                (0.75_r8*(t(i  ,j,k,nrhs,itrc)-                   &
      &                          t(i-1,j,k,nrhs,itrc))+                  &
      &                 0.25_r8*(t(i  ,j,k,nstp,itrc)-                   &
@@ -255,18 +282,18 @@
 #elif defined TS_MIX_CLIMA
               IF (LtracerCLM(itrc,ng)) THEN
                 FX(i,j)=cff*                                            &
-     &                  (Hz(i,j,k)+Hz(i-1,j,k))*                        &
+     &                  HzU(i,j,k)*                                    &
      &                  ((t(i  ,j,k,nrhs,itrc)-tclm(i  ,j,k,itrc))-     &
      &                   (t(i-1,j,k,nrhs,itrc)-tclm(i-1,j,k,itrc)))
               ELSE
                 FX(i,j)=cff*                                            &
-     &                  (Hz(i,j,k)+Hz(i-1,j,k))*                        &
+     &                  HzU(i,j,k)*                                    &
      &                  (t(i  ,j,k,nrhs,itrc)-                          &
      &                   t(i-1,j,k,nrhs,itrc))
               END IF
 #else
               FX(i,j)=cff*                                              &
-     &                (Hz(i,j,k)+Hz(i-1,j,k))*                          &
+     &                HzU(i,j,k)*                                      &
      &                (t(i  ,j,k,nrhs,itrc)-                            &
      &                 t(i-1,j,k,nrhs,itrc))
 #endif
@@ -276,7 +303,7 @@
             DO i=Imin,Imax
 #ifdef DIFF_3DCOEF
 # ifdef TS_U3ADV_SPLIT
-              cff=0.5_r8*diff3d_v(i,j,k)*pnom_v(i,j)
+              cff=cffV(i,j,k)
 # else
               cff=0.25_r8*(diff3d_r(i,j,k)+diff3d_r(i,j-1,k))*          &
      &            pnom_v(i,j)
@@ -293,7 +320,7 @@
 #endif
 #if defined TS_MIX_STABILITY
               FE(i,j)=cff*                                              &
-     &                (Hz(i,j,k)+Hz(i,j-1,k))*                          &
+     &                HzV(i,j,k)*                                      &
      &                (0.75_r8*(t(i,j  ,k,nrhs,itrc)-                   &
      &                          t(i,j-1,k,nrhs,itrc))+                  &
      &                 0.25_r8*(t(i,j  ,k,nstp,itrc)-                   &
@@ -301,18 +328,18 @@
 #elif defined TS_MIX_CLIMA
               IF (LtracerCLM(itrc,ng)) THEN
                 FE(i,j)=cff*                                            &
-     &                  (Hz(i,j,k)+Hz(i,j-1,k))*                        &
+     &                  HzV(i,j,k)*                                    &
      &                  ((t(i,j  ,k,nrhs,itrc)-tclm(i,j  ,k,itrc))-     &
      &                   (t(i,j-1,k,nrhs,itrc)-tclm(i,j-1,k,itrc)))
               ELSE
                 FE(i,j)=cff*                                            &
-     &                  (Hz(i,j,k)+Hz(i,j-1,k))*                        &
+     &                  HzV(i,j,k)*                                    &
      &                  (t(i,j  ,k,nrhs,itrc)-                          &
      &                   t(i,j-1,k,nrhs,itrc))
               END IF
 #else
               FE(i,j)=cff*                                              &
-     &                (Hz(i,j,k)+Hz(i,j-1,k))*                          &
+     &                HzV(i,j,k)*                                      &
      &                (t(i,j  ,k,nrhs,itrc)-                            &
      &                 t(i,j-1,k,nrhs,itrc))
 #endif
@@ -396,7 +423,7 @@
             DO i=Istr,Iend+1
 #ifdef DIFF_3DCOEF
 # ifdef TS_U3ADV_SPLIT
-              cff=0.5_r8*diff3d_u(i,j,k)*pmon_u(i,j)
+              cff=cffU(i,j,k)
 # else
               cff=0.25_r8*(diff3d_r(i,j,k)+diff3d_r(i-1,j,k))*          &
      &            pmon_u(i,j)
@@ -406,7 +433,7 @@
      &            pmon_u(i,j)
 #endif
               FX(i,j)=cff*                                              &
-     &                (Hz(i,j,k)+Hz(i-1,j,k))*                          &
+     &                HzU(i,j,k)*                                      &
      &                (LapT(i,j)-LapT(i-1,j))
 #ifdef MASKING
               FX(i,j)=FX(i,j)*umask(i,j)
@@ -420,7 +447,7 @@
             DO i=Istr,Iend
 #ifdef DIFF_3DCOEF
 # ifdef TS_U3ADV_SPLIT
-              cff=0.5_r8*diff3d_v(i,j,k)*pnom_v(i,j)
+              cff=cffV(i,j,k)
 # else
               cff=0.25_r8*(diff3d_r(i,j,k)+diff3d_r(i,j-1,k))*          &
      &            pnom_v(i,j)
@@ -430,7 +457,7 @@
      &            pnom_v(i,j)
 #endif
               FE(i,j)=cff*                                              &
-     &                (Hz(i,j,k)+Hz(i,j-1,k))*                          &
+     &                HzV(i,j,k)*                                      &
      &                (LapT(i,j)-LapT(i,j-1))
 #ifdef MASKING
               FE(i,j)=FE(i,j)*vmask(i,j)
