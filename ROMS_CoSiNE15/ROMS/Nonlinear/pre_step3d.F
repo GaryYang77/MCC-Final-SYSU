@@ -340,8 +340,8 @@
 !  Compute time rate of change of intermediate tracer due to
 !  horizontal advection.
 !
-      T_LOOP1 :DO itrc=1,NT(ng)
-        K_LOOP: DO k=1,N(ng)
+      K_LOOP: DO k=1,N(ng)
+        T_LOOP1 :DO itrc=1,NT(ng)
 
 #  if defined TS_C2HADVECTION
 !
@@ -556,8 +556,8 @@
      &                         FE(i,j+1)-FE(i,j))
             END DO
           END DO
-        END DO K_LOOP
-      END DO T_LOOP1
+        END DO T_LOOP1
+      END DO K_LOOP
 
 #  if (defined AGE_MEAN && defined T_PASSIVE) && !defined TS_MPDATA
 !
