@@ -249,6 +249,8 @@
 
       integer, dimension(Nsink) :: idsink
 
+      logical :: Lshallow
+
       real(r8), parameter :: Minval = 1.0e-6_r8
       real(r8), parameter :: zeptic = 1000000.0_r8	!100.0_r8  ! Feng Zhou
 
@@ -589,6 +591,12 @@
     DO i=Istr,Iend
       PIO(i,N(ng)+1)=PARsur(i)
       IF (PIO(i,N(ng)+1) .lt. 0.0_r8) PIO(i,N(ng)+1)=0.0_r8
+      Lshallow=ABS(z_w(i,j,1)).lt.10.0_r8
+      IF (Lshallow) THEN
+        cff2=(ABS(z_w(i,j,1))-10.0_r8)/8.0_r8
+        cff2=MAX(cff2,-0.25_r8)
+        cff3=MIN(1.0_r8,EXP(cff2))
+      END IF
       DO k=N(ng),1,-1
         cff1=(AK1(ng)+(Bio(i,k,iSphy)+Bio(i,k,iLphy))*AK2(ng))*HZ(i,j,k)
         PIO(i,K)=PIO(i,K+1)*EXP(-cff1)
@@ -596,15 +604,13 @@
         ADPT(i,K) = 1.0_r8-4.0_r8*z_r(i,j,k)/zeptic
 
         !Feng Zhou
-        cff2 = (abs(z_w(i,j,1))-10.0_r8)/8.0_r8
-        cff2 = max(cff2,-0.25_r8);
-        if (abs(z_w(i,j,1)) .lt. 10) then
-            cffik(i,K) = float(k)/float(N(ng)) * min(1.0_r8,exp(cff2))
+        IF (Lshallow) THEN
+            cffik(i,K) = float(k)/float(N(ng)) * cff3
 ! Meng 20220512
 !            cffik(i,K) = float(k)/float(N(ng)) * min(1.0_r8,exp(cff2))*abs(z_w(i,j,1))/15.0_r8
         else
             cffik(i,K) = 1.0_r8
-        endif
+        END IF
 
       END DO
       
@@ -2738,7 +2744,6 @@
       RETURN
       END SUBROUTINE optic_property
 #endif
-
 
 
 

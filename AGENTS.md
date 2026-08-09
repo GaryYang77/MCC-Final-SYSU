@@ -38,7 +38,7 @@
   - 优化后完整三天：`2nodes-64ranks_optimized_20260804T152030Z_profile_bundle.json`、`4nodes-128ranks_optimized_20260804T152030Z_profile_bundle.json`
   - **优化后 4nodes-64ranks-16ppn（当前最快）**：`4nodes-64ranks-16ppn_optimized_20260805T014345Z_profile_bundle.json`
   - profiler-v2 Phase-D：`profile_bundle_logs/profiler-v2-summary-final_20260808T111308Z_profile_bundle.json`、`profile_bundle_logs/profiler-v2-trace-final_20260808T111910Z_profile_bundle.json`
-  - **当前 main score reference**：`profile_bundle_logs/cache-predictor-passive-vdiff-coef-4n64-16ppn_20260809T043805Z_profile_bundle.json`
+  - **当前 main score reference**：`profile_bundle_logs/hoist-biology-shallow-exp-4n64-16ppn_20260809T045708Z_profile_bundle.json`
 - 细节见 `Local_Lab/profiling-analysis.md`；服务器 profiling reference：`Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。
 - **必须先读 bundle 和分析文档再选热点，不得脱离证据凭直觉优化**；完整任务 bundle 只用于确认热点代表性，不替代日常 reference。
 - 当前 profiler-v2 结论见 `Local_Lab/profiler-v2-current-analysis.md`：Grid-2 R35 以 horizontal tracer advection 为主，`put_refine3d` 是第二个明确计算热点；已细分 contact3d/f2csum 只覆盖 R49 的小部分，继续修改 R49 前应先补齐剩余 assemble 模式的诊断覆盖。
@@ -46,7 +46,7 @@
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
-- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/cache-predictor-passive-vdiff-coef-4n64-16ppn_20260809T043805Z_5981`（job `118812238`，profile total `70.87s`，26 变量逐位一致；binary SHA-256 `be8cc209b833853c943c8f5f7a75b351e3e4c76cf5fbf1bf8dd89e1c8ae1eede`）。相对此前 reference，复用 predictor 中 salinity/生态 tracer 共享的 NAT 垂向扩散系数，使 R22 mean 在 Grid 1/2 下降 `2.01/2.06%`，调用次数不变；同一 allocation 的 R44 等待增加 `1.10/0.49s`，掩盖了 target gain。此前 predictor C4 half-transport cache 的 R22 降幅为 `0.43/1.31%`；predictor 全湿 mask 的独立 validate job `118811117` 已通过。reference 的首要作用仍是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
+- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/hoist-biology-shallow-exp-4n64-16ppn_20260809T045708Z_48473`（job `118812932`，profile total `71.19s`，26 变量逐位一致；binary SHA-256 `d29d1fb766cc84e4db8ea0f942abda31868b03a2df4b44d864220cecb5448220`）。相对此前 reference，将 biology 浅水柱不变的指数因子提升到深度循环外，使 R15 mean 在 Grid 1/2 下降 `0.41/0.18%`，调用次数不变；收益很小但两网格方向一致且无因果拖累，按团队放宽后的 logically-effective 规则接受。此前复用 predictor NAT 垂向扩散系数使 R22 下降 `2.01/2.06%`，predictor C4 half-transport cache 使 R22 下降 `0.43/1.31%`；predictor 全湿 mask 的独立 validate job `118811117` 已通过。reference 的首要作用仍是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
 - **当前 no-profile 阶段成绩**（commit `0458b06`）：同 allocation `off-on` 配对 job `118809110`，4n64/16ppn、8x8、60/300；no-profile `71.72s`，score PROFILE `70.42s`，两者均正常结束且 26 变量 comparison 通过。no-profile binary SHA-256 `9ec32991b8844558b606f2a60f42d2c011c6db23edbd43d7b78f61c447b826be`。本次表观 overhead `-1.81%` 属于运行顺序/系统噪声；阶段成绩只以 `71.72s` no-profile control 为准，距 `70.0s` 目标尚差 `1.72s`。证据 bundle 为 `profile_bundle_logs/all-wet-mask-phase-paired-overhead-on_20260809T022450Z_profile_bundle.json`。此前 commit `c76d25c` 的配对 no-profile 为 `73.10s`。
 
 ### profiler-v2 三层用途
