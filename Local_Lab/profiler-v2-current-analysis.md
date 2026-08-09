@@ -174,3 +174,30 @@ observed `-0.31%` difference is within runtime noise. The authoritative
 no-profile phase score is therefore `73.10 s`, leaving `3.10 s` to the
 `70.0 s` objective. The bounded evidence bundle is
 `profile_bundle_logs/t3dmix4-phase-paired-overhead-on_20260808T220626Z_profile_bundle.json`.
+
+## 2026-08-09 all-wet tracer-mask phase boundary
+
+After accepting 4D halo send/unpack overlap, predictor surface-halo batching,
+the narrow K-kl boundary-power specialization, and the two all-wet tracer mask
+fast paths, current `main` was `0458b06`. The fresh no-profile build was job
+`118808994` at
+`Local_Lab/builds/profiling/no_profile_20260809T021836Z_20429`; its binary
+SHA-256 was
+`9ec32991b8844558b606f2a60f42d2c011c6db23edbd43d7b78f61c447b826be`.
+
+Same-allocation `off-on` pair job `118809110` passed:
+
+- no-profile/control:
+  `Local_Lab/runs/profile128/all-wet-mask-phase-paired-overhead-off_20260809T022450Z_57287`,
+  `71.72 s`;
+- score PROFILE:
+  `Local_Lab/runs/profile128/all-wet-mask-phase-paired-overhead-on_20260809T022450Z_57287`,
+  `70.42 s`.
+
+Both runs ended normally and all 26 comparison variables passed. The apparent
+`-1.81%` overhead is execution-order/system noise, not acceleration from
+instrumentation. The authoritative no-profile phase score is therefore
+`71.72 s`, an improvement of `1.38 s` over the previous `73.10 s` phase
+boundary. The `70.0 s` objective is not yet achieved; `1.72 s` remains. The
+bounded evidence bundle is
+`profile_bundle_logs/all-wet-mask-phase-paired-overhead-on_20260809T022450Z_profile_bundle.json`.
