@@ -3,10 +3,10 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$repo_root"
 
-binary=Local_Lab/runs/profile128/final-fastnodes-full-noprofile-4n96_20260809T095958Z_26214/oceanM
-short_reference=Local_Lab/runs/profile128/phase-current-paired-on_20260809T052757Z_482
-full_reference=Local_Lab/runs/profile128/final-fastnodes-full-profile-4n96_20260809T095958Z_26214
-sha=fe0049c067b8a0efec3385c49dd9e606001d91444f7fcf176990a9f8f99f9c1e
+binary=${MCC_FULL_BINARY:-Local_Lab/runs/profile128/final-fastnodes-full-noprofile-4n96_20260809T095958Z_26214/oceanM}
+short_reference=${MCC_SHORT_REFERENCE:-Local_Lab/runs/profile128/phase-current-paired-on_20260809T052757Z_482}
+full_reference=${MCC_FULL_REFERENCE:-Local_Lab/runs/profile128/final-fastnodes-full-profile-4n96_20260809T095958Z_26214}
+sha=${MCC_FULL_BINARY_SHA256:-fe0049c067b8a0efec3385c49dd9e606001d91444f7fcf176990a9f8f99f9c1e}
 limit=${MCC_PREFLIGHT_MAX_SECONDS:-90}
 test -x "$binary"; test -d "$short_reference"; test -d "$full_reference"
 printf '%s  %s\n' "$sha" "$binary" | sha256sum -c -
