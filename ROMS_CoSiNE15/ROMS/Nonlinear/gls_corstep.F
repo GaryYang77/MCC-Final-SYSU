@@ -838,13 +838,24 @@
 # else
           Zos_eff(i)=Zos_min
 # endif
-          gls(i,j,N(ng),nnew)=MAX(gls_cmu0(ng)**gls_p(ng)*              &
-     &                            tke(i,j,N(ng),nnew)**gls_m(ng)*       &
-     &                            (L_sft*Zos_eff(i))**gls_n(ng),        &
-     &                            gls_Pmin(ng))
-          cff=gls_fac4*(vonKar*Zob_min(i,j))**(gls_n(ng))
-          gls(i,j,0,nnew)=MAX(cff*tke(i,j,0,nnew)**(gls_m(ng)),         &
-     &                        gls_Pmin(ng))
+          IF (Lmy25) THEN
+            gls(i,j,N(ng),nnew)=MAX(1.0_r8*                            &
+     &                              tke(i,j,N(ng),nnew)*                &
+     &                              (L_sft*Zos_eff(i)), gls_Pmin(ng))
+          ELSE
+            gls(i,j,N(ng),nnew)=MAX(gls_cmu0(ng)**gls_p(ng)*           &
+     &                              tke(i,j,N(ng),nnew)**gls_m(ng)*    &
+     &                              (L_sft*Zos_eff(i))**gls_n(ng),     &
+     &                              gls_Pmin(ng))
+          END IF
+          IF (Lmy25) THEN
+            cff=gls_fac4*(vonKar*Zob_min(i,j))
+            gls(i,j,0,nnew)=MAX(cff*tke(i,j,0,nnew), gls_Pmin(ng))
+          ELSE
+            cff=gls_fac4*(vonKar*Zob_min(i,j))**(gls_n(ng))
+            gls(i,j,0,nnew)=MAX(cff*tke(i,j,0,nnew)**(gls_m(ng)),      &
+     &                          gls_Pmin(ng))
+          END IF
         END DO
 !
 !  Solve tri-diagonal system for turbulent kinetic energy.
@@ -885,11 +896,16 @@
 !
         DO i=Istr,Iend
           cff=0.5_r8*(tke(i,j,N(ng),nnew)+tke(i,j,N(ng)-1,nnew))
-          gls_fluxt(i)=dt(ng)*gls_fac3*cff**gls_m(ng)*                  &
-     &                 L_sft**(gls_n(ng))*                              &
-     &                 (Zos_eff(i)+0.5_r8*Hz(i,j,N(ng)))**              &
-     &                 (gls_n(ng)-1.0_r8)*                              &
-     &                 0.5_r8*(Akp(i,j,N(ng))+Akp(i,j,N(ng)-1))
+          IF (Lmy25) THEN
+            gls_fluxt(i)=dt(ng)*gls_fac3*cff*L_sft*1.0_r8*             &
+     &                   0.5_r8*(Akp(i,j,N(ng))+Akp(i,j,N(ng)-1))
+          ELSE
+            gls_fluxt(i)=dt(ng)*gls_fac3*cff**gls_m(ng)*               &
+     &                   L_sft**(gls_n(ng))*                           &
+     &                   (Zos_eff(i)+0.5_r8*Hz(i,j,N(ng)))**           &
+     &                   (gls_n(ng)-1.0_r8)*                           &
+     &                   0.5_r8*(Akp(i,j,N(ng))+Akp(i,j,N(ng)-1))
+          END IF
 # ifdef CRAIG_BANNER
           gls_fluxt(i)=gls_fluxt(i)-dt(ng)*                             &
      &                 gls_m(ng)*(gls_cmu0(ng)**gls_p(ng))*             &
@@ -910,10 +926,15 @@
      &                 Wave_dissip(i,j)
 # endif
           cff=0.5_r8*(tke(i,j,0,nnew)+tke(i,j,1,nnew))
-          gls_fluxb(i)=dt(ng)*gls_fac2*(cff**gls_m(ng))*                &
-     &                 (0.5_r8*Hz(i,j,1)+Zob_min(i,j))**                &
-     &                 (gls_n(ng)-1.0_r8)*                              &
-     &                 0.5_r8*(Akp(i,j,0)+Akp(i,j,1))
+          IF (Lmy25) THEN
+            gls_fluxb(i)=dt(ng)*gls_fac2*cff*1.0_r8*                   &
+     &                   0.5_r8*(Akp(i,j,0)+Akp(i,j,1))
+          ELSE
+            gls_fluxb(i)=dt(ng)*gls_fac2*(cff**gls_m(ng))*             &
+     &                   (0.5_r8*Hz(i,j,1)+Zob_min(i,j))**             &
+     &                   (gls_n(ng)-1.0_r8)*                           &
+     &                   0.5_r8*(Akp(i,j,0)+Akp(i,j,1))
+          END IF
 !
           cff=1.0_r8/BCP(i,N(ng)-1)
           CF(i,N(ng)-1)=cff*FCP(i,N(ng)-1)
