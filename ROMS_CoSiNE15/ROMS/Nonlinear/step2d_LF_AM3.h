@@ -850,18 +850,6 @@
             rzeta(i,j,krhs)=rhs_zeta(i,j)
           END DO
         END DO
-        IF (EWperiodic(ng).or.NSperiodic(ng)) THEN
-          CALL exchange_r2d_tile (ng, tile,                             &
-     &                            LBi, UBi, LBj, UBj,                   &
-     &                            rzeta(:,:,krhs))
-        END IF
-# ifdef DISTRIBUTE
-        CALL mp_exchange2d (ng, tile, iNLM, 1,                          &
-     &                      LBi, UBi, LBj, UBj,                         &
-     &                      NghostPoints,                               &
-     &                      EWperiodic(ng), NSperiodic(ng),             &
-     &                      rzeta(:,:,krhs))
-# endif
       END IF
 !
 !  Apply mass point sources (volume vertical influx), if any.
@@ -887,16 +875,29 @@
      &                  krhs, kstp, knew,                               &
      &                  zeta)
       IF (EWperiodic(ng).or.NSperiodic(ng)) THEN
+        IF (PREDICTOR_2D_STEP(ng)) THEN
+          CALL exchange_r2d_tile (ng, tile,                             &
+     &                            LBi, UBi, LBj, UBj,                   &
+     &                            rzeta(:,:,krhs))
+        END IF
         CALL exchange_r2d_tile (ng, tile,                               &
      &                          LBi, UBi, LBj, UBj,                     &
      &                          zeta(:,:,knew))
       END IF
 # ifdef DISTRIBUTE
-      CALL mp_exchange2d (ng, tile, iNLM, 1,                            &
-     &                    LBi, UBi, LBj, UBj,                           &
-     &                    NghostPoints,                                 &
-     &                    EWperiodic(ng), NSperiodic(ng),               &
-     &                    zeta(:,:,knew))
+      IF (PREDICTOR_2D_STEP(ng)) THEN
+        CALL mp_exchange2d (ng, tile, iNLM, 2,                          &
+     &                      LBi, UBi, LBj, UBj,                         &
+     &                      NghostPoints,                               &
+     &                      EWperiodic(ng), NSperiodic(ng),             &
+     &                      rzeta(:,:,krhs), zeta(:,:,knew))
+      ELSE
+        CALL mp_exchange2d (ng, tile, iNLM, 1,                          &
+     &                      LBi, UBi, LBj, UBj,                         &
+     &                      NghostPoints,                               &
+     &                      EWperiodic(ng), NSperiodic(ng),             &
+     &                      zeta(:,:,knew))
+      END IF
 # endif
 !
 !=======================================================================
