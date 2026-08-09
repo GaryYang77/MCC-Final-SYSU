@@ -14,8 +14,8 @@ The full `12x8` experiment improved nesting geometry but regressed Grid-2 R35
 by `4.1%`; its shorter I-direction loops are the likely compute trade-off.
 `6x16` gives each tile a longer contiguous I span than current `8x12`, which
 should improve R22/R35 vector-loop efficiency.  With I varying fastest, each
-24-rank node owns six complete four-rank J rows, so only 12 nearest-neighbour
-tile edges cross the three node cuts (24 for `8x12`).
+24-rank node owns four complete six-rank J rows, so 18 nearest-neighbour tile
+edges cross the three node cuts (24 for `8x12`).
 
 The countervailing risk is greater total internal-boundary length: for the
 outer grid `6x16` has 7055 edge cells versus 6267 for `8x12`; the inner grid
