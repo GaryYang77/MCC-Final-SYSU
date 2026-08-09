@@ -38,7 +38,7 @@
   - 优化后完整三天：`2nodes-64ranks_optimized_20260804T152030Z_profile_bundle.json`、`4nodes-128ranks_optimized_20260804T152030Z_profile_bundle.json`
   - **优化后 4nodes-64ranks-16ppn（当前最快）**：`4nodes-64ranks-16ppn_optimized_20260805T014345Z_profile_bundle.json`
   - profiler-v2 Phase-D：`profile_bundle_logs/profiler-v2-summary-final_20260808T111308Z_profile_bundle.json`、`profile_bundle_logs/profiler-v2-trace-final_20260808T111910Z_profile_bundle.json`
-  - **当前 main score reference**：`profile_bundle_logs/tracer-all-wet-final-mask-4n64-16ppn_20260809T012419Z_profile_bundle.json`
+  - **当前 main score reference**：`profile_bundle_logs/tracer-all-wet-horizontal-mask-4n64-16ppn_20260809T015113Z_profile_bundle.json`
 - 细节见 `Local_Lab/profiling-analysis.md`；服务器 profiling reference：`Local_Lab/runs/profile128/sections-overhead-a-on_20260803T110240Z_44162`。
 - **必须先读 bundle 和分析文档再选热点，不得脱离证据凭直觉优化**；完整任务 bundle 只用于确认热点代表性，不替代日常 reference。
 - 当前 profiler-v2 结论见 `Local_Lab/profiler-v2-current-analysis.md`：Grid-2 R35 以 horizontal tracer advection 为主，`put_refine3d` 是第二个明确计算热点；已细分 contact3d/f2csum 只覆盖 R49 的小部分，继续修改 R49 前应先补齐剩余 assemble 模式的诊断覆盖。
@@ -46,7 +46,7 @@
 ### 日常配置常量（下文统一引用，不再重复拼写）
 
 - **DEMO**：4 节点、64 ranks、每节点 16 核（16ppn）、`8x8`、外层 60 步 / 内层 300 步 profiling。60/300 步与完整任务的热点排序和占比接近，可作日常筛选。此配置每节点仅 16 ranks，内存带宽充裕、节点内 MPI 争用低，比旧 2 节点 32ppn DEMO 反馈更快。
-- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/tracer-all-wet-final-mask-4n64-16ppn_20260809T012419Z_39605`（job `118808175`，profile total `72.58s`，26 变量逐位一致；binary SHA-256 `73b7e9672080c9cfb03508a8732f8d12e64f6062bfcc4680bf3e68f90f252404`）。相对此前 `71.70s` reference，全湿 tile 跳过最终 tracer 掩膜使 Grid-2 R35 mean 下降 `2.27%`（约 `0.206s`），Grid-1 R35 因一次额外 mask 扫描增加 `0.80%`（约 `0.026s`），调用次数不变；独立 1-rank validate job `118808210` 通过。该次 total 被 R44/R03 I/O 等待增加所掩盖；reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
+- **reference 规则**：每个新 accepted commit 的 score DEMO run 直接成为下一项实验的 `--reference-run`。当前 reference 为 `Local_Lab/runs/profile128/tracer-all-wet-horizontal-mask-4n64-16ppn_20260809T015113Z_31317`（job `118808466`，profile total `70.98s`，26 变量逐位一致；binary SHA-256 `6c04dd33b8d77e7af25c8f65de752b4caf739521e4bd2743968b8c789f5ce4ba`）。相对此前 `72.58s` reference，全湿 tile 跳过 horizontal tracer advection 的单位 U/V mask 乘法使 R35 mean 在 Grid 1/2 下降 `0.09/0.39%`，调用次数不变；独立 1-rank validate job `118808707` 通过。该候选总时间下降主要来自 R44 等待噪声，不作为源码收益；按需 diagnostic summary job `118808606` 通过并确认 Grid-2 horizontal site 132 仍占 R35 的 `71.7%`。reference 的首要作用是输出基准和 region 对照，不把某一次 wall 当成无误差真值。旧的 2 节点、4 节点 128-rank 和早期 4n64 references 仅作历史对照。
 - **当前 no-profile 阶段成绩**（commit `c76d25c`）：同 allocation `off-on` 配对 job `118804317`，4n64/16ppn、8x8、60/300；no-profile `73.10s`，score PROFILE `72.87s`，两者均正常结束且 26 变量 comparison 通过。no-profile binary SHA-256 `ae33988f6e8560dfcb4e777a092343b3781425fa8357a1845236d8508440efbe`。本次表观 overhead `-0.31%` 属于运行噪声；阶段成绩以 `73.10s` no-profile 为准。证据 bundle 为 `profile_bundle_logs/t3dmix4-phase-paired-overhead-on_20260808T220626Z_profile_bundle.json`。此前 commit `d68e187` 的配对 no-profile 为 `75.03s`。
 
 ### profiler-v2 三层用途

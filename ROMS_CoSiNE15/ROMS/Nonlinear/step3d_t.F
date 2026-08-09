@@ -252,6 +252,9 @@
 # ifdef MASKING
       logical :: LallWet
 # endif
+# if defined MASKING && !defined TS_MPDATA
+      logical :: LallWetU, LallWetV
+# endif
 # if defined AGE_MEAN && defined T_PASSIVE
       integer :: iage
 # endif
@@ -372,6 +375,31 @@
           dtpmnp(i,j)=dt(ng)*pm(i,j)*pn(i,j)
         END DO
       END DO
+# if defined MASKING && !defined TS_MPDATA
+!
+!  Static velocity-point masks are shared by every level and tracer.
+!  Detect all-water tiles once so the horizontal advection stencil can
+!  avoid repeatedly loading and multiplying by unit masks.
+!
+      LallWetU=.TRUE.
+      UMASK_J_LOOP : DO j=Jstr,Jend
+        DO i=Istrm1,Iendp2
+          IF (umask(i,j).ne.1.0_r8) THEN
+            LallWetU=.FALSE.
+            EXIT UMASK_J_LOOP
+          END IF
+        END DO
+      END DO UMASK_J_LOOP
+      LallWetV=.TRUE.
+      VMASK_J_LOOP : DO j=Jstrm1,Jendp2
+        DO i=Istr,Iend
+          IF (vmask(i,j).ne.1.0_r8) THEN
+            LallWetV=.FALSE.
+            EXIT VMASK_J_LOOP
+          END IF
+        END DO
+      END DO VMASK_J_LOOP
+# endif
       K_LOOP : DO k=1,N(ng)
 # ifdef TS_C4HADVECTION
         DO j=Jstr,Jend
@@ -437,15 +465,31 @@
 !  Fourth-order, centered differences horizontal advective fluxes.
 #  endif
 !
+#  ifdef MASKING
+          IF (LallWetU) THEN
+            DO j=Jstr,Jend
+              DO i=Istrm1,Iendp2
+                FX(i,j)=t(i  ,j,k,3,itrc)-                              &
+     &                  t(i-1,j,k,3,itrc)
+              END DO
+            END DO
+          ELSE
+            DO j=Jstr,Jend
+              DO i=Istrm1,Iendp2
+                FX(i,j)=t(i  ,j,k,3,itrc)-                              &
+     &                  t(i-1,j,k,3,itrc)
+                FX(i,j)=FX(i,j)*umask(i,j)
+              END DO
+            END DO
+          END IF
+#  else
           DO j=Jstr,Jend
             DO i=Istrm1,Iendp2
               FX(i,j)=t(i  ,j,k,3,itrc)-                                &
      &                t(i-1,j,k,3,itrc)
-#  ifdef MASKING
-              FX(i,j)=FX(i,j)*umask(i,j)
-#  endif
             END DO
           END DO
+#  endif
           IF (.not.(CompositeGrid(iwest,ng).or.EWperiodic(ng))) THEN
             IF (DOMAIN(ng)%Western_Edge(tile)) THEN
               DO j=Jstr,Jend
@@ -498,15 +542,31 @@
             END DO
           END DO
 !
+#  ifdef MASKING
+          IF (LallWetV) THEN
+            DO j=Jstrm1,Jendp2
+              DO i=Istr,Iend
+                FE(i,j)=t(i,j  ,k,3,itrc)-                              &
+     &                  t(i,j-1,k,3,itrc)
+              END DO
+            END DO
+          ELSE
+            DO j=Jstrm1,Jendp2
+              DO i=Istr,Iend
+                FE(i,j)=t(i,j  ,k,3,itrc)-                              &
+     &                  t(i,j-1,k,3,itrc)
+                FE(i,j)=FE(i,j)*vmask(i,j)
+              END DO
+            END DO
+          END IF
+#  else
           DO j=Jstrm1,Jendp2
             DO i=Istr,Iend
               FE(i,j)=t(i,j  ,k,3,itrc)-                                &
      &                t(i,j-1,k,3,itrc)
-#  ifdef MASKING
-              FE(i,j)=FE(i,j)*vmask(i,j)
-#  endif
             END DO
           END DO
+#  endif
           IF (.not.(CompositeGrid(isouth,ng).or.NSperiodic(ng))) THEN
             IF (DOMAIN(ng)%Southern_Edge(tile)) THEN
               DO i=Istr,Iend
