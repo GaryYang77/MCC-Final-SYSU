@@ -249,6 +249,9 @@
 # endif
       integer :: Isrc, Jsrc
       integer :: i, ic, is, itrc, j, k, last_ltrc, ltrc
+# ifdef MASKING
+      logical :: LallWet
+# endif
 # if defined AGE_MEAN && defined T_PASSIVE
       integer :: iage
 # endif
@@ -1276,6 +1279,22 @@
       CALL profile_site_on (ng, iNLM, 135)
 # endif
       ic=0
+# ifdef MASKING
+!
+!  The static land/sea mask is shared by every tracer and vertical level.
+!  Detect an all-water tile once so that fully wet refinement tiles avoid
+!  repeatedly multiplying the complete tracer volume by one.
+!
+      LallWet=.TRUE.
+      MASK_J_LOOP : DO j=JstrR,JendR
+        DO i=IstrR,IendR
+          IF (rmask(i,j).ne.1.0_r8) THEN
+            LallWet=.FALSE.
+            EXIT MASK_J_LOOP
+          END IF
+        END DO
+      END DO MASK_J_LOOP
+# endif
 !
       DO itrc=1,NT(ng)
 !
@@ -1314,13 +1333,15 @@
 !
 !  Apply Land/Sea mask.
 !
-        DO k=1,N(ng)
-          DO j=JstrR,JendR
-            DO i=IstrR,IendR
-              t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)*rmask(i,j)
+        IF (.not.LallWet) THEN
+          DO k=1,N(ng)
+            DO j=JstrR,JendR
+              DO i=IstrR,IendR
+                t(i,j,k,nnew,itrc)=t(i,j,k,nnew,itrc)*rmask(i,j)
+              END DO
             END DO
           END DO
-        END DO
+        END IF
 # endif
 # ifdef DIAGNOSTICS_TS
 !
