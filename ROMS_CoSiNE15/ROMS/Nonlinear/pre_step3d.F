@@ -306,6 +306,10 @@
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: cffpmnp
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: curv
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: grad
+# ifdef TS_C4HADVECTION
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: HuonHalf
+      real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: HvomHalf
+# endif
 
 # include "set_bounds.h"
 
@@ -385,6 +389,18 @@
       END DO VMASK_J_LOOP
 #  endif
       K_LOOP: DO k=1,N(ng)
+#  ifdef TS_C4HADVECTION
+        DO j=Jstr,Jend
+          DO i=Istr,Iend+1
+            HuonHalf(i,j)=Huon(i,j,k)*0.5_r8
+          END DO
+        END DO
+        DO j=Jstr,Jend+1
+          DO i=Istr,Iend
+            HvomHalf(i,j)=Hvom(i,j,k)*0.5_r8
+          END DO
+        END DO
+#  endif
         T_LOOP1 :DO itrc=1,NT(ng)
 
 #  if defined TS_C2HADVECTION
@@ -501,7 +517,7 @@
      &                cff1*(curv(i-1,j)*MAX(Huon(i,j,k),0.0_r8)+        &
      &                      curv(i  ,j)*MIN(Huon(i,j,k),0.0_r8))
 #   else
-              FX(i,j)=Huon(i,j,k)*0.5_r8*                               &
+              FX(i,j)=HuonHalf(i,j)*                                    &
      &                (t(i-1,j,k,nstp,itrc)+                            &
      &                 t(i  ,j,k,nstp,itrc)-                            &
      &                 cff2*(grad(i  ,j)-                               &
@@ -575,7 +591,7 @@
      &                cff1*(curv(i,j-1)*MAX(Hvom(i,j,k),0.0_r8)+        &
      &                      curv(i,j  )*MIN(Hvom(i,j,k),0.0_r8))
 #   else
-              FE(i,j)=Hvom(i,j,k)*0.5_r8*                               &
+              FE(i,j)=HvomHalf(i,j)*                                    &
      &                (t(i,j-1,k,nstp,itrc)+                            &
      &                 t(i,j  ,k,nstp,itrc)-                            &
      &                 cff2*(grad(i,j  )-                               &

@@ -1,0 +1,3316 @@
+{
+  "comparison": {
+    "failures": [],
+    "metrics": {
+      "Dongsha60_avg_0001.nc": {
+        "NH4": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.5119364261627197,
+            "mean": 0.08281214559861805,
+            "minimum": 0.000587990041822195,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.5119364261627197,
+            "mean": 0.08281214559861805,
+            "minimum": 0.000587990041822195,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "NO3": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 40.34615707397461,
+            "mean": 21.3614823779141,
+            "minimum": 0.8431732654571533,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 40.34615707397461,
+            "mean": 21.3614823779141,
+            "minimum": 0.8431732654571533,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "PO4": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 2.894453763961792,
+            "mean": 1.612351846052843,
+            "minimum": 0.21316185593605042,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 2.894453763961792,
+            "mean": 1.612351846052843,
+            "minimum": 0.21316185593605042,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "TIC": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 2085.764892578125,
+            "mean": 2085.5669050264733,
+            "minimum": 2084.294677734375,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 2085.764892578125,
+            "mean": 2085.5669050264733,
+            "minimum": 2084.294677734375,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "detritus": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.6652357578277588,
+            "mean": 0.11953669196290219,
+            "minimum": 0.0002524302981328219,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.6652357578277588,
+            "mean": 0.11953669196290219,
+            "minimum": 0.0002524302981328219,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "diatom": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 1.9827466011047363,
+            "mean": 0.07825239700554733,
+            "minimum": -8.713067654753104e-05,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 1.9827466011047363,
+            "mean": 0.07825239700554733,
+            "minimum": -8.713067654753104e-05,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "microzooplankton": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.5087069869041443,
+            "mean": 0.03843554120500527,
+            "minimum": -0.0007269679335877299,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.5087069869041443,
+            "mean": 0.03843554120500527,
+            "minimum": -0.0007269679335877299,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "oxygen": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 227.20616149902344,
+            "mean": 148.4915744183666,
+            "minimum": 77.44164276123047,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 227.20616149902344,
+            "mean": 148.4915744183666,
+            "minimum": 77.44164276123047,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "salt": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 34.66426467895508,
+            "mean": 34.34266543794666,
+            "minimum": 33.5096549987793,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 34.66426467895508,
+            "mean": 34.34266543794666,
+            "minimum": 33.5096549987793,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "temp": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 26.39194679260254,
+            "mean": 13.635764018004888,
+            "minimum": 2.0640547275543213,
+            "valid_count": 1990326
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 26.39194679260254,
+            "mean": 13.635764018004888,
+            "minimum": 2.0640547275543213,
+            "valid_count": 1990326
+          },
+          "rmse": 0.0
+        },
+        "u": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.3635198473930359,
+            "mean": -0.058167680727387254,
+            "minimum": -0.893180251121521,
+            "valid_count": 1981928
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.3635198473930359,
+            "mean": -0.058167680727387254,
+            "minimum": -0.893180251121521,
+            "valid_count": 1981928
+          },
+          "rmse": 0.0
+        },
+        "v": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.3503280580043793,
+            "mean": -0.017997942671376735,
+            "minimum": -0.4197421967983246,
+            "valid_count": 1982268
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.3503280580043793,
+            "mean": -0.017997942671376735,
+            "minimum": -0.4197421967983246,
+            "valid_count": 1982268
+          },
+          "rmse": 0.0
+        },
+        "zeta": {
+          "candidate": {
+            "masked_count": 0,
+            "maximum": 0.7659805417060852,
+            "mean": 0.5951542477899422,
+            "minimum": 0.4557175636291504,
+            "valid_count": 58539
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 0,
+            "maximum": 0.7659805417060852,
+            "mean": 0.5951542477899422,
+            "minimum": 0.4557175636291504,
+            "valid_count": 58539
+          },
+          "rmse": 0.0
+        }
+      },
+      "SCS_avg_0001.nc": {
+        "NH4": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 11.151809692382812,
+            "mean": 0.09437671557774861,
+            "minimum": -0.0019287754548713565,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 11.151809692382812,
+            "mean": 0.09437671557774861,
+            "minimum": -0.0019287754548713565,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "NO3": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 200.01800537109375,
+            "mean": 12.559178695765796,
+            "minimum": -0.13547532260417938,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 200.01800537109375,
+            "mean": 12.559178695765796,
+            "minimum": -0.13547532260417938,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "PO4": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 10.001020431518555,
+            "mean": 1.0011032783207885,
+            "minimum": -0.001845291000790894,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 10.001020431518555,
+            "mean": 1.0011032783207885,
+            "minimum": -0.001845291000790894,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "TIC": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 2096.698486328125,
+            "mean": 2085.5590585520804,
+            "minimum": 2081.66748046875,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 2096.698486328125,
+            "mean": 2085.5590585520804,
+            "minimum": 2081.66748046875,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "detritus": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 33.46339797973633,
+            "mean": 0.19421017545296745,
+            "minimum": -0.0037011036183685064,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 33.46339797973633,
+            "mean": 0.19421017545296745,
+            "minimum": -0.0037011036183685064,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "diatom": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 7.8380656242370605,
+            "mean": 0.1779083301182906,
+            "minimum": -0.004229688085615635,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 7.8380656242370605,
+            "mean": 0.1779083301182906,
+            "minimum": -0.004229688085615635,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "microzooplankton": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 1.7505371570587158,
+            "mean": 0.05475672569873309,
+            "minimum": -0.0019509261474013329,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 1.7505371570587158,
+            "mean": 0.05475672569873309,
+            "minimum": -0.0019509261474013329,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "oxygen": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 399.79754638671875,
+            "mean": 177.66105957353005,
+            "minimum": 59.93455123901367,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 399.79754638671875,
+            "mean": 177.66105957353005,
+            "minimum": 59.93455123901367,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "salt": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 35.70787811279297,
+            "mean": 34.07810067929559,
+            "minimum": 27.547622680664062,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 35.70787811279297,
+            "mean": 34.07810067929559,
+            "minimum": 27.547622680664062,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "temp": {
+          "candidate": {
+            "masked_count": 1396006,
+            "maximum": 31.66727066040039,
+            "mean": 18.97506668071154,
+            "minimum": 1.1155215501785278,
+            "valid_count": 2629866
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1396006,
+            "maximum": 31.66727066040039,
+            "mean": 18.97506668071154,
+            "minimum": 1.1155215501785278,
+            "valid_count": 2629866
+          },
+          "rmse": 0.0
+        },
+        "u": {
+          "candidate": {
+            "masked_count": 1424056,
+            "maximum": 1.3070402145385742,
+            "mean": -0.032998483108890996,
+            "minimum": -1.6765096187591553,
+            "valid_count": 2590664
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1424056,
+            "maximum": 1.3070402145385742,
+            "mean": -0.032998483108890996,
+            "minimum": -1.6765096187591553,
+            "valid_count": 2590664
+          },
+          "rmse": 0.0
+        },
+        "v": {
+          "candidate": {
+            "masked_count": 1415590,
+            "maximum": 1.770756483078003,
+            "mean": -0.008808768344433842,
+            "minimum": -1.8836208581924438,
+            "valid_count": 2598008
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 1415590,
+            "maximum": 1.770756483078003,
+            "mean": -0.008808768344433842,
+            "minimum": -1.8836208581924438,
+            "valid_count": 2598008
+          },
+          "rmse": 0.0
+        },
+        "zeta": {
+          "candidate": {
+            "masked_count": 41059,
+            "maximum": 1.7984912395477295,
+            "mean": 0.709440937829822,
+            "minimum": -0.49013495445251465,
+            "valid_count": 77349
+          },
+          "max_abs": 0.0,
+          "passed": true,
+          "reference": {
+            "masked_count": 41059,
+            "maximum": 1.7984912395477295,
+            "mean": 0.709440937829822,
+            "minimum": -0.49013495445251465,
+            "valid_count": 77349
+          },
+          "rmse": 0.0
+        }
+      }
+    },
+    "passed": true,
+    "reference_run": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/predictor-all-wet-horizontal-mask-4n64-16ppn_20260809T035110Z_60524"
+  },
+  "control_run": null,
+  "diagnostics": null,
+  "kind": "mcc_roms_profile_bundle",
+  "overhead": null,
+  "profile": {
+    "accounting": "inclusive",
+    "accounting_note": "Region timers can be nested; category and hotspot percentages are inclusive and are not expected to sum to 100%. Nesting detail regions 51-56 are excluded from top-level categories and hotspots and reported separately under nesting_sections.",
+    "cpu_timing": "disabled",
+    "groups": [
+      {
+        "categories": {
+          "compute": {
+            "inclusive_percent_of_total": 21.020543986568825,
+            "inclusive_wall_mean_sum": 14.8835579123
+          },
+          "io_read": {
+            "inclusive_percent_of_total": 1.5598431451373833,
+            "inclusive_wall_mean_sum": 1.1044441
+          },
+          "io_write": {
+            "inclusive_percent_of_total": 3.026616211343132,
+            "inclusive_wall_mean_sum": 2.1429901
+          },
+          "mpi": {
+            "inclusive_percent_of_total": 16.855353671977518,
+            "inclusive_wall_mean_sum": 11.934402490699998
+          }
+        },
+        "grid": 1,
+        "hotspots": [
+          {
+            "calls": 126592.0,
+            "calls_per_rank": 1978.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.420325,
+            "inclusive_percent_of_total": 4.931152707715455,
+            "kind": "mpi",
+            "model": 1,
+            "region": 49,
+            "region_name": "mpi_point_data_gathering",
+            "wall_max": 4.9590542,
+            "wall_max_rank": 63,
+            "wall_mean": 3.4914937,
+            "wall_mean_per_call": 0.0017651636501516683,
+            "wall_min": 2.6608863
+          },
+          {
+            "calls": 3904.0,
+            "calls_per_rank": 61.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.36056,
+            "inclusive_percent_of_total": 4.6012590555631405,
+            "kind": "compute",
+            "model": 1,
+            "region": 35,
+            "region_name": "tracer_corrector",
+            "wall_max": 4.4325875,
+            "wall_max_rank": 49,
+            "wall_mean": 3.2579131,
+            "wall_mean_per_call": 0.05340841147540984,
+            "wall_min": 2.6870525
+          },
+          {
+            "calls": 340480.0,
+            "calls_per_rank": 5320.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.298824,
+            "inclusive_percent_of_total": 4.530423904203808,
+            "kind": "mpi",
+            "model": 1,
+            "region": 44,
+            "region_name": "mpi_broadcast",
+            "wall_max": 4.1663132,
+            "wall_max_rank": 3,
+            "wall_mean": 3.2077584,
+            "wall_mean_per_call": 0.0006029621052631579,
+            "wall_min": 0.067010002
+          },
+          {
+            "calls": 3904.0,
+            "calls_per_rank": 61.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.018447,
+            "inclusive_percent_of_total": 3.4590773187214467,
+            "kind": "compute",
+            "model": 1,
+            "region": 22,
+            "region_name": "3d_equations_predictor",
+            "wall_max": 2.4943736,
+            "wall_max_rank": 53,
+            "wall_mean": 2.4491934,
+            "wall_mean_per_call": 0.040150711475409835,
+            "wall_min": 2.3701541
+          },
+          {
+            "calls": 3904.0,
+            "calls_per_rank": 61.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.000559,
+            "inclusive_percent_of_total": 3.026616211343132,
+            "kind": "io_write",
+            "model": 1,
+            "region": 8,
+            "region_name": "output_io_define_write_sync_close",
+            "wall_max": 2.1441878,
+            "wall_max_rank": 4,
+            "wall_mean": 2.1429901,
+            "wall_mean_per_call": 0.03513098524590164,
+            "wall_min": 2.142677
+          },
+          {
+            "calls": 7808.0,
+            "calls_per_rank": 122.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.082186,
+            "inclusive_percent_of_total": 2.796564776142776,
+            "kind": "compute",
+            "model": 1,
+            "region": 19,
+            "region_name": "gls_vertical_mixing",
+            "wall_max": 2.1428392,
+            "wall_max_rank": 15,
+            "wall_mean": 1.9801026,
+            "wall_mean_per_call": 0.01623034918032787,
+            "wall_min": 1.859251
+          },
+          {
+            "calls": 331840.0,
+            "calls_per_rank": 5185.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.039603,
+            "inclusive_percent_of_total": 2.592785564394785,
+            "kind": "compute",
+            "model": 1,
+            "region": 9,
+            "region_name": "model_2d_kernel",
+            "wall_max": 1.9085203,
+            "wall_max_rank": 56,
+            "wall_mean": 1.8358171,
+            "wall_mean_per_call": 0.0003540630858244937,
+            "wall_min": 1.7860686
+          },
+          {
+            "calls": 23296.0,
+            "calls_per_rank": 364.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.17848,
+            "inclusive_percent_of_total": 2.105373676689629,
+            "kind": "mpi",
+            "model": 1,
+            "region": 42,
+            "region_name": "mpi_4d_halo_exchange",
+            "wall_max": 1.7567679,
+            "wall_max_rank": 46,
+            "wall_mean": 1.490706,
+            "wall_mean_per_call": 0.004095346153846154,
+            "wall_min": 1.1082311
+          },
+          {
+            "calls": 2624.0,
+            "calls_per_rank": 41.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.217525,
+            "inclusive_percent_of_total": 2.017988239161917,
+            "kind": "mpi",
+            "model": 1,
+            "region": 46,
+            "region_name": "mpi_data_gathering",
+            "wall_max": 1.7396396,
+            "wall_max_rank": 46,
+            "wall_mean": 1.4288329,
+            "wall_mean_per_call": 0.03484958292682927,
+            "wall_min": 0.82019645
+          },
+          {
+            "calls": 4032.0,
+            "calls_per_rank": 63.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.015845,
+            "inclusive_percent_of_total": 1.5598431451373833,
+            "kind": "io_read",
+            "model": 1,
+            "region": 3,
+            "region_name": "input_io_read_and_distribute",
+            "wall_max": 1.1219438,
+            "wall_max_rank": 52,
+            "wall_mean": 1.1044441,
+            "wall_mean_per_call": 0.017530858730158732,
+            "wall_min": 1.1026606
+          },
+          {
+            "calls": 3904.0,
+            "calls_per_rank": 61.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.467052,
+            "inclusive_percent_of_total": 1.4947302032469032,
+            "kind": "compute",
+            "model": 1,
+            "region": 15,
+            "region_name": "biology_source_sink",
+            "wall_max": 1.5526408,
+            "wall_max_rank": 45,
+            "wall_mean": 1.058341,
+            "wall_mean_per_call": 0.017349852459016393,
+            "wall_min": 0.000807064
+          },
+          {
+            "calls": 4608.0,
+            "calls_per_rank": 72.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.372891,
+            "inclusive_percent_of_total": 1.2536991762340242,
+            "kind": "mpi",
+            "model": 1,
+            "region": 47,
+            "region_name": "mpi_data_scattering",
+            "wall_max": 1.2186867,
+            "wall_max_rank": 0,
+            "wall_mean": 0.88767942,
+            "wall_mean_per_call": 0.012328880833333333,
+            "wall_min": 0.56179603
+          },
+          {
+            "calls": 3904.0,
+            "calls_per_rank": 61.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.028518,
+            "inclusive_percent_of_total": 1.2235938520454923,
+            "kind": "compute",
+            "model": 1,
+            "region": 27,
+            "region_name": "biharmonic_tracer_mixing_s_surfaces",
+            "wall_max": 0.89107008,
+            "wall_max_rank": 17,
+            "wall_mean": 0.8663634,
+            "wall_mean_per_call": 0.01420267868852459,
+            "wall_min": 0.82476783
+          },
+          {
+            "calls": 1790912.0,
+            "calls_per_rank": 27983.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.338465,
+            "inclusive_percent_of_total": 1.037800916316175,
+            "kind": "mpi",
+            "model": 1,
+            "region": 40,
+            "region_name": "mpi_2d_halo_exchange",
+            "wall_max": 0.9835219,
+            "wall_max_rank": 7,
+            "wall_mean": 0.73481305,
+            "wall_mean_per_call": 2.6259266340278026e-05,
+            "wall_min": 0.51548312
+          },
+          {
+            "calls": 63296.0,
+            "calls_per_rank": 989.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.370299,
+            "inclusive_percent_of_total": 0.88119147485133,
+            "kind": "mpi",
+            "model": 1,
+            "region": 41,
+            "region_name": "mpi_3d_halo_exchange",
+            "wall_max": 0.85496515,
+            "wall_max_rank": 15,
+            "wall_mean": 0.62392602,
+            "wall_mean_per_call": 0.000630865540950455,
+            "wall_min": 0.45302829
+          }
+        ],
+        "model": 1,
+        "nesting_coverage": {
+          "calls_match": true,
+          "detail_calls": 11968.0,
+          "detail_percent_of_nesting": 99.98664607574058,
+          "detail_wall_mean_sum": 0.44508161620000003,
+          "total_calls": 11968.0
+        },
+        "nesting_sections": [
+          {
+            "calls": 3968.0,
+            "calls_per_rank": 62.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.721983,
+            "inclusive_percent_of_nesting": 81.86519122724829,
+            "kind": "compute",
+            "model": 1,
+            "region": 53,
+            "region_name": "nesting_get_donor_data",
+            "wall_max": 0.6275174,
+            "wall_max_rank": 7,
+            "wall_mean": 0.36441558,
+            "wall_min": 0.14343242
+          },
+          {
+            "calls": 3968.0,
+            "calls_per_rank": 62.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.033232,
+            "inclusive_percent_of_nesting": 17.683271680217505,
+            "kind": "compute",
+            "model": 1,
+            "region": 52,
+            "region_name": "nesting_mask_weights",
+            "wall_max": 0.08133134,
+            "wall_max_rank": 56,
+            "wall_mean": 0.078715503,
+            "wall_min": 0.076881133
+          },
+          {
+            "calls": 64.0,
+            "calls_per_rank": 1.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.00592,
+            "inclusive_percent_of_nesting": 0.4300800065489353,
+            "kind": "compute",
+            "model": 1,
+            "region": 56,
+            "region_name": "nesting_other_sections",
+            "wall_max": 0.001925796,
+            "wall_max_rank": 5,
+            "wall_mean": 0.0019144627,
+            "wall_min": 0.001732316
+          },
+          {
+            "calls": 3968.0,
+            "calls_per_rank": 62.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 1,
+            "imbalance": 1.648605,
+            "inclusive_percent_of_nesting": 0.008103161725858316,
+            "kind": "compute",
+            "model": 1,
+            "region": 51,
+            "region_name": "nesting_vertical_weights",
+            "wall_max": 5.9466e-05,
+            "wall_max_rank": 22,
+            "wall_mean": 3.60705e-05,
+            "wall_min": 2.339e-05
+          }
+        ],
+        "total": {
+          "calls": 64.0,
+          "cpu_max": 0.0,
+          "cpu_mean": 0.0,
+          "cpu_min": 0.0,
+          "grid": 1,
+          "imbalance": 1.000077,
+          "kind": "total",
+          "model": 1,
+          "region": 0,
+          "wall_max": 70.810261,
+          "wall_max_rank": 0,
+          "wall_mean": 70.804818,
+          "wall_min": 70.798843
+        },
+        "workers": 64
+      },
+      {
+        "categories": {
+          "compute": {
+            "inclusive_percent_of_total": 67.27217308476841,
+            "inclusive_wall_mean_sum": 47.631377994670004
+          },
+          "io_read": {
+            "inclusive_percent_of_total": 0.4518313327090653,
+            "inclusive_wall_mean_sum": 0.31991458
+          },
+          "io_write": {
+            "inclusive_percent_of_total": 1.2960651097834424,
+            "inclusive_wall_mean_sum": 0.91766572
+          },
+          "mpi": {
+            "inclusive_percent_of_total": 22.49564394421144,
+            "inclusive_wall_mean_sum": 15.927811914
+          }
+        },
+        "grid": 2,
+        "hotspots": [
+          {
+            "calls": 1732096.0,
+            "calls_per_rank": 27064.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.009164,
+            "inclusive_percent_of_total": 13.12919246364996,
+            "kind": "compute",
+            "model": 1,
+            "region": 39,
+            "region_name": "multiple_grid_nesting",
+            "wall_max": 9.3811826,
+            "wall_max_rank": 27,
+            "wall_mean": 9.2959912,
+            "wall_mean_per_call": 0.0003434817913094886,
+            "wall_min": 9.1332933
+          },
+          {
+            "calls": 19200.0,
+            "calls_per_rank": 300.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.049622,
+            "inclusive_percent_of_total": 12.326557250317402,
+            "kind": "compute",
+            "model": 1,
+            "region": 35,
+            "region_name": "tracer_corrector",
+            "wall_max": 9.1607815,
+            "wall_max_rank": 63,
+            "wall_mean": 8.7276935,
+            "wall_mean_per_call": 0.02909231166666667,
+            "wall_min": 8.3690909
+          },
+          {
+            "calls": 19200.0,
+            "calls_per_rank": 300.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.037065,
+            "inclusive_percent_of_total": 9.897438114463135,
+            "kind": "compute",
+            "model": 1,
+            "region": 22,
+            "region_name": "3d_equations_predictor",
+            "wall_max": 7.2675266,
+            "wall_max_rank": 33,
+            "wall_mean": 7.0077804,
+            "wall_mean_per_call": 0.023359268,
+            "wall_min": 6.7240104
+          },
+          {
+            "calls": 1632000.0,
+            "calls_per_rank": 25500.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.049971,
+            "inclusive_percent_of_total": 7.830209919122769,
+            "kind": "compute",
+            "model": 1,
+            "region": 9,
+            "region_name": "model_2d_kernel",
+            "wall_max": 5.8211445,
+            "wall_max_rank": 7,
+            "wall_mean": 5.5441005,
+            "wall_mean_per_call": 0.00021741570588235294,
+            "wall_min": 5.4303307
+          },
+          {
+            "calls": 76864.0,
+            "calls_per_rank": 1201.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.144978,
+            "inclusive_percent_of_total": 7.33555978058466,
+            "kind": "mpi",
+            "model": 1,
+            "region": 42,
+            "region_name": "mpi_4d_halo_exchange",
+            "wall_max": 5.9468666,
+            "wall_max_rank": 38,
+            "wall_mean": 5.1938685,
+            "wall_mean_per_call": 0.004324619900083264,
+            "wall_min": 3.7422571
+          },
+          {
+            "calls": 38400.0,
+            "calls_per_rank": 600.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.096469,
+            "inclusive_percent_of_total": 7.2930044062634165,
+            "kind": "compute",
+            "model": 1,
+            "region": 19,
+            "region_name": "gls_vertical_mixing",
+            "wall_max": 5.6618793,
+            "wall_max_rank": 63,
+            "wall_mean": 5.1637376,
+            "wall_mean_per_call": 0.008606229333333333,
+            "wall_min": 4.7719451
+          },
+          {
+            "calls": 173120.0,
+            "calls_per_rank": 2705.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.418781,
+            "inclusive_percent_of_total": 4.999201951675515,
+            "kind": "mpi",
+            "model": 1,
+            "region": 49,
+            "region_name": "mpi_point_data_gathering",
+            "wall_max": 5.0219656,
+            "wall_max_rank": 40,
+            "wall_mean": 3.5396341,
+            "wall_mean_per_call": 0.001308552347504621,
+            "wall_min": 2.9245388
+          },
+          {
+            "calls": 19200.0,
+            "calls_per_rank": 300.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.070242,
+            "inclusive_percent_of_total": 4.842562741138447,
+            "kind": "compute",
+            "model": 1,
+            "region": 15,
+            "region_name": "biology_source_sink",
+            "wall_max": 3.6695684,
+            "wall_max_rank": 50,
+            "wall_mean": 3.4287273,
+            "wall_mean_per_call": 0.011429090999999999,
+            "wall_min": 2.8802286
+          },
+          {
+            "calls": 8760064.0,
+            "calls_per_rank": 136876.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.243872,
+            "inclusive_percent_of_total": 3.6504413883043836,
+            "kind": "mpi",
+            "model": 1,
+            "region": 40,
+            "region_name": "mpi_2d_halo_exchange",
+            "wall_max": 3.2149838,
+            "wall_max_rank": 7,
+            "wall_mean": 2.5846579,
+            "wall_mean_per_call": 1.8883207428621526e-05,
+            "wall_min": 2.1392236
+          },
+          {
+            "calls": 19200.0,
+            "calls_per_rank": 300.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.027428,
+            "inclusive_percent_of_total": 3.174713207871371,
+            "kind": "compute",
+            "model": 1,
+            "region": 27,
+            "region_name": "biharmonic_tracer_mixing_s_surfaces",
+            "wall_max": 2.3094774,
+            "wall_max_rank": 12,
+            "wall_mean": 2.2478234,
+            "wall_mean_per_call": 0.007492744666666667,
+            "wall_min": 2.0481854
+          },
+          {
+            "calls": 251072.0,
+            "calls_per_rank": 3923.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.748869,
+            "inclusive_percent_of_total": 2.965004807709758,
+            "kind": "mpi",
+            "model": 1,
+            "region": 41,
+            "region_name": "mpi_3d_halo_exchange",
+            "wall_max": 3.6714731,
+            "wall_max_rank": 63,
+            "wall_mean": 2.0993415,
+            "wall_mean_per_call": 0.000535136757583482,
+            "wall_min": 1.3145693
+          },
+          {
+            "calls": 90368.0,
+            "calls_per_rank": 1412.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.179614,
+            "inclusive_percent_of_total": 2.109688518511734,
+            "kind": "mpi",
+            "model": 1,
+            "region": 44,
+            "region_name": "mpi_broadcast",
+            "wall_max": 1.7620413,
+            "wall_max_rank": 3,
+            "wall_mean": 1.4937435,
+            "wall_mean_per_call": 0.0010578919971671388,
+            "wall_min": 0.013018128
+          },
+          {
+            "calls": 19200.0,
+            "calls_per_rank": 300.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.019466,
+            "inclusive_percent_of_total": 1.4060107324753186,
+            "kind": "compute",
+            "model": 1,
+            "region": 34,
+            "region_name": "3d_momentum_corrector",
+            "wall_max": 1.0148901,
+            "wall_max_rank": 54,
+            "wall_mean": 0.9955116,
+            "wall_mean_per_call": 0.003318372,
+            "wall_min": 0.97630161
+          },
+          {
+            "calls": 19264.0,
+            "calls_per_rank": 301.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.058472,
+            "inclusive_percent_of_total": 1.3272129478930585,
+            "kind": "compute",
+            "model": 1,
+            "region": 5,
+            "region_name": "output_average_processing",
+            "wall_max": 0.99466729,
+            "wall_max_rank": 14,
+            "wall_mean": 0.93971963,
+            "wall_mean_per_call": 0.003121992126245847,
+            "wall_min": 0.86385368
+          },
+          {
+            "calls": 19264.0,
+            "calls_per_rank": 301.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.000537,
+            "inclusive_percent_of_total": 1.2960651097834424,
+            "kind": "io_write",
+            "model": 1,
+            "region": 8,
+            "region_name": "output_io_define_write_sync_close",
+            "wall_max": 0.91815874,
+            "wall_max_rank": 8,
+            "wall_mean": 0.91766572,
+            "wall_mean_per_call": 0.003048723322259136,
+            "wall_min": 0.91741221
+          }
+        ],
+        "model": 1,
+        "nesting_coverage": {
+          "calls_match": true,
+          "detail_calls": 1732096.0,
+          "detail_percent_of_nesting": 99.96498408362305,
+          "detail_wall_mean_sum": 9.292736123494999,
+          "total_calls": 1732096.0
+        },
+        "nesting_sections": [
+          {
+            "calls": 3840.0,
+            "calls_per_rank": 60.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.006604,
+            "inclusive_percent_of_nesting": 57.08721411009942,
+            "kind": "compute",
+            "model": 1,
+            "region": 55,
+            "region_name": "nesting_two_way_coupling",
+            "wall_max": 5.3418683,
+            "wall_max_rank": 45,
+            "wall_mean": 5.3068224,
+            "wall_min": 5.2616371
+          },
+          {
+            "calls": 19200.0,
+            "calls_per_rank": 300.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.019186,
+            "inclusive_percent_of_nesting": 42.849190735034256,
+            "kind": "compute",
+            "model": 1,
+            "region": 54,
+            "region_name": "nesting_put_receiver_data",
+            "wall_max": 4.0596796,
+            "wall_max_rank": 16,
+            "wall_mean": 3.983257,
+            "wall_min": 3.8189714
+          },
+          {
+            "calls": 1670464.0,
+            "calls_per_rank": 26101.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.155362,
+            "inclusive_percent_of_nesting": 0.024875630260923657,
+            "kind": "compute",
+            "model": 1,
+            "region": 56,
+            "region_name": "nesting_other_sections",
+            "wall_max": 0.002671702,
+            "wall_max_rank": 46,
+            "wall_mean": 0.0023124364,
+            "wall_min": 0.002146736
+          },
+          {
+            "calls": 19264.0,
+            "calls_per_rank": 301.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.414944,
+            "inclusive_percent_of_nesting": 0.002352259434152649,
+            "kind": "compute",
+            "model": 1,
+            "region": 52,
+            "region_name": "nesting_mask_weights",
+            "wall_max": 0.0003094,
+            "wall_max_rank": 41,
+            "wall_mean": 0.00021866583,
+            "wall_min": 0.000131141
+          },
+          {
+            "calls": 19264.0,
+            "calls_per_rank": 301.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 1.506096,
+            "inclusive_percent_of_nesting": 0.001334708556953023,
+            "kind": "compute",
+            "model": 1,
+            "region": 51,
+            "region_name": "nesting_vertical_weights",
+            "wall_max": 0.000186868,
+            "wall_max_rank": 21,
+            "wall_mean": 0.00012407439,
+            "wall_min": 8.98e-05
+          },
+          {
+            "calls": 64.0,
+            "calls_per_rank": 1.0,
+            "cpu_max": 0.0,
+            "cpu_mean": 0.0,
+            "cpu_min": 0.0,
+            "grid": 2,
+            "imbalance": 2.126869,
+            "inclusive_percent_of_nesting": 1.6640237353064618e-05,
+            "kind": "compute",
+            "model": 1,
+            "region": 53,
+            "region_name": "nesting_get_donor_data",
+            "wall_max": 3.29e-06,
+            "wall_max_rank": 24,
+            "wall_mean": 1.546875e-06,
+            "wall_min": 6.2e-07
+          }
+        ],
+        "total": {
+          "calls": 64.0,
+          "cpu_max": 0.0,
+          "cpu_mean": 0.0,
+          "cpu_min": 0.0,
+          "grid": 2,
+          "imbalance": 1.000107,
+          "kind": "total",
+          "model": 1,
+          "region": 0,
+          "wall_max": 70.811564,
+          "wall_max_rank": 31,
+          "wall_mean": 70.803983,
+          "wall_min": 70.799215
+        },
+        "workers": 64
+      }
+    ],
+    "records": [
+      {
+        "calls": 64.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.000077,
+        "kind": "total",
+        "model": 1,
+        "region": 0,
+        "region_name": "total",
+        "wall_max": 70.810261,
+        "wall_max_rank": 0,
+        "wall_mean": 70.804818,
+        "wall_min": 70.798843
+      },
+      {
+        "calls": 64.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.098328,
+        "kind": "compute",
+        "model": 1,
+        "region": 1,
+        "region_name": "allocation_and_array_initialization",
+        "wall_max": 0.36932849,
+        "wall_max_rank": 0,
+        "wall_mean": 0.33626431,
+        "wall_min": 0.32527806
+      },
+      {
+        "calls": 256.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.166485,
+        "kind": "compute",
+        "model": 1,
+        "region": 2,
+        "region_name": "ocean_state_initialization",
+        "wall_max": 0.043134224,
+        "wall_max_rank": 10,
+        "wall_mean": 0.036977941,
+        "wall_min": 0.031940708
+      },
+      {
+        "calls": 4032.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.015845,
+        "kind": "io_read",
+        "model": 1,
+        "region": 3,
+        "region_name": "input_io_read_and_distribute",
+        "wall_max": 1.1219438,
+        "wall_max_rank": 52,
+        "wall_mean": 1.1044441,
+        "wall_min": 1.1026606
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.287054,
+        "kind": "compute",
+        "model": 1,
+        "region": 4,
+        "region_name": "input_data_processing",
+        "wall_max": 0.34131757,
+        "wall_max_rank": 56,
+        "wall_mean": 0.26519288,
+        "wall_min": 0.21888102
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.037584,
+        "kind": "compute",
+        "model": 1,
+        "region": 5,
+        "region_name": "output_average_processing",
+        "wall_max": 0.34877336,
+        "wall_max_rank": 51,
+        "wall_mean": 0.33613989,
+        "wall_min": 0.31194783
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.341595,
+        "kind": "compute",
+        "model": 1,
+        "region": 6,
+        "region_name": "vertical_boundary_conditions",
+        "wall_max": 0.011232276,
+        "wall_max_rank": 0,
+        "wall_mean": 0.0083723328,
+        "wall_min": 0.007003251
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.159201,
+        "kind": "compute",
+        "model": 1,
+        "region": 7,
+        "region_name": "global_information_integrals",
+        "wall_max": 0.009967183,
+        "wall_max_rank": 63,
+        "wall_mean": 0.0085983205,
+        "wall_min": 0.007966489
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.000559,
+        "kind": "io_write",
+        "model": 1,
+        "region": 8,
+        "region_name": "output_io_define_write_sync_close",
+        "wall_max": 2.1441878,
+        "wall_max_rank": 4,
+        "wall_mean": 2.1429901,
+        "wall_min": 2.142677
+      },
+      {
+        "calls": 331840.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.039603,
+        "kind": "compute",
+        "model": 1,
+        "region": 9,
+        "region_name": "model_2d_kernel",
+        "wall_max": 1.9085203,
+        "wall_max_rank": 56,
+        "wall_mean": 1.8358171,
+        "wall_min": 1.7860686
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.014402,
+        "kind": "compute",
+        "model": 1,
+        "region": 11,
+        "region_name": "tidal_forcing",
+        "wall_max": 0.22300639,
+        "wall_max_rank": 0,
+        "wall_mean": 0.21984024,
+        "wall_min": 0.21796914
+      },
+      {
+        "calls": 15808.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.220021,
+        "kind": "compute",
+        "model": 1,
+        "region": 12,
+        "region_name": "2d_3d_coupling_vertical_metrics",
+        "wall_max": 0.32324512,
+        "wall_max_rank": 56,
+        "wall_mean": 0.26495037,
+        "wall_min": 0.21887182
+      },
+      {
+        "calls": 7872.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.045298,
+        "kind": "compute",
+        "model": 1,
+        "region": 13,
+        "region_name": "omega_vertical_velocity",
+        "wall_max": 0.13205778,
+        "wall_max_rank": 63,
+        "wall_mean": 0.12633504,
+        "wall_min": 0.11909207
+      },
+      {
+        "calls": 3968.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.014459,
+        "kind": "compute",
+        "model": 1,
+        "region": 14,
+        "region_name": "seawater_equation_of_state",
+        "wall_max": 0.18781789,
+        "wall_max_rank": 37,
+        "wall_mean": 0.185141,
+        "wall_min": 0.17855783
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.467052,
+        "kind": "compute",
+        "model": 1,
+        "region": 15,
+        "region_name": "biology_source_sink",
+        "wall_max": 1.5526408,
+        "wall_max_rank": 45,
+        "wall_mean": 1.058341,
+        "wall_min": 0.000807064
+      },
+      {
+        "calls": 7808.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.082186,
+        "kind": "compute",
+        "model": 1,
+        "region": 19,
+        "region_name": "gls_vertical_mixing",
+        "wall_max": 2.1428392,
+        "wall_max_rank": 15,
+        "wall_mean": 1.9801026,
+        "wall_min": 1.859251
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.103129,
+        "kind": "compute",
+        "model": 1,
+        "region": 21,
+        "region_name": "3d_equations_rhs",
+        "wall_max": 0.38599606,
+        "wall_max_rank": 53,
+        "wall_mean": 0.34991023,
+        "wall_min": 0.32176894
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.018447,
+        "kind": "compute",
+        "model": 1,
+        "region": 22,
+        "region_name": "3d_equations_predictor",
+        "wall_max": 2.4943736,
+        "wall_max_rank": 53,
+        "wall_mean": 2.4491934,
+        "wall_min": 2.3701541
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.062953,
+        "kind": "compute",
+        "model": 1,
+        "region": 23,
+        "region_name": "pressure_gradient",
+        "wall_max": 0.15875259,
+        "wall_max_rank": 44,
+        "wall_mean": 0.14935048,
+        "wall_min": 0.13197816
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.028518,
+        "kind": "compute",
+        "model": 1,
+        "region": 27,
+        "region_name": "biharmonic_tracer_mixing_s_surfaces",
+        "wall_max": 0.89107008,
+        "wall_max_rank": 17,
+        "wall_mean": 0.8663634,
+        "wall_min": 0.82476783
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.023343,
+        "kind": "compute",
+        "model": 1,
+        "region": 28,
+        "region_name": "biharmonic_tracer_mixing_geopotentials",
+        "wall_max": 0.24273507,
+        "wall_max_rank": 21,
+        "wall_mean": 0.23719823,
+        "wall_min": 0.22434497
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.052083,
+        "kind": "compute",
+        "model": 1,
+        "region": 30,
+        "region_name": "harmonic_stress_tensor_s_surfaces",
+        "wall_max": 0.099364359,
+        "wall_max_rank": 51,
+        "wall_mean": 0.094445338,
+        "wall_min": 0.088483803
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.006125,
+        "kind": "compute",
+        "model": 1,
+        "region": 34,
+        "region_name": "3d_momentum_corrector",
+        "wall_max": 0.3742478,
+        "wall_max_rank": 31,
+        "wall_mean": 0.37196965,
+        "wall_min": 0.3682792
+      },
+      {
+        "calls": 3904.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.36056,
+        "kind": "compute",
+        "model": 1,
+        "region": 35,
+        "region_name": "tracer_corrector",
+        "wall_max": 4.4325875,
+        "wall_max_rank": 49,
+        "wall_mean": 3.2579131,
+        "wall_min": 2.6870525
+      },
+      {
+        "calls": 11968.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.58772,
+        "kind": "compute",
+        "model": 1,
+        "region": 39,
+        "region_name": "multiple_grid_nesting",
+        "wall_max": 0.70675953,
+        "wall_max_rank": 7,
+        "wall_mean": 0.44514106,
+        "wall_min": 0.2242501
+      },
+      {
+        "calls": 1790912.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.338465,
+        "kind": "mpi",
+        "model": 1,
+        "region": 40,
+        "region_name": "mpi_2d_halo_exchange",
+        "wall_max": 0.9835219,
+        "wall_max_rank": 7,
+        "wall_mean": 0.73481305,
+        "wall_min": 0.51548312
+      },
+      {
+        "calls": 63296.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.370299,
+        "kind": "mpi",
+        "model": 1,
+        "region": 41,
+        "region_name": "mpi_3d_halo_exchange",
+        "wall_max": 0.85496515,
+        "wall_max_rank": 15,
+        "wall_mean": 0.62392602,
+        "wall_min": 0.45302829
+      },
+      {
+        "calls": 23296.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.17848,
+        "kind": "mpi",
+        "model": 1,
+        "region": 42,
+        "region_name": "mpi_4d_halo_exchange",
+        "wall_max": 1.7567679,
+        "wall_max_rank": 46,
+        "wall_mean": 1.490706,
+        "wall_min": 1.1082311
+      },
+      {
+        "calls": 340480.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.298824,
+        "kind": "mpi",
+        "model": 1,
+        "region": 44,
+        "region_name": "mpi_broadcast",
+        "wall_max": 4.1663132,
+        "wall_max_rank": 3,
+        "wall_mean": 3.2077584,
+        "wall_min": 0.067010002
+      },
+      {
+        "calls": 768.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 2.279305,
+        "kind": "mpi",
+        "model": 1,
+        "region": 45,
+        "region_name": "mpi_reduction",
+        "wall_max": 0.006306368,
+        "wall_max_rank": 56,
+        "wall_mean": 0.0027667947,
+        "wall_min": 0.001088818
+      },
+      {
+        "calls": 2624.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.217525,
+        "kind": "mpi",
+        "model": 1,
+        "region": 46,
+        "region_name": "mpi_data_gathering",
+        "wall_max": 1.7396396,
+        "wall_max_rank": 46,
+        "wall_mean": 1.4288329,
+        "wall_min": 0.82019645
+      },
+      {
+        "calls": 4608.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.372891,
+        "kind": "mpi",
+        "model": 1,
+        "region": 47,
+        "region_name": "mpi_data_scattering",
+        "wall_max": 1.2186867,
+        "wall_max_rank": 0,
+        "wall_mean": 0.88767942,
+        "wall_min": 0.56179603
+      },
+      {
+        "calls": 46848.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.118954,
+        "kind": "mpi",
+        "model": 1,
+        "region": 48,
+        "region_name": "mpi_boundary_data_gathering",
+        "wall_max": 0.074327865,
+        "wall_max_rank": 0,
+        "wall_mean": 0.066426206,
+        "wall_min": 0.063005024
+      },
+      {
+        "calls": 126592.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.420325,
+        "kind": "mpi",
+        "model": 1,
+        "region": 49,
+        "region_name": "mpi_point_data_gathering",
+        "wall_max": 4.9590542,
+        "wall_max_rank": 63,
+        "wall_mean": 3.4914937,
+        "wall_min": 2.6608863
+      },
+      {
+        "calls": 3968.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.648605,
+        "kind": "compute",
+        "model": 1,
+        "region": 51,
+        "region_name": "nesting_vertical_weights",
+        "wall_max": 5.9466e-05,
+        "wall_max_rank": 22,
+        "wall_mean": 3.60705e-05,
+        "wall_min": 2.339e-05
+      },
+      {
+        "calls": 3968.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.033232,
+        "kind": "compute",
+        "model": 1,
+        "region": 52,
+        "region_name": "nesting_mask_weights",
+        "wall_max": 0.08133134,
+        "wall_max_rank": 56,
+        "wall_mean": 0.078715503,
+        "wall_min": 0.076881133
+      },
+      {
+        "calls": 3968.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.721983,
+        "kind": "compute",
+        "model": 1,
+        "region": 53,
+        "region_name": "nesting_get_donor_data",
+        "wall_max": 0.6275174,
+        "wall_max_rank": 7,
+        "wall_mean": 0.36441558,
+        "wall_min": 0.14343242
+      },
+      {
+        "calls": 64.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 1,
+        "imbalance": 1.00592,
+        "kind": "compute",
+        "model": 1,
+        "region": 56,
+        "region_name": "nesting_other_sections",
+        "wall_max": 0.001925796,
+        "wall_max_rank": 5,
+        "wall_mean": 0.0019144627,
+        "wall_min": 0.001732316
+      },
+      {
+        "calls": 64.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.000107,
+        "kind": "total",
+        "model": 1,
+        "region": 0,
+        "region_name": "total",
+        "wall_max": 70.811564,
+        "wall_max_rank": 31,
+        "wall_mean": 70.803983,
+        "wall_min": 70.799215
+      },
+      {
+        "calls": 64.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.098327,
+        "kind": "compute",
+        "model": 1,
+        "region": 1,
+        "region_name": "allocation_and_array_initialization",
+        "wall_max": 0.36932923,
+        "wall_max_rank": 0,
+        "wall_mean": 0.33626524,
+        "wall_min": 0.32527927
+      },
+      {
+        "calls": 256.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.149072,
+        "kind": "compute",
+        "model": 1,
+        "region": 2,
+        "region_name": "ocean_state_initialization",
+        "wall_max": 0.025112126,
+        "wall_max_rank": 37,
+        "wall_mean": 0.021854266,
+        "wall_min": 0.018924958
+      },
+      {
+        "calls": 19392.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.015853,
+        "kind": "io_read",
+        "model": 1,
+        "region": 3,
+        "region_name": "input_io_read_and_distribute",
+        "wall_max": 0.32498634,
+        "wall_max_rank": 46,
+        "wall_mean": 0.31991458,
+        "wall_min": 0.30429531
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.547672,
+        "kind": "compute",
+        "model": 1,
+        "region": 4,
+        "region_name": "input_data_processing",
+        "wall_max": 0.69038334,
+        "wall_max_rank": 52,
+        "wall_mean": 0.44607873,
+        "wall_min": 0.17541075
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.058472,
+        "kind": "compute",
+        "model": 1,
+        "region": 5,
+        "region_name": "output_average_processing",
+        "wall_max": 0.99466729,
+        "wall_max_rank": 14,
+        "wall_mean": 0.93971963,
+        "wall_min": 0.86385368
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 2.045821,
+        "kind": "compute",
+        "model": 1,
+        "region": 6,
+        "region_name": "vertical_boundary_conditions",
+        "wall_max": 0.047944866,
+        "wall_max_rank": 0,
+        "wall_mean": 0.023435516,
+        "wall_min": 0.016061926
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.169746,
+        "kind": "compute",
+        "model": 1,
+        "region": 7,
+        "region_name": "global_information_integrals",
+        "wall_max": 0.007606579,
+        "wall_max_rank": 0,
+        "wall_mean": 0.0065027625,
+        "wall_min": 0.006024189
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.000537,
+        "kind": "io_write",
+        "model": 1,
+        "region": 8,
+        "region_name": "output_io_define_write_sync_close",
+        "wall_max": 0.91815874,
+        "wall_max_rank": 8,
+        "wall_mean": 0.91766572,
+        "wall_min": 0.91741221
+      },
+      {
+        "calls": 1632000.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.049971,
+        "kind": "compute",
+        "model": 1,
+        "region": 9,
+        "region_name": "model_2d_kernel",
+        "wall_max": 5.8211445,
+        "wall_max_rank": 7,
+        "wall_mean": 5.5441005,
+        "wall_min": 5.4303307
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.21976,
+        "kind": "compute",
+        "model": 1,
+        "region": 11,
+        "region_name": "tidal_forcing",
+        "wall_max": 0.000847343,
+        "wall_max_rank": 47,
+        "wall_mean": 0.00069468017,
+        "wall_min": 0.000557781
+      },
+      {
+        "calls": 57984.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.066543,
+        "kind": "compute",
+        "model": 1,
+        "region": 12,
+        "region_name": "2d_3d_coupling_vertical_metrics",
+        "wall_max": 0.46135987,
+        "wall_max_rank": 28,
+        "wall_mean": 0.43257515,
+        "wall_min": 0.41078434
+      },
+      {
+        "calls": 38528.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.101605,
+        "kind": "compute",
+        "model": 1,
+        "region": 13,
+        "region_name": "omega_vertical_velocity",
+        "wall_max": 0.37414767,
+        "wall_max_rank": 55,
+        "wall_mean": 0.33963861,
+        "wall_min": 0.31423114
+      },
+      {
+        "calls": 19328.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.022795,
+        "kind": "compute",
+        "model": 1,
+        "region": 14,
+        "region_name": "seawater_equation_of_state",
+        "wall_max": 0.5431349,
+        "wall_max_rank": 37,
+        "wall_mean": 0.53102996,
+        "wall_min": 0.51237021
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.070242,
+        "kind": "compute",
+        "model": 1,
+        "region": 15,
+        "region_name": "biology_source_sink",
+        "wall_max": 3.6695684,
+        "wall_max_rank": 50,
+        "wall_mean": 3.4287273,
+        "wall_min": 2.8802286
+      },
+      {
+        "calls": 38400.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.096469,
+        "kind": "compute",
+        "model": 1,
+        "region": 19,
+        "region_name": "gls_vertical_mixing",
+        "wall_max": 5.6618793,
+        "wall_max_rank": 63,
+        "wall_mean": 5.1637376,
+        "wall_min": 4.7719451
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.081453,
+        "kind": "compute",
+        "model": 1,
+        "region": 21,
+        "region_name": "3d_equations_rhs",
+        "wall_max": 0.96626853,
+        "wall_max_rank": 49,
+        "wall_mean": 0.8934911,
+        "wall_min": 0.78083752
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.037065,
+        "kind": "compute",
+        "model": 1,
+        "region": 22,
+        "region_name": "3d_equations_predictor",
+        "wall_max": 7.2675266,
+        "wall_max_rank": 33,
+        "wall_mean": 7.0077804,
+        "wall_min": 6.7240104
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.135529,
+        "kind": "compute",
+        "model": 1,
+        "region": 23,
+        "region_name": "pressure_gradient",
+        "wall_max": 0.43924413,
+        "wall_max_rank": 28,
+        "wall_mean": 0.38681901,
+        "wall_min": 0.34742184
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.027428,
+        "kind": "compute",
+        "model": 1,
+        "region": 27,
+        "region_name": "biharmonic_tracer_mixing_s_surfaces",
+        "wall_max": 2.3094774,
+        "wall_max_rank": 12,
+        "wall_mean": 2.2478234,
+        "wall_min": 2.0481854
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.030427,
+        "kind": "compute",
+        "model": 1,
+        "region": 28,
+        "region_name": "biharmonic_tracer_mixing_geopotentials",
+        "wall_max": 0.64326744,
+        "wall_max_rank": 26,
+        "wall_mean": 0.62427287,
+        "wall_min": 0.58733941
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.085029,
+        "kind": "compute",
+        "model": 1,
+        "region": 30,
+        "region_name": "harmonic_stress_tensor_s_surfaces",
+        "wall_max": 0.25784072,
+        "wall_max_rank": 10,
+        "wall_mean": 0.23763497,
+        "wall_min": 0.20396605
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.019466,
+        "kind": "compute",
+        "model": 1,
+        "region": 34,
+        "region_name": "3d_momentum_corrector",
+        "wall_max": 1.0148901,
+        "wall_max_rank": 54,
+        "wall_mean": 0.9955116,
+        "wall_min": 0.97630161
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.049622,
+        "kind": "compute",
+        "model": 1,
+        "region": 35,
+        "region_name": "tracer_corrector",
+        "wall_max": 9.1607815,
+        "wall_max_rank": 63,
+        "wall_mean": 8.7276935,
+        "wall_min": 8.3690909
+      },
+      {
+        "calls": 1732096.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.009164,
+        "kind": "compute",
+        "model": 1,
+        "region": 39,
+        "region_name": "multiple_grid_nesting",
+        "wall_max": 9.3811826,
+        "wall_max_rank": 27,
+        "wall_mean": 9.2959912,
+        "wall_min": 9.1332933
+      },
+      {
+        "calls": 8760064.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.243872,
+        "kind": "mpi",
+        "model": 1,
+        "region": 40,
+        "region_name": "mpi_2d_halo_exchange",
+        "wall_max": 3.2149838,
+        "wall_max_rank": 7,
+        "wall_mean": 2.5846579,
+        "wall_min": 2.1392236
+      },
+      {
+        "calls": 251072.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.748869,
+        "kind": "mpi",
+        "model": 1,
+        "region": 41,
+        "region_name": "mpi_3d_halo_exchange",
+        "wall_max": 3.6714731,
+        "wall_max_rank": 63,
+        "wall_mean": 2.0993415,
+        "wall_min": 1.3145693
+      },
+      {
+        "calls": 76864.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.144978,
+        "kind": "mpi",
+        "model": 1,
+        "region": 42,
+        "region_name": "mpi_4d_halo_exchange",
+        "wall_max": 5.9468666,
+        "wall_max_rank": 38,
+        "wall_mean": 5.1938685,
+        "wall_min": 3.7422571
+      },
+      {
+        "calls": 90368.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.179614,
+        "kind": "mpi",
+        "model": 1,
+        "region": 44,
+        "region_name": "mpi_broadcast",
+        "wall_max": 1.7620413,
+        "wall_max_rank": 3,
+        "wall_mean": 1.4937435,
+        "wall_min": 0.013018128
+      },
+      {
+        "calls": 1024.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.747475,
+        "kind": "mpi",
+        "model": 1,
+        "region": 45,
+        "region_name": "mpi_reduction",
+        "wall_max": 0.003144081,
+        "wall_max_rank": 0,
+        "wall_mean": 0.001799214,
+        "wall_min": 0.001036688
+      },
+      {
+        "calls": 25664.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.226839,
+        "kind": "mpi",
+        "model": 1,
+        "region": 46,
+        "region_name": "mpi_data_gathering",
+        "wall_max": 0.99130884,
+        "wall_max_rank": 60,
+        "wall_mean": 0.808019,
+        "wall_min": 0.58021577
+      },
+      {
+        "calls": 4224.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.470422,
+        "kind": "mpi",
+        "model": 1,
+        "region": 47,
+        "region_name": "mpi_data_scattering",
+        "wall_max": 0.30400707,
+        "wall_max_rank": 0,
+        "wall_mean": 0.2067482,
+        "wall_min": 0.12159162
+      },
+      {
+        "calls": 173120.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.418781,
+        "kind": "mpi",
+        "model": 1,
+        "region": 49,
+        "region_name": "mpi_point_data_gathering",
+        "wall_max": 5.0219656,
+        "wall_max_rank": 40,
+        "wall_mean": 3.5396341,
+        "wall_min": 2.9245388
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.506096,
+        "kind": "compute",
+        "model": 1,
+        "region": 51,
+        "region_name": "nesting_vertical_weights",
+        "wall_max": 0.000186868,
+        "wall_max_rank": 21,
+        "wall_mean": 0.00012407439,
+        "wall_min": 8.98e-05
+      },
+      {
+        "calls": 19264.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.414944,
+        "kind": "compute",
+        "model": 1,
+        "region": 52,
+        "region_name": "nesting_mask_weights",
+        "wall_max": 0.0003094,
+        "wall_max_rank": 41,
+        "wall_mean": 0.00021866583,
+        "wall_min": 0.000131141
+      },
+      {
+        "calls": 64.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 2.126869,
+        "kind": "compute",
+        "model": 1,
+        "region": 53,
+        "region_name": "nesting_get_donor_data",
+        "wall_max": 3.29e-06,
+        "wall_max_rank": 24,
+        "wall_mean": 1.546875e-06,
+        "wall_min": 6.2e-07
+      },
+      {
+        "calls": 19200.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.019186,
+        "kind": "compute",
+        "model": 1,
+        "region": 54,
+        "region_name": "nesting_put_receiver_data",
+        "wall_max": 4.0596796,
+        "wall_max_rank": 16,
+        "wall_mean": 3.983257,
+        "wall_min": 3.8189714
+      },
+      {
+        "calls": 3840.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.006604,
+        "kind": "compute",
+        "model": 1,
+        "region": 55,
+        "region_name": "nesting_two_way_coupling",
+        "wall_max": 5.3418683,
+        "wall_max_rank": 45,
+        "wall_mean": 5.3068224,
+        "wall_min": 5.2616371
+      },
+      {
+        "calls": 1670464.0,
+        "cpu_max": 0.0,
+        "cpu_mean": 0.0,
+        "cpu_min": 0.0,
+        "grid": 2,
+        "imbalance": 1.155362,
+        "kind": "compute",
+        "model": 1,
+        "region": 56,
+        "region_name": "nesting_other_sections",
+        "wall_max": 0.002671702,
+        "wall_max_rank": 46,
+        "wall_mean": 0.0023124364,
+        "wall_min": 0.002146736
+      }
+    ],
+    "schema_version": 1,
+    "source_log": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/cache-predictor-c4-transport-halves-4n64-16ppn_20260809T041907Z_20538/model.log"
+  },
+  "run": {
+    "allocation": {
+      "end_utc": "2026-08-09T04:20:24Z",
+      "slurm_job_id": "118811614",
+      "slurm_job_nodelist": "j05r2n[14-17]",
+      "slurm_job_num_nodes": "4",
+      "slurm_ntasks": "64",
+      "start_utc": "2026-08-09T04:19:11Z"
+    },
+    "binary_sha256": "f571ff75f9200663ea07e9d966c5dc455cd7364f57de3898f25291aff8ab757c",
+    "binary_source": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/validation/candidate_20260809T041208Z_22653/bin/oceanM",
+    "comparison": {
+      "failures": [],
+      "metrics": {
+        "Dongsha60_avg_0001.nc": {
+          "NH4": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.5119364261627197,
+              "mean": 0.08281214559861805,
+              "minimum": 0.000587990041822195,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.5119364261627197,
+              "mean": 0.08281214559861805,
+              "minimum": 0.000587990041822195,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "NO3": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 40.34615707397461,
+              "mean": 21.3614823779141,
+              "minimum": 0.8431732654571533,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 40.34615707397461,
+              "mean": 21.3614823779141,
+              "minimum": 0.8431732654571533,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "PO4": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 2.894453763961792,
+              "mean": 1.612351846052843,
+              "minimum": 0.21316185593605042,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 2.894453763961792,
+              "mean": 1.612351846052843,
+              "minimum": 0.21316185593605042,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "TIC": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 2085.764892578125,
+              "mean": 2085.5669050264733,
+              "minimum": 2084.294677734375,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 2085.764892578125,
+              "mean": 2085.5669050264733,
+              "minimum": 2084.294677734375,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "detritus": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.6652357578277588,
+              "mean": 0.11953669196290219,
+              "minimum": 0.0002524302981328219,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.6652357578277588,
+              "mean": 0.11953669196290219,
+              "minimum": 0.0002524302981328219,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "diatom": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 1.9827466011047363,
+              "mean": 0.07825239700554733,
+              "minimum": -8.713067654753104e-05,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 1.9827466011047363,
+              "mean": 0.07825239700554733,
+              "minimum": -8.713067654753104e-05,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "microzooplankton": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.5087069869041443,
+              "mean": 0.03843554120500527,
+              "minimum": -0.0007269679335877299,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.5087069869041443,
+              "mean": 0.03843554120500527,
+              "minimum": -0.0007269679335877299,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "oxygen": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 227.20616149902344,
+              "mean": 148.4915744183666,
+              "minimum": 77.44164276123047,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 227.20616149902344,
+              "mean": 148.4915744183666,
+              "minimum": 77.44164276123047,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "salt": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 34.66426467895508,
+              "mean": 34.34266543794666,
+              "minimum": 33.5096549987793,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 34.66426467895508,
+              "mean": 34.34266543794666,
+              "minimum": 33.5096549987793,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "temp": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 26.39194679260254,
+              "mean": 13.635764018004888,
+              "minimum": 2.0640547275543213,
+              "valid_count": 1990326
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 26.39194679260254,
+              "mean": 13.635764018004888,
+              "minimum": 2.0640547275543213,
+              "valid_count": 1990326
+            },
+            "rmse": 0.0
+          },
+          "u": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.3635198473930359,
+              "mean": -0.058167680727387254,
+              "minimum": -0.893180251121521,
+              "valid_count": 1981928
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.3635198473930359,
+              "mean": -0.058167680727387254,
+              "minimum": -0.893180251121521,
+              "valid_count": 1981928
+            },
+            "rmse": 0.0
+          },
+          "v": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.3503280580043793,
+              "mean": -0.017997942671376735,
+              "minimum": -0.4197421967983246,
+              "valid_count": 1982268
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.3503280580043793,
+              "mean": -0.017997942671376735,
+              "minimum": -0.4197421967983246,
+              "valid_count": 1982268
+            },
+            "rmse": 0.0
+          },
+          "zeta": {
+            "candidate": {
+              "masked_count": 0,
+              "maximum": 0.7659805417060852,
+              "mean": 0.5951542477899422,
+              "minimum": 0.4557175636291504,
+              "valid_count": 58539
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 0,
+              "maximum": 0.7659805417060852,
+              "mean": 0.5951542477899422,
+              "minimum": 0.4557175636291504,
+              "valid_count": 58539
+            },
+            "rmse": 0.0
+          }
+        },
+        "SCS_avg_0001.nc": {
+          "NH4": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 11.151809692382812,
+              "mean": 0.09437671557774861,
+              "minimum": -0.0019287754548713565,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 11.151809692382812,
+              "mean": 0.09437671557774861,
+              "minimum": -0.0019287754548713565,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "NO3": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 200.01800537109375,
+              "mean": 12.559178695765796,
+              "minimum": -0.13547532260417938,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 200.01800537109375,
+              "mean": 12.559178695765796,
+              "minimum": -0.13547532260417938,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "PO4": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 10.001020431518555,
+              "mean": 1.0011032783207885,
+              "minimum": -0.001845291000790894,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 10.001020431518555,
+              "mean": 1.0011032783207885,
+              "minimum": -0.001845291000790894,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "TIC": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 2096.698486328125,
+              "mean": 2085.5590585520804,
+              "minimum": 2081.66748046875,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 2096.698486328125,
+              "mean": 2085.5590585520804,
+              "minimum": 2081.66748046875,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "detritus": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 33.46339797973633,
+              "mean": 0.19421017545296745,
+              "minimum": -0.0037011036183685064,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 33.46339797973633,
+              "mean": 0.19421017545296745,
+              "minimum": -0.0037011036183685064,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "diatom": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 7.8380656242370605,
+              "mean": 0.1779083301182906,
+              "minimum": -0.004229688085615635,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 7.8380656242370605,
+              "mean": 0.1779083301182906,
+              "minimum": -0.004229688085615635,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "microzooplankton": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 1.7505371570587158,
+              "mean": 0.05475672569873309,
+              "minimum": -0.0019509261474013329,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 1.7505371570587158,
+              "mean": 0.05475672569873309,
+              "minimum": -0.0019509261474013329,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "oxygen": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 399.79754638671875,
+              "mean": 177.66105957353005,
+              "minimum": 59.93455123901367,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 399.79754638671875,
+              "mean": 177.66105957353005,
+              "minimum": 59.93455123901367,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "salt": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 35.70787811279297,
+              "mean": 34.07810067929559,
+              "minimum": 27.547622680664062,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 35.70787811279297,
+              "mean": 34.07810067929559,
+              "minimum": 27.547622680664062,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "temp": {
+            "candidate": {
+              "masked_count": 1396006,
+              "maximum": 31.66727066040039,
+              "mean": 18.97506668071154,
+              "minimum": 1.1155215501785278,
+              "valid_count": 2629866
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1396006,
+              "maximum": 31.66727066040039,
+              "mean": 18.97506668071154,
+              "minimum": 1.1155215501785278,
+              "valid_count": 2629866
+            },
+            "rmse": 0.0
+          },
+          "u": {
+            "candidate": {
+              "masked_count": 1424056,
+              "maximum": 1.3070402145385742,
+              "mean": -0.032998483108890996,
+              "minimum": -1.6765096187591553,
+              "valid_count": 2590664
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1424056,
+              "maximum": 1.3070402145385742,
+              "mean": -0.032998483108890996,
+              "minimum": -1.6765096187591553,
+              "valid_count": 2590664
+            },
+            "rmse": 0.0
+          },
+          "v": {
+            "candidate": {
+              "masked_count": 1415590,
+              "maximum": 1.770756483078003,
+              "mean": -0.008808768344433842,
+              "minimum": -1.8836208581924438,
+              "valid_count": 2598008
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 1415590,
+              "maximum": 1.770756483078003,
+              "mean": -0.008808768344433842,
+              "minimum": -1.8836208581924438,
+              "valid_count": 2598008
+            },
+            "rmse": 0.0
+          },
+          "zeta": {
+            "candidate": {
+              "masked_count": 41059,
+              "maximum": 1.7984912395477295,
+              "mean": 0.709440937829822,
+              "minimum": -0.49013495445251465,
+              "valid_count": 77349
+            },
+            "max_abs": 0.0,
+            "passed": true,
+            "reference": {
+              "masked_count": 41059,
+              "maximum": 1.7984912395477295,
+              "mean": 0.709440937829822,
+              "minimum": -0.49013495445251465,
+              "valid_count": 77349
+            },
+            "rmse": 0.0
+          }
+        }
+      },
+      "passed": true,
+      "reference_run": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/predictor-all-wet-horizontal-mask-4n64-16ppn_20260809T035110Z_60524"
+    },
+    "configuration": {
+      "inner_steps": 300,
+      "nodes": 4,
+      "outer_steps": 60,
+      "preserve_output_cadence": false,
+      "ranks": 64,
+      "tiles_i": 8,
+      "tiles_j": 8
+    },
+    "diagnostics_error": null,
+    "diagnostics_expected": false,
+    "diagnostics_report": null,
+    "diagnostics_validation": null,
+    "job_id": "118811614",
+    "job_status": 0,
+    "normal_end": true,
+    "outputs": {
+      "failures": [],
+      "passed": true,
+      "shapes": {
+        "Dongsha60_avg_0001.nc": {
+          "NH4": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "NO3": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "PO4": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "TIC": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "detritus": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "diatom": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "microzooplankton": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "oxygen": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "salt": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "temp": [
+            1,
+            34,
+            247,
+            237
+          ],
+          "u": [
+            1,
+            34,
+            247,
+            236
+          ],
+          "v": [
+            1,
+            34,
+            246,
+            237
+          ],
+          "zeta": [
+            1,
+            247,
+            237
+          ]
+        },
+        "SCS_avg_0001.nc": {
+          "NH4": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "NO3": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "PO4": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "TIC": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "detritus": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "diatom": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "microzooplankton": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "oxygen": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "salt": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "temp": [
+            1,
+            34,
+            328,
+            361
+          ],
+          "u": [
+            1,
+            34,
+            328,
+            360
+          ],
+          "v": [
+            1,
+            34,
+            327,
+            361
+          ],
+          "zeta": [
+            1,
+            328,
+            361
+          ]
+        }
+      }
+    },
+    "passed": true,
+    "perfetto_trace": null,
+    "profile_bundle": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/cache-predictor-c4-transport-halves-4n64-16ppn_20260809T041907Z_20538/profile_bundle.json",
+    "profile_csv": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/cache-predictor-c4-transport-halves-4n64-16ppn_20260809T041907Z_20538/profile_records.csv",
+    "profile_error": null,
+    "profile_expected": true,
+    "profile_report": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/cache-predictor-c4-transport-halves-4n64-16ppn_20260809T041907Z_20538/profile_report.json",
+    "resources": {
+      "elapsed_wall_seconds": 72.82,
+      "error": null,
+      "max_rss_kib": 792192,
+      "system_seconds": 51.49,
+      "user_seconds": 1082.11
+    },
+    "run_dir": "/public/home/fangxihong/MCC-Final-SYSU/Local_Lab/runs/profile128/cache-predictor-c4-transport-halves-4n64-16ppn_20260809T041907Z_20538",
+    "schema_version": 1
+  },
+  "schema_version": 1
+}
