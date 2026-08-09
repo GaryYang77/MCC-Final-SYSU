@@ -898,16 +898,32 @@
 !
       DO j=Jstr,Jend
         cff3=dt(ng)*(1.0_r8-lambda)
+        DO k=1,N(ng)-1
+          DO i=Istr,Iend
+            cff=1.0_r8/(z_r(i,j,k+1)-z_r(i,j,k))
+            CF(i,k)=cff3*cff*Akt(i,j,k,NAT)
+          END DO
+        END DO
         DO itrc=1,NT(ng)
           ltrc=MIN(NAT,itrc)
-          DO k=1,N(ng)-1
-            DO i=Istr,Iend
-              cff=1.0_r8/(z_r(i,j,k+1)-z_r(i,j,k))
-              FC(i,k)=cff3*cff*Akt(i,j,k,ltrc)*                         &
-     &                (t(i,j,k+1,nstp,itrc)-                            &
-     &                 t(i,j,k  ,nstp,itrc))
+          IF (ltrc.eq.NAT) THEN
+            DO k=1,N(ng)-1
+              DO i=Istr,Iend
+                FC(i,k)=CF(i,k)*                                        &
+     &                  (t(i,j,k+1,nstp,itrc)-                          &
+     &                   t(i,j,k  ,nstp,itrc))
+              END DO
             END DO
-          END DO
+          ELSE
+            DO k=1,N(ng)-1
+              DO i=Istr,Iend
+                cff=1.0_r8/(z_r(i,j,k+1)-z_r(i,j,k))
+                FC(i,k)=cff3*cff*Akt(i,j,k,ltrc)*                       &
+     &                  (t(i,j,k+1,nstp,itrc)-                          &
+     &                   t(i,j,k  ,nstp,itrc))
+              END DO
+            END DO
+          END IF
 
 #  ifdef LMD_NONLOCAL
 !
