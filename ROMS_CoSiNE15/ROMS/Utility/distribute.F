@@ -1525,11 +1525,9 @@
 !
 !  Local variable declarations.
 !
-      integer :: Lstr, MyError, MyNpts, Nnodes, Serror, i
+      integer :: Lstr, MyError, MyNpts, Nnodes, Serror
 
       integer, dimension(MPI_STATUS_SIZE) :: status
-
-      real(r8), dimension(Npts) :: Asend
 
       character (len=MPI_MAX_ERROR_STRING) :: string
 
@@ -1565,15 +1563,9 @@
 !  Collect data from all nodes.
 !-----------------------------------------------------------------------
 !
-!  Set input data to process.
-!
-      DO i=1,Npts
-        Asend(i)=A(i)
-      END DO
-!
 !  Collect data from all nodes as a reduced sum.
 !
-      CALL mpi_allreduce (Asend, A, Npts, MP_FLOAT, MPI_SUM,            &
+      CALL mpi_allreduce (MPI_IN_PLACE, A, Npts, MP_FLOAT, MPI_SUM,     &
      &                    OCN_COMM_WORLD, MyError)
       IF (MyError.ne.MPI_SUCCESS) THEN
         CALL mpi_error_string (MyError, string, Lstr, Serror)
