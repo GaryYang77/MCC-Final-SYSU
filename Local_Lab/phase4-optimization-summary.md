@@ -20,6 +20,27 @@ Evidence:
 - `profile_bundle_logs/phase-current-paired-on_20260809T052757Z_profile_bundle.json`
 - `profile_bundle_logs/phase-current-paired_20260809T052757Z_overhead_report.json`
 - `profile_bundle_logs/all-wet-mask-phase-paired-overhead-on_20260809T022450Z_profile_bundle.json`
+- `profile_bundle_logs/evidence_0458b06_vs_e7e0ce1_4n96.json`
+
+## 4n96 node-heterogeneity audit
+
+After a guarded 4n96 preflight took `90.64 s`, commits `0458b06` (the best
+historical no-profile result) and `e7e0ce1` were rebuilt from exact source with
+the same toolchain and compared eight times in two same-allocation ABBA/BAAB
+jobs.  All eight runs ended normally and passed all 26 comparisons.
+
+- On `j04r2n[16-19]`, `0458b06` took `67.99/68.77 s` (mean `68.38 s`) and
+  `e7e0ce1` took `68.79/66.69 s` (mean `67.74 s`, `0.94%` faster).
+- On `j04r2n[12-15]`, the same historical binary took `119.00/123.57 s`
+  (mean `121.29 s`) and `e7e0ce1` took `122.56/123.37 s` (mean `122.97 s`).
+- Moving between those node groups imposed a `77-82%` penalty on both source
+  versions.  This directly disproves a large source-code regression as the
+  explanation for 90-120 second runs; node allocation dominates them.
+
+Therefore retain `e7e0ce1`.  A 4n96 full-run launcher must preflight within the
+same allocation and reject a slow node group before starting the three-day
+simulation.  A single absolute DEMO wall from an uncontrolled allocation is not
+valid evidence for choosing between commits.
 
 ## Accepted work
 

@@ -1,0 +1,101 @@
+{
+  "old_commit": "0458b06",
+  "new_commit": "e7e0ce1",
+  "old_binary_sha256": "cff0554a1e7a258cfb54a983725ee3d65f02961cac64502ff088a3df50b91524",
+  "new_binary_sha256": "fe0049c067b8a0efec3385c49dd9e606001d91444f7fcf176990a9f8f99f9c1e",
+  "rows": [
+    {
+      "case": "slow-old-a",
+      "job": "118825725",
+      "nodes": "j04r2n[12-15]",
+      "version": "old",
+      "wall_seconds": 119.0,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    },
+    {
+      "case": "slow-new-a",
+      "job": "118825725",
+      "nodes": "j04r2n[12-15]",
+      "version": "new",
+      "wall_seconds": 122.56,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    },
+    {
+      "case": "slow-new-b",
+      "job": "118825725",
+      "nodes": "j04r2n[12-15]",
+      "version": "new",
+      "wall_seconds": 123.37,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    },
+    {
+      "case": "slow-old-b",
+      "job": "118825725",
+      "nodes": "j04r2n[12-15]",
+      "version": "old",
+      "wall_seconds": 123.57,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    },
+    {
+      "case": "fast-new-a",
+      "job": "118825726",
+      "nodes": "j04r2n[16-19]",
+      "version": "new",
+      "wall_seconds": 68.78999999999999,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    },
+    {
+      "case": "fast-old-a",
+      "job": "118825726",
+      "nodes": "j04r2n[16-19]",
+      "version": "old",
+      "wall_seconds": 67.99,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    },
+    {
+      "case": "fast-old-b",
+      "job": "118825726",
+      "nodes": "j04r2n[16-19]",
+      "version": "old",
+      "wall_seconds": 68.77,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    },
+    {
+      "case": "fast-new-b",
+      "job": "118825726",
+      "nodes": "j04r2n[16-19]",
+      "version": "new",
+      "wall_seconds": 66.69,
+      "passed": true,
+      "normal_end": true,
+      "comparison_passed": true
+    }
+  ],
+  "fast": {
+    "old_mean": 68.38,
+    "new_mean": 67.74,
+    "new_vs_old_percent": -0.9359461830944715
+  },
+  "slow": {
+    "old_mean": 121.285,
+    "new_mean": 122.965,
+    "new_vs_old_percent": 1.385167168240109
+  },
+  "node_penalty_old_percent": 77.3691137759579,
+  "node_penalty_new_percent": 81.52494833185713,
+  "all_passed": true
+}
