@@ -389,3 +389,43 @@ Ordinary score build job `118965267` produced candidate
 again byte-identical to the accepted score binary. The bounded evidence bundle
 is
 `profile_bundle_logs/r09-transport-phases-diagnostic-summary_20260811T174749Z_profile_bundle.json`.
+
+## 2026-08-12 R09 wetdry final attribution
+
+The apparent `wetdry_tile` hotspot was split into rho-mask construction,
+current masks, average accumulation/exchange, final average masks, and full
+masks/exchange (sites 213--218). Summary job `118966817`, run
+`r09-wetdry-phases-diagnostic-summary_20260811T180536Z_32978`, passed all
+checks and remained bitwise identical. On Grid 2, the same-run wetdry parent
+was `1.1786 s`; current masks were `0.7236 s`, average-mask exchange was
+`0.3479 s`, rho-mask construction was `0.0618 s`, and all remaining phases
+together were below `0.035 s`. The child sum covered `99.08%` of the parent.
+
+Because the current-mask routine itself still ended with a four-array halo,
+the final sites 219/220 split its compute and exchange. Diagnostic build job
+`118967522` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T181520Z_21942/bin/oceanM`,
+SHA-256
+`a3eb7aed1297cdfe60fe037f8c4c28504d1972f73d7ecaf76ff98d09d87c9aaa`.
+Summary job `118967950`, run
+`Local_Lab/runs/profile128/r09-wetdry-compute-exchange-diagnostic-summary_20260811T182131Z_61245`,
+passed normal-end, metadata, parent consistency, and exact comparison.
+
+| current-mask component | Grid 1 mean | Grid 2 mean | Grid 2 share |
+| --- | ---: | ---: | ---: |
+| mask compute | 0.104 s | 0.208 s | 29.5% |
+| four-array exchange | 0.136 s | 0.492 s | 69.8% |
+
+The child sum is `0.7004/0.7057 s` on Grid 2 (`99.25%`) and
+`0.2395/0.2408 s` on Grid 1 (`99.48%`). Wetdry is therefore primarily a
+communication path in this configuration, not the largest compute kernel.
+The R09 compute priority returns to advection/rotation (`1.040 s`), followed
+by horizontal viscosity (`0.666 s`); current-mask compute (`0.208 s`) is a
+smaller follow-up. Average-mask and current-mask exchanges remain distinct
+MPI candidates.
+
+Ordinary score build job `118967479` produced candidate
+`Local_Lab/runs/validation/candidate_20260811T181452Z_2084`, SHA-256
+`8c59701c46605a1a4e43c983850b8977d9b0eb7447c23ccce2ad33c205246fdb`,
+byte-identical to the accepted score binary. The bounded final bundle is
+`profile_bundle_logs/r09-wetdry-compute-exchange-diagnostic-summary_20260811T182131Z_profile_bundle.json`.

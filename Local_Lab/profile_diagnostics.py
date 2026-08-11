@@ -96,6 +96,14 @@ SITE_DEFINITIONS = {
         SiteDefinition(210, 9, "barotropic", "step2d_transport_detail", "time_average", "step2d_time_average"),
         SiteDefinition(211, 9, "mpi", "step2d_transport_detail", "average_exchange", "step2d_average_exchange"),
         SiteDefinition(212, 9, "barotropic", "step2d_transport_detail", "wetdry", "step2d_wetdry"),
+        SiteDefinition(213, 9, "wetdry", "wetdry", "rho_mask", "wetdry_rho_mask"),
+        SiteDefinition(214, 9, "wetdry", "wetdry", "current_masks", "wetdry_current_masks"),
+        SiteDefinition(215, 9, "wetdry", "wetdry", "average_accumulate", "wetdry_average_accumulate"),
+        SiteDefinition(216, 9, "mpi", "wetdry", "average_exchange", "wetdry_average_exchange"),
+        SiteDefinition(217, 9, "wetdry", "wetdry", "final_average_masks", "wetdry_final_average_masks"),
+        SiteDefinition(218, 9, "wetdry", "wetdry", "full_masks_exchange", "wetdry_full_masks_exchange"),
+        SiteDefinition(219, 9, "wetdry", "wetdry_current_masks", "compute", "wetdry_current_masks_compute"),
+        SiteDefinition(220, 9, "mpi", "wetdry_current_masks", "exchange", "wetdry_current_masks_exchange"),
     )
 }
 
@@ -418,6 +426,8 @@ def validate_diagnostic_report(
         | set(range(192, 199))
         | set(range(199, 207))
         | set(range(207, 213))
+        | set(range(213, 219))
+        | set(range(219, 221))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -469,6 +479,8 @@ def validate_profile_consistency(
         "pre_step3d": 22,
         "step2d": 9,
         "step2d_transport_detail": 9,
+        "wetdry": 9,
+        "wetdry_current_masks": 9,
         "tracer_flux_assembly": 35,
     }
     for operation in diagnostics.get("operations", []):

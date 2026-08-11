@@ -191,6 +191,9 @@
 ! Compute local mask at RHO-points in terms of free-surface. The local
 ! array allows computations in the same parallel region.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 213)
+# endif
       DO j=Jstr-1,JendR
         DO i=Istr-1,IendR
           wetdry(i,j)=1.0_r8
@@ -202,16 +205,25 @@
           END IF
         END DO
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 213, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 ! Compute wet/dry mask arrays.
 !
       IF (iif(ng).le.nfast(ng)) THEN
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 214)
+# endif
         CALL wetdry_mask_tile (ng, tile,                                &
      &                         LBi, UBi, LBj, UBj,                      &
      &                         IminS, ImaxS, JminS, JmaxS,              &
      &                         wetdry,                                  &
      &                         pmask_wet, rmask_wet,                    &
      &                         umask_wet, vmask_wet)
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 214, 0.0_r8, 0.0_r8, 0)
+# endif
       END IF
 
 # ifdef SOLVE3D
@@ -219,6 +231,9 @@
 !  Wet/dry mask at RHO-points, averaged over all fast time-steps.
 !
       IF (iif(ng).le.nfast(ng)) THEN
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 215)
+# endif
         IF (PREDICTOR_2D_STEP(ng).and.(FIRST_2D_STEP)) THEN
           DO j=JstrR,JendR
             DO i=IstrR,IendR
@@ -232,6 +247,10 @@
             END DO
           END DO
         END IF
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 215, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, iNLM, 216)
+# endif
 !
         IF (EWperiodic(ng).or.NSperiodic(ng)) THEN
           CALL exchange_r2d_tile (ng, tile,                             &
@@ -247,11 +266,17 @@
      &                      EWperiodic(ng), NSperiodic(ng),             &
      &                      rmask_wet_avg)
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 216, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 !  If done witn 2D fast time-stepping, scale time-averaged mask by
 !  the inverse of fast time-step (2*nfast).
 !
       ELSE
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 217)
+# endif
         cff=1.0_r8/REAL(2*nfast(ng),r8)
         DO j=Jstr-1,JendR                      ! executed in a different
           DO i=Istr-1,IendR                    ! paralllel region
@@ -268,6 +293,9 @@
      &                             wetdry,                              &
      &                             pmask_wet, rmask_wet,                &
      &                             umask_wet, vmask_wet)
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 217, 0.0_r8, 0.0_r8, 0)
+# endif
       END IF
 # endif
 !
@@ -279,6 +307,9 @@
       IF (iif(ng).gt.nfast(ng)) THEN
 # else
       IF (iif(ng).eq.nfast(ng)) THEN
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 218)
 # endif
         DO j=JstrR,JendR
           DO i=IstrR,IendR
@@ -344,6 +375,9 @@
      &                      EWperiodic(ng), NSperiodic(ng),             &
      &                      pmask_full, rmask_full,                     &
      &                      umask_full, vmask_full)
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 218, 0.0_r8, 0.0_r8, 0)
 # endif
       END IF
 
@@ -604,6 +638,9 @@
 !
 !  Wet/dry mask at RHO-points.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 219)
+# endif
       DO j=JstrR,JendR
         DO i=IstrR,IendR
           rmask_wet(i,j)=wetdry(i,j)
@@ -688,6 +725,10 @@
           END IF
         END DO
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 219, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 220)
+# endif
 !
 !  Exchange boundary data.
 !
@@ -713,6 +754,9 @@
      &                    NghostPoints,                                 &
      &                    EWperiodic(ng), NSperiodic(ng),               &
      &                    pmask_wet, rmask_wet, umask_wet, vmask_wet)
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 220, 0.0_r8, 0.0_r8, 0)
 # endif
 
       RETURN

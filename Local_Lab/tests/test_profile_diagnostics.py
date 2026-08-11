@@ -311,3 +311,49 @@ def test_r09_transport_subphases_are_complete_and_instrumented() -> None:
         assert definition.name == name
         assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
         assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_r09_wetdry_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        213: "wetdry_rho_mask",
+        214: "wetdry_current_masks",
+        215: "wetdry_average_accumulate",
+        216: "wetdry_average_exchange",
+        217: "wetdry_final_average_masks",
+        218: "wetdry_full_masks_exchange",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "wetdry.F"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE wetdry_tile", 1)[1].split(
+        "END SUBROUTINE wetdry_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 9
+        assert definition.operation == "wetdry"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_r09_current_wetdry_masks_split_compute_and_exchange() -> None:
+    expected = {
+        219: "wetdry_current_masks_compute",
+        220: "wetdry_current_masks_exchange",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "wetdry.F"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE wetdry_mask_tile", 1)[1].split(
+        "END SUBROUTINE wetdry_mask_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 9
+        assert definition.operation == "wetdry_current_masks"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
