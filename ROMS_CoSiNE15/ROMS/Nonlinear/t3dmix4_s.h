@@ -109,6 +109,9 @@
       USE mod_param
       USE mod_ncparam
       USE mod_scalars
+#ifdef PROFILE_DIAGNOSTIC
+      USE mod_parallel
+#endif
 !
 !  Imported variable declarations.
 !
@@ -231,6 +234,9 @@
 !  Cache tracer-independent face coefficients.  They are reused by both
 !  harmonic operators for every tracer.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 246)
+# endif
       DO k=1,N(ng)
         DO j=Jmin,Jmax
           DO i=Imin,Imax+1
@@ -245,12 +251,18 @@
           END DO
         END DO
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 246, 0.0_r8, 0.0_r8, 0)
+# endif
 #endif
 !
 !  Compute horizontal tracer flux in the XI- and ETA-directions.
 !
       DO itrc=1,NT(ng)
         DO k=1,N(ng)
+#ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, iNLM, 247)
+#endif
           DO j=Jmin,Jmax
             DO i=Imin,Imax+1
 #ifdef DIFF_3DCOEF
@@ -430,6 +442,10 @@
               END IF
             END IF
           END IF
+#ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, iNLM, 247, 0.0_r8, 0.0_r8, 0)
+          CALL profile_site_on (ng, iNLM, 248)
+#endif
 !
 !  Compute FX=d(LapT)/d(xi) and FE=d(LapT)/d(eta) terms.
 !
@@ -502,6 +518,9 @@
 #endif
             END DO
           END DO
+#ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, iNLM, 248, 0.0_r8, 0.0_r8, 0)
+#endif
         END DO
       END DO
 

@@ -587,6 +587,58 @@ def test_r15_source_sink_details_are_complete_and_instrumented() -> None:
         assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
 
 
+def test_r27_t3dmix4_phases_are_complete_and_instrumented() -> None:
+    expected = {
+        246: "t3dmix4_coefficient_cache",
+        247: "t3dmix4_first_harmonic",
+        248: "t3dmix4_second_harmonic_update",
+    }
+    source = (
+        ROOT
+        / "ROMS_CoSiNE15"
+        / "ROMS"
+        / "Nonlinear"
+        / "t3dmix4_s.h"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE t3dmix4_tile", 1)[1].split(
+        "END SUBROUTINE t3dmix4_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 27
+        assert definition.operation == "t3dmix4_s"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_profile_consistency_maps_t3dmix4_phases_to_r27() -> None:
+    diagnostics = {
+        "operations": [
+            {
+                "grid": 2,
+                "model": 1,
+                "operation": "t3dmix4_s",
+                "total_wall_mean": None,
+                "phase_wall_mean_sum": 2.2,
+                "phase_coverage_percent": None,
+            }
+        ]
+    }
+    profile = {
+        "records": [
+            {"grid": 2, "model": 1, "region": 27, "wall_mean": 2.25}
+        ]
+    }
+
+    validation = validate_profile_consistency(diagnostics, profile)
+
+    assert validation["passed"]
+    assert validation["checks"][0]["parent_region"] == 27
+    assert validation["checks"][0]["ratio"] == pytest.approx(2.2 / 2.25)
+
+
 def test_diagnostic_build_hash_covers_kernel_sources_on_both_sides() -> None:
     launcher = (ROOT / "Local_Lab" / "run_build_diagnostic.sh").read_text(
         encoding="utf-8"
@@ -597,6 +649,7 @@ def test_diagnostic_build_hash_covers_kernel_sources_on_both_sides() -> None:
     for source in (
         "ROMS_CoSiNE15/ROMS/Nonlinear/gls_prestep.F",
         "ROMS_CoSiNE15/ROMS/Nonlinear/gls_corstep.F",
+        "ROMS_CoSiNE15/ROMS/Nonlinear/t3dmix4_s.h",
         "ROMS_CoSiNE15/ROMS/Nonlinear/Biology/bio_UMAINE15.h",
     ):
         assert launcher.count(source) == 1

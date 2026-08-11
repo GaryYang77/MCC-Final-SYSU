@@ -129,6 +129,9 @@ SITE_DEFINITIONS = {
         SiteDefinition(243, 15, "biology", "biology_local_reactions_detail", "source_sink_equations", "biology_source_sink_equations"),
         SiteDefinition(244, 15, "biology", "biology_source_sink_detail", "pointwise_reactions", "biology_pointwise_reactions"),
         SiteDefinition(245, 15, "biology", "biology_source_sink_detail", "gas_exchange", "biology_gas_exchange"),
+        SiteDefinition(246, 27, "tracer_mixing", "t3dmix4_s", "coefficient_cache", "t3dmix4_coefficient_cache"),
+        SiteDefinition(247, 27, "tracer_mixing", "t3dmix4_s", "first_harmonic", "t3dmix4_first_harmonic"),
+        SiteDefinition(248, 27, "tracer_mixing", "t3dmix4_s", "second_harmonic_update", "t3dmix4_second_harmonic_update"),
     )
 }
 
@@ -459,6 +462,7 @@ def validate_diagnostic_report(
         | set(range(239, 241))
         | set(range(241, 244))
         | set(range(244, 246))
+        | set(range(246, 249))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -519,6 +523,7 @@ def validate_profile_consistency(
         "biology_source_sink": 15,
         "biology_local_reactions_detail": 15,
         "biology_source_sink_detail": 15,
+        "t3dmix4_s": 27,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])

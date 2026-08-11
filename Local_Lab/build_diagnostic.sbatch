@@ -25,6 +25,7 @@ diagnostic_sources=(
   ROMS_CoSiNE15/ROMS/Nonlinear/step3d_t.F
   ROMS_CoSiNE15/ROMS/Nonlinear/gls_prestep.F
   ROMS_CoSiNE15/ROMS/Nonlinear/gls_corstep.F
+  ROMS_CoSiNE15/ROMS/Nonlinear/t3dmix4_s.h
   ROMS_CoSiNE15/ROMS/Nonlinear/Biology/bio_UMAINE15.h
 )
 actual_source_sha=$(sha256sum "${diagnostic_sources[@]}" | sha256sum | awk '{print $1}')
