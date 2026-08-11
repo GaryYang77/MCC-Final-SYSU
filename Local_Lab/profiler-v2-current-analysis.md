@@ -718,3 +718,19 @@ After two pointwise exact failures, the next R15 target is the nearly equal
 gas-exchange child (`0.951 s` on Grid 2). Inspect the actual inlined CO2/O2
 solver loops and their compiler report before selecting one hypothesis; do
 not continue mechanical scalar caching in the pointwise loop.
+
+The first exact gas-exchange hypothesis hoisted four carbonate residual
+invariants from each `ta_iter_1` evaluation to once per safeguarded Newton
+solve. Build job `118985412` produced a distinct binary, but score job
+`118985734`, run
+`Local_Lab/runs/profile128/r15-co2-root-invariants-4n64-16ppn_20260811T231720Z_42607`,
+rejected it. All 26 comparisons remained exact; Grid-2/Grid-1 R15 regressed
+0.82%/0.30%, total regressed 0.79%, and multiple stable compute regions were
+also slower. The candidate was restored without commit or rerun; evidence is
+in `/tmp/r15-co2-root-invariants-failed/`.
+
+R15 now has complete three-level attribution and three distinct rejected
+exact hypotheses. Stop local micro-tuning without new evidence. The next wide
+compute region is Grid-2 R27 biharmonic tracer mixing (about `2.251 s` in the
+accepted score bundle); profile its active stencil and boundary phases before
+any model rewrite.

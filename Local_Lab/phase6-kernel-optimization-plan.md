@@ -364,3 +364,12 @@ ranges 很可能提高寄存器压力，后续不得继续扩展 pointwise loop 
 R15 pointwise exact 微调连续两次失败后，应先转向同一 R15 内几乎同量级的 gas
 exchange（Grid-2 `0.951 s`），从其实际 inlined CO2/O2 调用与 solver loop 的编译报告
 形成下一假设，而不是继续机械清理点式公式。
+
+CO2 gas-exchange 的 exact 不变量外提同样失败：将 `k1*k2`、`k1p*k2p`、
+`k1p*k2p*k3p` 和 `1+st/ks` 从约 12 次 `ta_iter_1` residual 计算移到每个
+`DRTSAFE` solve 只算一次后，score job `118985734` 的 Grid-2/Grid-1 R15 分别回退
+`0.82%/0.30%`，total 回退 `0.79%`，26 变量仍逐位一致。候选未 commit、未复跑，
+记录在 `/tmp/r15-co2-root-invariants-failed/`。减少标量运算未抵消参数传递、内联布局或
+寄存器代价。R15 已完成三级定位并连续否定三种不同 exact 假设；在没有新的编译器
+证据前停止微调，下一宽计算 region 转为 Grid-2 R27 biharmonic tracer mixing
+（accepted score 约 `2.251 s`），先细分其 active stencil/BC 阶段再选择模型实验。
