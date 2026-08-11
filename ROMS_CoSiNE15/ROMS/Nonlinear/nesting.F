@@ -242,7 +242,7 @@
 !
 !  Local variable declarations.
 !
-      integer :: Npts, NptsSN, NptsWE, p
+      integer :: i, itrc, k, Npts, NptsSN, NptsWE, p
 
       real(r8), allocatable, save :: Fpack(:)
 !$OMP THREADPRIVATE (Fpack)
@@ -267,13 +267,25 @@
 # endif
 
       p=0
-      Fpack(p+1:p+NptsWE)=RESHAPE(F_west, (/NptsWE/))
-      p=p+NptsWE
-      Fpack(p+1:p+NptsWE)=RESHAPE(F_east, (/NptsWE/))
-      p=p+NptsWE
-      Fpack(p+1:p+NptsSN)=RESHAPE(F_south, (/NptsSN/))
-      p=p+NptsSN
-      Fpack(p+1:p+NptsSN)=RESHAPE(F_north, (/NptsSN/))
+      DO itrc=1,SIZE(F_west,3)
+        DO k=1,SIZE(F_west,2)
+          DO i=1,SIZE(F_west,1)
+            p=p+1
+            Fpack(p)=F_west(i,k,itrc)
+            Fpack(NptsWE+p)=F_east(i,k,itrc)
+          END DO
+        END DO
+      END DO
+      p=2*NptsWE
+      DO itrc=1,SIZE(F_south,3)
+        DO k=1,SIZE(F_south,2)
+          DO i=1,SIZE(F_south,1)
+            p=p+1
+            Fpack(p)=F_south(i,k,itrc)
+            Fpack(NptsSN+p)=F_north(i,k,itrc)
+          END DO
+        END DO
+      END DO
 
 # ifdef PROFILE_DIAGNOSTIC
       CALL profile_site_off (profile_ng, model, 189, 0.0_r8, 0.0_r8, 0)
@@ -292,13 +304,25 @@
       CALL profile_site_on (profile_ng, model, 191)
 # endif
       p=0
-      F_west=RESHAPE(Fpack(p+1:p+NptsWE), SHAPE(F_west))
-      p=p+NptsWE
-      F_east=RESHAPE(Fpack(p+1:p+NptsWE), SHAPE(F_east))
-      p=p+NptsWE
-      F_south=RESHAPE(Fpack(p+1:p+NptsSN), SHAPE(F_south))
-      p=p+NptsSN
-      F_north=RESHAPE(Fpack(p+1:p+NptsSN), SHAPE(F_north))
+      DO itrc=1,SIZE(F_west,3)
+        DO k=1,SIZE(F_west,2)
+          DO i=1,SIZE(F_west,1)
+            p=p+1
+            F_west(i,k,itrc)=Fpack(p)
+            F_east(i,k,itrc)=Fpack(NptsWE+p)
+          END DO
+        END DO
+      END DO
+      p=2*NptsWE
+      DO itrc=1,SIZE(F_south,3)
+        DO k=1,SIZE(F_south,2)
+          DO i=1,SIZE(F_south,1)
+            p=p+1
+            F_south(i,k,itrc)=Fpack(p)
+            F_north(i,k,itrc)=Fpack(NptsSN+p)
+          END DO
+        END DO
+      END DO
 # ifdef PROFILE_DIAGNOSTIC
       CALL profile_site_off (profile_ng, model, 191, 0.0_r8, 0.0_r8, 0)
 # endif
