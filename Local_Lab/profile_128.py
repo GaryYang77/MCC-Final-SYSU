@@ -385,6 +385,7 @@ def finalize_report(
     ranks: int = 128,
     preserve_output_cadence: bool = False,
     expect_diagnostics: bool = False,
+    comparison_mode: str = "exact",
 ) -> dict[str, object]:
     model_log = run_dir / "model.log"
     normal_end = model_log.is_file() and "ROMS/TOMS: DONE" in model_log.read_text(
@@ -399,10 +400,13 @@ def finalize_report(
             from valid_test import compare_output_directories
 
         result = compare_output_directories(
-            reference_run / "output", run_dir / "output"
+            reference_run / "output",
+            run_dir / "output",
+            comparison_mode=comparison_mode,
         )
         comparison = {
             "passed": result.passed,
+            "mode": result.comparison_mode,
             "failures": list(result.failures),
             "reference_run": str(reference_run),
             "metrics": {
@@ -544,6 +548,12 @@ def _arguments() -> argparse.Namespace:
         help="compare the same 2x13 output contract against an earlier run",
     )
     parser.add_argument(
+        "--comparison-mode",
+        choices=("exact", "numerical"),
+        default="exact",
+        help="exact uses RMSE/max_abs <= 1e-5; numerical uses official RMSE thresholds",
+    )
+    parser.add_argument(
         "--diagnostic-mode",
         choices=("score", "summary", "trace"),
         help="enable profiler-v2 diagnostics in a PROFILE_DIAGNOSTIC binary",
@@ -603,6 +613,7 @@ def main() -> int:
         ranks=arguments.ranks,
         preserve_output_cadence=arguments.preserve_output_cadence,
         expect_diagnostics=arguments.diagnostic_mode in ("summary", "trace"),
+        comparison_mode=arguments.comparison_mode,
     )
     if report["passed"]:
         print(f"[profile128] PASS: {run_dir / 'run_report.json'}")

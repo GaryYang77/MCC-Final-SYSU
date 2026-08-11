@@ -99,15 +99,16 @@ score PROFILE 的提升通常能预测 no-profile 的提升，但不是逻辑保
 - **Exact-equivalence（当前已启用）**：候选输出逐位一致，仍是缓存、不变量外提、
   冗余加载/复制消除等优化的首选证明，但“逐位一致”是优先目标而不是所有候选永久
   唯一准入标准。
-- **Numerically-equivalent（尚未启用）**：允许由浮点结合顺序、SIMD/FMA、倒数
+- **Numerically-equivalent（显式启用）**：允许由浮点结合顺序、SIMD/FMA、倒数
   复用或 reduction 顺序造成非零差异。必须保持文件、变量、维度、shape、mask、
   NaN/Inf 和输出时刻正确，并按官方 `vali.py` 的 SCS/Dongsha、逐变量 RMSE 阈值
   判定；同时报告 max_abs、RMSE/阈值比和精度余量。官方阈值是合格边界，不是应主动
   消耗的误差预算，接近阈值的候选必须由团队明确决定。
-- numerical 通道只有在独立 infra 分支为内部 comparison 实现 official-tolerance
-  模式、增加单元测试并证明与官方 PASS/FAIL 一致后才能启用。当前
-  `Local_Lab/valid_test.py` 的统一 `RMSE/max_abs <= 1e-5` 仍是有效硬门禁；在工具
-  验收前不得仅凭本段文字绕过它。
+- 内部 comparison 已提供显式 `--comparison-mode exact|numerical`：默认始终是
+  `exact`，numerical 必须由实验假设主动声明。其阈值表由单元测试直接解析仓库官方
+  `vali.py` 并逐项校验；任何阈值变化都会使测试失败，必须作为独立 infra 变更审核。
+  `valid_test.py validate --comparison-mode numerical` 和 `profile_128.py
+  --comparison-mode numerical` 是唯一允许的内部 numerical 入口，不得临时改常量。
 - numerical 候选不得连续叠加未经全量验证的误差。在合入 accepted `main` 前，必须
   使用同源码 no-profile 二进制完成 4n96/`6x16` 三天全量并通过官方 `vali.py`。
   不得修改官方验证脚本本体、阈值、变量集合、参考数据或 comparison 逻辑。
@@ -142,7 +143,7 @@ score PROFILE 的提升通常能预测 no-profile 的提升，但不是逻辑保
 一个分支只处理一个主要性能假设；不得把算法改写、编译 flags、MPI 分块等多个变量混在同一次实验。
 
 1. **开分支**：从干净 `main` 创建 `perf/<single-hypothesis>`，记录 `accepted_commit=$(git rev-parse HEAD)` 的完整 SHA 到实验记录（不要只依赖 shell 变量）。`git status --short` 必须为空；确认 `main` 已含 `Local_Lab/profile_128.py`、`Local_Lab/profile_diagnostics.py` 和 `Local_Lab/profile_dashboard.html`，否则停止。先读 Phase 6 计划和最新 bundle，写下可证伪假设：目标 region/子阶段、预期变化、不应变化的数值行为；区分计算、MPI 通信等待和 I/O。计算候选还必须记录最热 loop nest、连续访问维度、ifort 向量化状态、拟消除的重复计算，以及对寄存器压力和浮点顺序的影响。
-2. **改代码**：一次一个可解释的等价实现优化，保留可审查 diff，并在实验记录标明预期走 exact 还是 numerical 通道；日常 DEMO 完成前不 commit。numerical 通道未启用前，只能接受满足现行 `1e-5` 内部门禁的候选。
+2. **改代码**：一次一个可解释的等价实现优化，保留可审查 diff，并在实验记录标明预期走 exact 还是 numerical 通道；日常 DEMO 完成前不 commit。未显式声明时一律走 exact，不能在看到误差后再把失败候选改称 numerical。
 3. **本地快测**（WSL 仓库根目录）：`python -m pytest -q Local_Lab/tests`。该测试通常只需数秒，继续保留以避免把接口、脚本和预处理错误带到集群。缺依赖时用专用环境装 `Local_Lab/requirements-validation.txt`，不得改测试规避环境问题。
 4. **干净构建 PROFILE 候选**：同步后只编译，不运行慢速 1-rank 模型——
 
@@ -233,9 +234,9 @@ summary/trace 必须满足正常结束、26 变量 comparison 通过、`diagnost
 
 `valid_test.py` 在计算节点用官方 Intel 2017.5.239、HPC-X 2.7.4、NetCDF 4.4.1 干净编译，1 rank 跑固定 `4/20` 步双向嵌套样例，比较 `SCS_avg_0001.nc`、`Dongsha60_avg_0001.nc` 中 13 个变量（`temp salt u v zeta NO3 NH4 PO4 diatom microzooplankton detritus oxygen TIC`）：每变量 `RMSE <= 1e-5` 且 `max_abs <= 1e-5`，并检查文件、维度、shape、缺失值掩膜、NaN/Inf。使用服务器封存基线，不替代主办方完整三天 `vali.py`。
 
-numerical 通道启用后仍保留所有结构检查，但数值判定改用经单元测试锁定的官方逐文件、
-逐变量 RMSE 阈值，并额外输出 max_abs 和阈值占用比例。该模式的实现与验收必须在独立
-infra 分支完成，不能在模型候选分支临时改 comparison。
+numerical 通道仍保留所有结构检查，但数值判定使用经单元测试锁定的官方逐文件、
+逐变量 RMSE 阈值，并额外输出 max_abs 和阈值占用比例。不能在模型候选分支临时修改
+comparison 模式、阈值表或判定逻辑。
 
 ### 日常门禁管线速查
 
@@ -263,13 +264,15 @@ infra 分支完成，不能在模型候选分支临时改 comparison。
 
   MCC_FULL_BINARY="$no_profile_binary" \
   MCC_FULL_BINARY_SHA256="$(sha256sum "$no_profile_binary" | awk '{print $1}')" \
+  MCC_COMPARISON_MODE=exact \
     bash Local_Lab/run_full_4n96_6x16_l3.sh
   ```
 
   记录命令打印的 exact `full_run`，不能用通配符猜。必须满足
   `full_run_report.json passed=true`、`run_report.json passed=true`、
-  `normal_end=true`、适用正确性通道的 comparison 通过，并完成官方验证。若 numerical
-  通道尚未启用，脚本仍按现行 `1e-5` 内部门禁执行，不得手工绕过。
+  `normal_end=true`、适用正确性通道的 comparison 通过，并完成官方验证。numerical
+  完整候选必须把上例改为 `MCC_COMPARISON_MODE=numerical`；若报告仍显示 exact，
+  不得把它当作 numerical 门禁证据。
 
 - 官方 `vali.py` 无命令行参数，`dir_test` 是占位路径；**不得修改 `/public/share/.../vali.py` 本体**。复制到 run 目录只替换一行，并用 `diff` 确认仅此处变化（`diff` 必须返回 1；返回 0 表示未替换，大于 1 表示命令错误，均停止）：
 

@@ -8,6 +8,11 @@ short_reference=${MCC_SHORT_REFERENCE:-Local_Lab/runs/profile128/phase-current-p
 full_reference=${MCC_FULL_REFERENCE:-Local_Lab/runs/profile128/final-fastnodes-full-profile-4n96_20260809T095958Z_26214}
 sha=${MCC_FULL_BINARY_SHA256:-fe0049c067b8a0efec3385c49dd9e606001d91444f7fcf176990a9f8f99f9c1e}
 limit=${MCC_PREFLIGHT_MAX_SECONDS:-90}
+comparison_mode=${MCC_COMPARISON_MODE:-exact}
+case "$comparison_mode" in
+  exact|numerical) ;;
+  *) echo "invalid MCC_COMPARISON_MODE: $comparison_mode" >&2; exit 2 ;;
+esac
 test -x "$binary"; test -d "$short_reference"; test -d "$full_reference"
 printf '%s  %s\n' "$sha" "$binary" | sha256sum -c -
 source /public/share/mcc2026_final/miniforge3/etc/profile.d/conda.sh
@@ -39,11 +44,12 @@ echo "[full-6x16-l3] job_id=$job exit_status=$status"
 if [[ "$status" -eq 42 ]]; then exit 42; fi
 test "$status" -eq 0
 
-python - "$preflight" "$full" "$binary" "$job" "$short_reference" "$full_reference" <<'PY'
+python - "$preflight" "$full" "$binary" "$job" "$short_reference" "$full_reference" "$comparison_mode" <<'PY'
 import json,sys
 from pathlib import Path
 from Local_Lab.profile_128 import elapsed_seconds,finalize_report
-p,f,b,job,sref,fref=map(Path,sys.argv[1:]); common=dict(nodes=4,ranks=96,tiles_i=6,tiles_j=16)
+p,f,b,job,sref,fref=map(Path,sys.argv[1:7]); mode=sys.argv[7]
+common=dict(nodes=4,ranks=96,tiles_i=6,tiles_j=16,comparison_mode=mode)
 pr=finalize_report(p,binary_source=b,job_id=str(job),job_status=0,outer_steps=60,inner_steps=300,
                    expect_profile=False,reference_run=sref,preserve_output_cadence=False,
                    expect_diagnostics=False,**common)

@@ -257,9 +257,17 @@ def test_main_routes_profile_expectation_to_finalizer(
     monkeypatch.setattr(
         sys,
         "argv",
-        ["profile_128.py", "--binary", str(binary), "--no-expect-profile"],
+        [
+            "profile_128.py",
+            "--binary",
+            str(binary),
+            "--no-expect-profile",
+            "--comparison-mode",
+            "numerical",
+        ],
     )
 
     assert profile_128.main() == 0
     assert captured["expect_profile"] is False
     assert captured["reference_run"] is None
+    assert captured["comparison_mode"] == "numerical"

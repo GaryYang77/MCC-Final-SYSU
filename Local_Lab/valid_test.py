@@ -48,6 +48,45 @@ VALIDATION_VARIABLES = (
 
 OUTPUT_FILES = ("SCS_avg_0001.nc", "Dongsha60_avg_0001.nc")
 TOLERANCE = 1.0e-5
+EXACT_COMPARISON = "exact"
+NUMERICAL_COMPARISON = "numerical"
+COMPARISON_MODES = (EXACT_COMPARISON, NUMERICAL_COMPARISON)
+
+# Locked from the organizer-provided vali.py on 2026-08-11.  Do not loosen
+# these values to make a candidate pass.  Any organizer update must be handled
+# as a separately reviewed infrastructure change with parity tests.
+OFFICIAL_RMSE_THRESHOLDS = {
+    "SCS_avg_0001.nc": {
+        "temp": 0.00150,
+        "salt": 0.00100,
+        "u": 0.00040,
+        "v": 0.00040,
+        "zeta": 0.00050,
+        "NO3": 0.00500,
+        "NH4": 0.00200,
+        "PO4": 0.00080,
+        "diatom": 0.00200,
+        "microzooplankton": 0.00150,
+        "detritus": 0.00200,
+        "oxygen": 0.05000,
+        "TIC": 0.50000,
+    },
+    "Dongsha60_avg_0001.nc": {
+        "temp": 0.00020,
+        "salt": 0.00015,
+        "u": 0.00006,
+        "v": 0.00006,
+        "zeta": 0.00008,
+        "NO3": 0.00080,
+        "NH4": 0.00030,
+        "PO4": 0.00012,
+        "diatom": 0.00030,
+        "microzooplankton": 0.00020,
+        "detritus": 0.00030,
+        "oxygen": 0.00800,
+        "TIC": 0.00800,
+    },
+}
 MIN_AVAILABLE_MEMORY_BYTES = 8 * 1024**3
 COMMAND_TIMEOUT_SECONDS = 30 * 60
 LOCAL_PROFILE = "local-gfortran"
@@ -88,6 +127,10 @@ class VariableMetrics:
     passed: bool
     reference: ValueStatistics
     candidate: ValueStatistics
+    comparison_mode: str
+    rmse_threshold: float
+    max_abs_threshold: float | None
+    threshold_ratio: float
 
 
 @dataclass(frozen=True)
@@ -95,6 +138,7 @@ class ValidationReport:
     passed: bool
     metrics: dict[str, dict[str, VariableMetrics]]
     failures: tuple[str, ...]
+    comparison_mode: str = EXACT_COMPARISON
 
 
 @dataclass(frozen=True)
@@ -539,7 +583,9 @@ def _format_validation_failures(report: ValidationReport) -> str:
     return "\n".join(f"  - {failure}" for failure in report.failures)
 
 
-def validate_candidate() -> tuple[ValidationReport, Path]:
+def validate_candidate(
+    *, comparison_mode: str = EXACT_COMPARISON
+) -> tuple[ValidationReport, Path]:
     """Clean-build current source, run 4/20 steps, compare, and write a report."""
     integrity_failures = verify_baseline_integrity(BASELINE_ROOT)
     if integrity_failures:
@@ -553,6 +599,7 @@ def validate_candidate() -> tuple[ValidationReport, Path]:
         BASELINE_ROOT / "outputs_valid",
         run.output_dir,
         tolerance=TOLERANCE,
+        comparison_mode=comparison_mode,
     )
 
     baseline_manifest = json.loads(
@@ -578,7 +625,8 @@ def validate_candidate() -> tuple[ValidationReport, Path]:
     result = {
         "created_utc": datetime.now(timezone.utc).isoformat(),
         "passed": report.passed,
-        "tolerance": TOLERANCE,
+        "comparison_mode": report.comparison_mode,
+        "tolerance": TOLERANCE if report.comparison_mode == EXACT_COMPARISON else None,
         "source": _source_state(),
         "toolchain": _toolchain_metadata(),
         "timing": {
@@ -607,7 +655,10 @@ def validate_candidate() -> tuple[ValidationReport, Path]:
     print(f"[timing] saved    : {saved_seconds:+.3f} s ({speedup_percent:+.2f}%)")
     print(f"[validate] report: {report_path}")
     if report.passed:
-        print(f"[validate] PASS: RMSE and max_abs are <= {TOLERANCE:.1e}")
+        if report.comparison_mode == EXACT_COMPARISON:
+            print(f"[validate] PASS: RMSE and max_abs are <= {TOLERANCE:.1e}")
+        else:
+            print("[validate] PASS: RMSE is within every official per-variable threshold")
     else:
         print("[validate] FAIL:\n" + _format_validation_failures(report))
     return report, report_path
@@ -629,6 +680,12 @@ def _main(arguments: list[str]) -> int:
         choices=("baseline", "build", "validate"),
         help="create the sealed baseline, build a PROFILE candidate, or validate it",
     )
+    parser.add_argument(
+        "--comparison-mode",
+        choices=COMPARISON_MODES,
+        default=EXACT_COMPARISON,
+        help="exact uses the internal RMSE/max_abs gate; numerical uses official RMSE thresholds",
+    )
     options = parser.parse_args(arguments)
     try:
         if options.command == "baseline":
@@ -636,7 +693,7 @@ def _main(arguments: list[str]) -> int:
         elif options.command == "build":
             build_profile_candidate()
         else:
-            report, _ = validate_candidate()
+            report, _ = validate_candidate(comparison_mode=options.comparison_mode)
             if not report.passed:
                 return 1
     except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as error:
@@ -650,8 +707,16 @@ def compare_output_directories(
     candidate_dir: Path,
     *,
     tolerance: float = 1.0e-5,
+    comparison_mode: str = EXACT_COMPARISON,
 ) -> ValidationReport:
     """Compare the two MCC average files through the public validation contract."""
+    if comparison_mode not in COMPARISON_MODES:
+        raise ValueError(
+            f"unsupported comparison mode {comparison_mode!r}; "
+            f"expected one of {', '.join(COMPARISON_MODES)}"
+        )
+    if tolerance < 0.0:
+        raise ValueError("tolerance must be non-negative")
     metrics: dict[str, dict[str, VariableMetrics]] = {}
     failures: list[str] = []
 
@@ -706,7 +771,15 @@ def compare_output_directories(
                 difference = candidate_values - reference_values
                 rmse = float(np.sqrt(np.mean(np.square(difference))))
                 max_abs = float(np.max(np.abs(difference)))
-                passed = rmse <= tolerance and max_abs <= tolerance
+                if comparison_mode == EXACT_COMPARISON:
+                    rmse_threshold = tolerance
+                    max_abs_threshold: float | None = tolerance
+                    passed = rmse <= rmse_threshold and max_abs <= max_abs_threshold
+                else:
+                    rmse_threshold = OFFICIAL_RMSE_THRESHOLDS[filename][variable_name]
+                    max_abs_threshold = None
+                    passed = rmse <= rmse_threshold
+                threshold_ratio = rmse / rmse_threshold
                 reference_stats = ValueStatistics(
                     minimum=float(np.min(reference_values)),
                     mean=float(np.mean(reference_values)),
@@ -722,19 +795,33 @@ def compare_output_directories(
                     masked_count=masked_count,
                 )
                 file_metrics[variable_name] = VariableMetrics(
-                    rmse,
-                    max_abs,
-                    passed,
-                    reference_stats,
-                    candidate_stats,
+                    rmse=rmse,
+                    max_abs=max_abs,
+                    passed=passed,
+                    reference=reference_stats,
+                    candidate=candidate_stats,
+                    comparison_mode=comparison_mode,
+                    rmse_threshold=rmse_threshold,
+                    max_abs_threshold=max_abs_threshold,
+                    threshold_ratio=threshold_ratio,
                 )
                 if not passed:
-                    failures.append(
-                        f"{filename}:{variable_name}: RMSE={rmse:.8e}, "
-                        f"max_abs={max_abs:.8e}, tolerance={tolerance:.8e}"
-                    )
+                    if comparison_mode == EXACT_COMPARISON:
+                        failures.append(
+                            f"{filename}:{variable_name}: RMSE={rmse:.8e}, "
+                            f"max_abs={max_abs:.8e}, tolerance={tolerance:.8e}"
+                        )
+                    else:
+                        failures.append(
+                            f"{filename}:{variable_name}: RMSE={rmse:.8e}, "
+                            f"official_threshold={rmse_threshold:.8e}, "
+                            f"threshold_ratio={threshold_ratio:.6f}, "
+                            f"max_abs={max_abs:.8e} (reported only)"
+                        )
 
-    return ValidationReport(not failures, metrics, tuple(failures))
+    return ValidationReport(
+        not failures, metrics, tuple(failures), comparison_mode=comparison_mode
+    )
 
 
 if __name__ == "__main__":

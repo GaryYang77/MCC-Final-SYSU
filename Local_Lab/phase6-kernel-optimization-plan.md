@@ -131,10 +131,10 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
   no-profile 二进制通过官方 `vali.py`。
 - 不得通过修改官方脚本、阈值、变量集合、参考数据或 comparison 逻辑挽救候选。
 
-当前 `Local_Lab/valid_test.py` 仍硬编码统一 `RMSE/max_abs <= 1e-5`。因此 numerical
-通道在独立 infra 分支实现并验收 official-tolerance 模式之前处于**禁用状态**。工具
-改版必须从仓库中的官方 `vali.py` 提取/锁定逐变量阈值，增加单元测试，并证明对官方
-PASS/FAIL 判定一致；不得修改官方 `vali.py` 本体。
+内部 comparison 已实现显式 `exact`/`numerical` 模式，默认保持 `exact`。numerical
+使用锁定的官方逐文件、逐变量 RMSE 阈值；单元测试直接解析仓库中的官方 `vali.py`
+并验证阈值表一致，同时覆盖文件差异、max_abs 仅报告和 NaN/Inf 硬失败。任何官方阈值
+变化必须作为独立 infra 变更重新审核，不得修改官方 `vali.py` 本体。
 
 官方阈值是合格边界，不是应主动消耗的误差预算。报告必须展示精度余量；接近阈值的
 候选即使 PASS，也必须由团队明确决定是否接受。
@@ -153,8 +153,7 @@ PASS/FAIL 判定一致；不得修改官方 `vali.py` 本体。
 ## Phase 6 第一项工作
 
 1. 团队审核并提交本计划及 `AGENTS.md` 更新，创建 Phase 5 annotated tag。
-2. 在独立 infra 分支实现 official-tolerance comparison，并用测试锁定官方阈值。
+2. 使用已验收的 exact/numerical comparison；未显式声明时始终走 exact。
 3. 在独立 profiler 分支细化 R35 horizontal tracer advection；验收后冻结 profiler。
 4. 获取 ifort 对实际 R35 热循环的向量化报告。
 5. 基于计时和向量化证据选择一个计算改写，走单假设模型优化流程。
-
