@@ -314,6 +314,9 @@
 # include "set_bounds.h"
 
 # ifndef TS_FIXED
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 192)
+#  endif
 !
 !=======================================================================
 !  Tracer equation(s).
@@ -387,6 +390,10 @@
           END IF
         END DO
       END DO VMASK_J_LOOP
+#  endif
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 192, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 193)
 #  endif
       K_LOOP: DO k=1,N(ng)
 #  ifdef TS_C4HADVECTION
@@ -636,6 +643,9 @@
           END DO
         END DO T_LOOP1
       END DO K_LOOP
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 193, 0.0_r8, 0.0_r8, 0)
+#  endif
 
 #  if (defined AGE_MEAN && defined T_PASSIVE) && !defined TS_MPDATA
 !
@@ -667,6 +677,9 @@
 !  Compute artificial continuity equation (same for all tracers) and
 !  load it into private array DC (1/m). Notice pipelined J-loop.
 !
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 194)
+#  endif
       J_LOOP1 : DO j=Jstr,Jend
         DO k=1,N(ng)
           DO i=Istr,Iend
@@ -886,6 +899,9 @@
           END DO
         END DO T_LOOP2
       END DO J_LOOP1
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 194, 0.0_r8, 0.0_r8, 0)
+#  endif
 !
 !-----------------------------------------------------------------------
 !  Start computation of tracers at n+1 time-step, t(i,j,k,nnew,itrc).
@@ -896,6 +912,9 @@
 !  W-points.  Notice that the vertical diffusion coefficients for
 !  passive tracers is the same as that for salinity (ltrc=NAT).
 !
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 195)
+#  endif
       DO j=Jstr,Jend
         cff3=dt(ng)*(1.0_r8-lambda)
         DO k=1,N(ng)-1
@@ -982,6 +1001,9 @@
           END DO
         END DO
       END DO
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 195, 0.0_r8, 0.0_r8, 0)
+#  endif
 # endif /* !TS_FIXED */
 !
 !=======================================================================
@@ -993,6 +1015,9 @@
 !  W-points.
 !
       J_LOOP2: DO j=Jstr,Jend
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 196)
+# endif
         cff3=dt(ng)*(1.0_r8-lambda)
         DO k=1,N(ng)-1
           DO i=IstrU,Iend
@@ -1088,6 +1113,9 @@
             END DO
           END DO
         END IF
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 196, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 !=======================================================================
 !  3D momentum equation in the ETA-direction.
@@ -1098,6 +1126,9 @@
 !  W-points.
 !
         IF (j.ge.JstrV) THEN
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, iNLM, 197)
+# endif
           cff3=dt(ng)*(1.0_r8-lambda)
           DO k=1,N(ng)-1
             DO i=Istr,Iend
@@ -1192,10 +1223,16 @@
               END DO
             END DO
           END IF
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, iNLM, 197, 0.0_r8, 0.0_r8, 0)
+# endif
         END IF
       END DO J_LOOP2
 
 # ifndef TS_FIXED
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 198)
+#  endif
 !
 !=======================================================================
 !  Apply intermediate tracers lateral boundary conditions.
@@ -1225,6 +1262,9 @@
      &                    NghostPoints,                                 &
      &                    EWperiodic(ng), NSperiodic(ng),               &
      &                    t(:,:,:,3,:))
+#  endif
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 198, 0.0_r8, 0.0_r8, 0)
 #  endif
 # endif
 

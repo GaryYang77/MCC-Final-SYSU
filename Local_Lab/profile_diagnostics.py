@@ -75,6 +75,13 @@ SITE_DEFINITIONS = {
         SiteDefinition(189, 35, "tracer", "tracer_flux_assembly", "pack", "tracer_flux_assembly_pack"),
         SiteDefinition(190, 35, "mpi", "tracer_flux_assembly", "mpi", "tracer_flux_assembly_mpi"),
         SiteDefinition(191, 35, "tracer", "tracer_flux_assembly", "unpack", "tracer_flux_assembly_unpack"),
+        SiteDefinition(192, 22, "predictor", "pre_step3d", "tracer_setup", "pre_step3d_tracer_setup"),
+        SiteDefinition(193, 22, "predictor", "pre_step3d", "tracer_horizontal", "pre_step3d_tracer_horizontal"),
+        SiteDefinition(194, 22, "predictor", "pre_step3d", "tracer_vertical_advection", "pre_step3d_tracer_vertical_advection"),
+        SiteDefinition(195, 22, "predictor", "pre_step3d", "tracer_vertical_diffusion", "pre_step3d_tracer_vertical_diffusion"),
+        SiteDefinition(196, 22, "predictor", "pre_step3d", "u_momentum", "pre_step3d_u_momentum"),
+        SiteDefinition(197, 22, "predictor", "pre_step3d", "v_momentum", "pre_step3d_v_momentum"),
+        SiteDefinition(198, 22, "predictor", "pre_step3d", "tracer_bc_exchange", "pre_step3d_tracer_bc_exchange"),
     )
 }
 
@@ -394,6 +401,7 @@ def validate_diagnostic_report(
         | {121}
         | set(range(131, 136))
         | set(range(181, 192))
+        | set(range(192, 199))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -442,6 +450,7 @@ def validate_profile_consistency(
         "corrector_horizontal": 35,
         "f2csum": 49,
         "put_refine3d": 54,
+        "pre_step3d": 22,
         "tracer_flux_assembly": 35,
     }
     for operation in diagnostics.get("operations", []):

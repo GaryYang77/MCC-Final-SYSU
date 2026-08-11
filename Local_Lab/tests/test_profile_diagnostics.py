@@ -229,3 +229,29 @@ def test_tracer_flux_assembly_uses_direct_contiguous_copies() -> None:
     assert "RESHAPE(" not in source
     assert "Fpack(p)=F_west(i,k,itrc)" in source
     assert "F_west(i,k,itrc)=Fpack(p)" in source
+
+
+def test_r22_pre_step3d_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        192: "pre_step3d_tracer_setup",
+        193: "pre_step3d_tracer_horizontal",
+        194: "pre_step3d_tracer_vertical_advection",
+        195: "pre_step3d_tracer_vertical_diffusion",
+        196: "pre_step3d_u_momentum",
+        197: "pre_step3d_v_momentum",
+        198: "pre_step3d_tracer_bc_exchange",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "pre_step3d.F"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE pre_step3d_tile", 1)[1].split(
+        "END SUBROUTINE pre_step3d_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 22
+        assert definition.operation == "pre_step3d"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1

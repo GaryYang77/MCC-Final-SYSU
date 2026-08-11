@@ -240,3 +240,44 @@ is below 5% of the roughly 68-second DEMO, even eliminating it cannot by itself
 trigger a full three-day run. Its pack/unpack loops are nevertheless a
 measured exact-equivalence compute candidate for accumulation under the new
 5% full-run budget rule.
+
+## 2026-08-12 R22 pre_step3d phase split
+
+The next wide compute region, R22 `pre_step3d`, was split into diagnostic sites
+192--198: tracer setup, horizontal predictor, vertical advection, vertical
+diffusion, U momentum, V momentum, and tracer boundary/exchange. Diagnostic
+build job `118958291` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T160152Z_46516/bin/oceanM`,
+SHA-256
+`5e9c4816ba0083624204694d748b32afbab39f43d8cd2063e64299361b13843b`.
+Summary job `118958689` is retained at
+`Local_Lab/runs/profile128/r22-pre-step3d-phases-diagnostic-summary_20260811T160957Z_867`.
+It ended normally, passed diagnostic metadata and parent consistency, and all
+26 variables remained bitwise identical to accepted score reference
+`tracer-flux-direct-copy-4n64-16ppn_20260811T151359Z_47837`.
+
+| R22 subphase | Grid 1 mean | Grid 2 mean | Grid 2 calls/rank |
+| --- | ---: | ---: | ---: |
+| tracer setup | 0.155 s | 0.452 s | 300 |
+| tracer horizontal predictor | 0.828 s | 2.273 s | 300 |
+| tracer vertical advection | 0.515 s | 1.407 s | 300 |
+| tracer vertical diffusion | 0.474 s | 1.352 s | 300 |
+| U momentum predictor | 0.065 s | 0.184 s | 9187.5 |
+| V momentum predictor | 0.054 s | 0.160 s | 9150 |
+| tracer boundary/exchange | 0.317 s | 1.029 s | 300 |
+
+The child sum covers `99.96%` of R22 on both grids: Grid 1
+`2.4079/2.4088 s`, Grid 2 `6.8554/6.8584 s`. The high U/V site call counts are
+expected because those timers are scoped per J row; they do not indicate that
+momentum dominates R22. Grid-2 tracer horizontal predictor is the largest
+compute-only child and is therefore the next kernel target. It should first be
+matched to the actual loop nests and ifort vectorization report. Vertical
+advection/diffusion and the mixed boundary/exchange phase remain measured
+follow-ups; the latter needs another split before attributing its wall to
+compute versus MPI.
+
+Ordinary score build job `118958278` produced candidate
+`Local_Lab/runs/validation/candidate_20260811T160157Z_8090`, binary SHA-256
+`98be8b4a3c11e548596ac00ab9a6b9b1e2d3ed0270c867919490e8febd67f485`.
+It is byte-identical to the current accepted score binary, proving that all new
+R22 diagnostic sites compile out of score mode.
