@@ -480,6 +480,7 @@
       CORRECTOR_2D_STEP=.not.PREDICTOR_2D_STEP(ng)
 # ifdef PROFILE_DIAGNOSTIC
       CALL profile_site_on (ng, iNLM, 199)
+      CALL profile_site_on (ng, iNLM, 207)
 # endif
 !
 !-----------------------------------------------------------------------
@@ -553,6 +554,10 @@
         END DO
       END DO
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 207, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 208)
+# endif
 # ifdef DISTRIBUTE
 !
       IF (EWperiodic(ng).or.NSperiodic(ng)) THEN
@@ -568,6 +573,10 @@
      &                    NghostPoints,                                 &
      &                    EWperiodic(ng), NSperiodic(ng),               &
      &                    DUon, DVom)
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 208, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 209)
 # endif
 !
 !  Set vertically integrated mass fluxes DUon and DVom along the open
@@ -585,7 +594,13 @@
      &                        ubar, vbar,                               &
      &                        Drhs, DUon, DVom)
       END IF
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 209, 0.0_r8, 0.0_r8, 0)
+# endif
 # ifdef SOLVE3D
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 210)
+#  endif
 !
 !-----------------------------------------------------------------------
 !  Compute time averaged fields over all short time-steps.
@@ -660,6 +675,10 @@
           END DO
         END DO
       END IF
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 210, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 211)
+#  endif
 !
 !  After all fast time steps are completed, apply boundary conditions
 !  to time averaged fields.
@@ -705,6 +724,12 @@
 #   endif
 #  endif
       END IF
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 211, 0.0_r8, 0.0_r8, 0)
+#  endif
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 212)
 # endif
 # ifdef WET_DRY
 !
@@ -727,6 +752,9 @@
      &                  rmask_wet, rmask_full,                          &
      &                  umask_wet, umask_full,                          &
      &                  vmask_wet, vmask_full)
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 212, 0.0_r8, 0.0_r8, 0)
 # endif
 !
 !  Do not perform the actual time stepping during the auxiliary

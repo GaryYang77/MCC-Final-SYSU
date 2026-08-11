@@ -286,3 +286,28 @@ def test_r09_step2d_subphases_are_complete_and_instrumented() -> None:
     assert source.index("profile_site_off (ng, iNLM, 199,") < source.index(
         "IF (iif(ng).gt.nfast(ng)) RETURN"
     )
+
+
+def test_r09_transport_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        207: "step2d_mass_flux_compute",
+        208: "step2d_mass_flux_exchange",
+        209: "step2d_volume_conservation",
+        210: "step2d_time_average",
+        211: "step2d_average_exchange",
+        212: "step2d_wetdry",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "step2d_LF_AM3.h"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE step2d_tile", 1)[1].split(
+        "END SUBROUTINE step2d_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 9
+        assert definition.operation == "step2d_transport_detail"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1

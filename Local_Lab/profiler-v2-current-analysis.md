@@ -350,3 +350,42 @@ It is byte-identical to the accepted score binary, proving that the R09 sites
 and enlarged diagnostic-site storage compile out of score mode. The bounded
 evidence bundle is
 `profile_bundle_logs/r09-step2d-phases-diagnostic-summary_20260811T172740Z_profile_bundle.json`.
+
+## 2026-08-12 R09 transport/setup detail split
+
+Because the largest R09 phase still mixed local loops, MPI, volume
+conservation, time averaging, and wet/dry masks, sites 207--212 split those
+components without entering any inner grid loop. Diagnostic build job
+`118965294` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T174038Z_21596/bin/oceanM`,
+SHA-256
+`255bc63ab5b11f8a6fc06dc7149989271b11899d51182362649a1825af593a1e`.
+Summary job `118965815`, run
+`Local_Lab/runs/profile128/r09-transport-phases-diagnostic-summary_20260811T174749Z_45008`,
+ended normally, passed all diagnostic checks, and remained bitwise identical
+for all 26 variables.
+
+| transport/setup detail | Grid 1 mean | Grid 2 mean | Grid 2 share of parent |
+| --- | ---: | ---: | ---: |
+| mass-flux compute | 0.049 s | 0.154 s | 8.3% |
+| mass-flux exchange | 0.106 s | 0.417 s | 22.5% |
+| volume conservation | 0.001 s | 0.002 s | 0.1% |
+| time averages | 0.041 s | 0.120 s | 6.5% |
+| final average exchange | 0.002 s | 0.010 s | 0.5% |
+| `wetdry_tile` | 0.362 s | 1.139 s | 61.5% |
+
+The Grid-2 child sum is `1.8419 s` versus the same-run parent site 199 at
+`1.8533 s`, a `99.39%` coverage; Grid 1 is `0.5606/0.5629 s`, also `99.58%`.
+The added six timers execute 25500 times per rank and raise diagnostic R09
+relative to the previous summary, which is observer effect and is not used as
+a score comparison. Phase proportions and same-run parent/child coverage are
+the valid result. `wetdry_tile`, not the three visible mass-flux loops, is the
+next compute kernel to inspect; the mass-flux exchange is a separate MPI
+candidate and must not be attributed to stencil arithmetic.
+
+Ordinary score build job `118965267` produced candidate
+`Local_Lab/runs/validation/candidate_20260811T174036Z_25028`, SHA-256
+`8c59701c46605a1a4e43c983850b8977d9b0eb7447c23ccce2ad33c205246fdb`,
+again byte-identical to the accepted score binary. The bounded evidence bundle
+is
+`profile_bundle_logs/r09-transport-phases-diagnostic-summary_20260811T174749Z_profile_bundle.json`.

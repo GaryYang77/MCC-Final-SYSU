@@ -90,6 +90,12 @@ SITE_DEFINITIONS = {
         SiteDefinition(204, 9, "barotropic", "step2d", "forcing_coupling", "step2d_forcing_coupling"),
         SiteDefinition(205, 9, "barotropic", "step2d", "momentum_update", "step2d_momentum_update"),
         SiteDefinition(206, 9, "barotropic", "step2d", "bc_exchange", "step2d_bc_exchange"),
+        SiteDefinition(207, 9, "barotropic", "step2d_transport_detail", "mass_flux_compute", "step2d_mass_flux_compute"),
+        SiteDefinition(208, 9, "mpi", "step2d_transport_detail", "mass_flux_exchange", "step2d_mass_flux_exchange"),
+        SiteDefinition(209, 9, "barotropic", "step2d_transport_detail", "volume_conservation", "step2d_volume_conservation"),
+        SiteDefinition(210, 9, "barotropic", "step2d_transport_detail", "time_average", "step2d_time_average"),
+        SiteDefinition(211, 9, "mpi", "step2d_transport_detail", "average_exchange", "step2d_average_exchange"),
+        SiteDefinition(212, 9, "barotropic", "step2d_transport_detail", "wetdry", "step2d_wetdry"),
     )
 }
 
@@ -411,6 +417,7 @@ def validate_diagnostic_report(
         | set(range(181, 192))
         | set(range(192, 199))
         | set(range(199, 207))
+        | set(range(207, 213))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -461,6 +468,7 @@ def validate_profile_consistency(
         "put_refine3d": 54,
         "pre_step3d": 22,
         "step2d": 9,
+        "step2d_transport_detail": 9,
         "tracer_flux_assembly": 35,
     }
     for operation in diagnostics.get("operations", []):
