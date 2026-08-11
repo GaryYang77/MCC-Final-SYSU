@@ -190,8 +190,8 @@ score PROFILE 的提升通常能预测 no-profile 的提升，但不是逻辑保
    ```
 
    `git restore` 不处理新增未跟踪文件：用 `git status --short` 对照实验开始时的文件清单，逐个移到 `/tmp/<experiment>-failed/` 留档。**禁止 `git clean`、禁止 `git reset --hard`**；确认工作树无他人修改才可恢复；commit 后才发现问题用 `git revert <bad-commit>`。恢复后确认 diff 与新增文件已清除，重新同步并让适用门禁 PASS，才能开始下一设计。结果接近噪声由团队决定是否复测，默认不加作业。
-8. **commit**：exact 候选在 4n64 DEMO 及任何触发的 validate 通过且性能方向有效后，运行 `git diff --check`、审查 diff，用明确文件列表 `git add`（禁止 `git add .`）。该 commit 成为新的筛选 reference；每个 kernel 阶段结束后还需用同源码 4n96/`6x16` 生产配置确认累计收益。MPI/分块/通信/同步类改动，commit 前额外检查正常结束、输出齐全、NaN/Inf、26 项 comparison、rank 离散。numerical 候选在完整三天和官方验证通过前不得合入 accepted `main`，可保留在实验分支形成待验收 commit。
-9. **完整三天与官方验证的触发条件**：exact 普通 commit 不逐个运行，团队选出的阶段累计候选才运行；numerical 候选则是合入 accepted `main` 的强制门禁。二者都必须使用同源码 no-profile、4n96/`6x16`/L3-balanced 和官方 `vali.py`，不得用 4n64 score 或 diagnostic wall 替代。
+8. **commit**：exact 候选在 4n64 DEMO 及任何触发的 validate 通过且性能方向有效后，运行 `git diff --check`、审查 diff，用明确文件列表 `git add`（禁止 `git add .`）。该 commit 成为新的筛选 reference；kernel 阶段累计候选只有达到下一条的 5% 触发阈值，才用同源码 4n96/`6x16` 生产配置确认累计收益。MPI/分块/通信/同步类改动，commit 前额外检查正常结束、输出齐全、NaN/Inf、26 项 comparison、rank 离散。numerical 候选在完整三天和官方验证通过前不得合入 accepted `main`，可保留在实验分支形成待验收 commit。
+9. **完整三天与官方验证的触发条件**：除团队已经启动且接近完成的任务外，后续候选只有在同配置、可比的 DEMO 中，相对 accepted reference 的可信总时间至少下降 **5%**，才允许运行完整三天。低于 5% 的候选只做 DEMO 和触发式 validate，不消耗完整任务机时；numerical 候选可保留在实验分支，但在满足该触发阈值并通过完整三天与官方验证前不得合入 accepted `main`。5% 必须排除 R03 输入分发、R44 broadcast、文件系统抖动、慢节点和异常 MPI 环境等非源码收益，不能用目标 region 的局部降幅替代总时间降幅。达到 5% 只是允许启动完整任务的必要条件，不替代同源码 no-profile、4n96/`6x16`/L3-balanced 和官方 `vali.py` 门禁，也不得用 diagnostic wall 作为触发依据。
 
 ### profiler-v2 按需诊断流程
 

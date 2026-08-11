@@ -127,8 +127,11 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 - 继续记录 max_abs、RMSE/阈值比和剩余余量，供风险判断与专家评审；max_abs 不冒充
   官方硬判据。
 - DEMO、独立 validate 和生产配置性能证据均通过。
-- 只有性能收益明确的候选才运行完整三天；在合入 accepted `main` 前必须使用同源码
-  no-profile 二进制通过官方 `vali.py`。
+- 除已经启动且接近完成的生产检查外，后续候选只有在同配置、可比的 DEMO 中，
+  相对 accepted reference 的可信总时间至少下降 **5%**，才运行完整三天；低于 5%
+  只做 DEMO 和触发式 validate。5% 必须排除 I/O、broadcast、文件系统、慢节点和
+  异常 MPI 环境噪声，不能以局部 region 降幅替代总时间降幅。达到阈值后，在合入
+  accepted `main` 前仍必须使用同源码 no-profile 二进制通过官方 `vali.py`。
 - 不得通过修改官方脚本、阈值、变量集合、参考数据或 comparison 逻辑挽救候选。
 
 内部 comparison 已实现显式 `exact`/`numerical` 模式，默认保持 `exact`。numerical
@@ -144,10 +147,11 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 - 4n64/`8x8`、60/300 score DEMO 保留为低延迟热点发现和日常筛选配置。
 - 最终生产配置是 4n96/`6x16`/L3-balanced；短作业受节点差异影响，生产确认需在
   同一 allocation 预检慢节点。
-- exact 候选可沿现有日常门禁累计；每个 kernel 阶段结束后，用同源码 4n96 生产
-  配置确认累计收益。
-- numerical 候选在工具支持后仍只优化一个假设，但完整三天和官方验证是合入
-  accepted `main` 的门禁，不能把多个未经全量验证的误差候选连续叠加。
+- exact 候选可沿现有日常门禁累计；只有阶段累计 DEMO 达到可信总时间下降 5%，
+  才用同源码 4n96 生产配置确认累计收益。
+- numerical 候选仍只优化一个假设；低于 5% 时只保留在实验分支，不把多个未经
+  全量验证的误差候选连续叠加。达到 5% 后，完整三天和官方验证仍是合入
+  accepted `main` 的门禁。
 - score PROFILE 用于因果归因，no-profile 才是成绩。diagnostic wall 不用于声称收益。
 
 ## Phase 6 第一项工作
@@ -157,3 +161,8 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 3. 在独立 profiler 分支细化 R35 horizontal tracer advection；验收后冻结 profiler。
 4. 获取 ifort 对实际 R35 热循环的向量化报告。
 5. 基于计时和向量化证据选择一个计算改写，走单假设模型优化流程。
+
+第一轮 C4 X/Y 中心项代数化简已在实验分支 `perf/r35-c4-xy-stencil` 留档：DEMO
+Grid-2 R35 仅下降 0.22%，完整 no-profile 仅下降约 0.49%，而完整任务
+`Dongsha60/u` 已使用 89.4% 的官方 RMSE 阈值。候选虽通过官方验证，仍因收益/精度
+余量比不合理而拒绝合入；accepted exact 源码继续保持在 `bb50230`。
