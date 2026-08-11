@@ -884,17 +884,11 @@
 !
 ! Time-step vertical advection of tracers (Tunits).
 !
-          IF (iic(ng).eq.ntfirst(ng)) THEN
-            cff=0.5_r8*dt(ng)
-          ELSE
-            cff=(1.0_r8-Gamma)*dt(ng)
-          END IF
           DO k=1,N(ng)
             DO i=Istr,Iend
-              cff1=cff*pm(i,j)*pn(i,j)
               t(i,j,k,3,itrc)=DC(i,k)*                                  &
      &                        (t(i,j,k,3,itrc)-                         &
-     &                         cff1*(FC(i,k)-FC(i,k-1)))
+     &                         cffpmnp(i,j)*(FC(i,k)-FC(i,k-1)))
             END DO
           END DO
         END DO T_LOOP2
