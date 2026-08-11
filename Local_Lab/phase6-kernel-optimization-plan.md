@@ -282,3 +282,14 @@ BC-exchange 合计约 `0.951 s`，不得混入下一计算实验。下一步先�
 coefficient loop ifort 向量化报告，再只选择一个关于重复幂、平方根、除法或 GLS
 不变量的可证伪假设。证据为
 `profile_bundle_logs/r19-phases-diagnostic-summary_20260811T204510Z_profile_bundle.json`。
+
+R19 coefficient `k -> i` 连续化与 `Akt` loop fission 假设被 job `118980068`
+明确否定：26 变量仍逐位一致，但 Grid-1/Grid-2 R19 分别回退 `6.66%/7.35%`，
+raw total 回退 `1.18%`。accepted/candidate compile-only jobs `118979004/118979979`
+显示，fission 后的 `Akt` 连续写回虽成功向量化，但承载 limiter、stability function、
+平方根和除法的主 `i` loop 仍被 general `pow` 与 ifort 保守依赖判断阻止 SIMD；连续
+访问收益不足以抵消 loop interchange 和 row scratch 成本。候选未 commit，源码已恢复
+到 accepted commit `222d298`，失败记录保存在
+`/tmp/r19-coefficient-i-contiguous-failed/`。下一步不得继续为 coefficient 主循环增加
+scratch 或强制向量化；若转向第二计算段 production/dissipation，只允许先验证一个
+保持原乘法顺序的公共子表达式复用假设。
