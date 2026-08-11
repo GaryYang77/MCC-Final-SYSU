@@ -198,3 +198,11 @@ sites 207--212 进一步确认 Grid-2 transport/setup 的 `1.853 s` 中，`wetdr
 预处理源码与 ifort report 检查重复扫描、连续访问和分支/SIMD，不把 MPI exchange
 混入同一模型实验。证据为 job `118965815` 和
 `profile_bundle_logs/r09-transport-phases-diagnostic-summary_20260811T174749Z_profile_bundle.json`。
+
+wetdry sites 213--220 最终把 current masks 分成 compute 与 four-array exchange。
+job `118967950` 的 Grid-2 current-mask parent 为 `0.706 s`，compute 仅 `0.208 s`，
+exchange 为 `0.492 s`，父子覆盖 99.25%。因此 wetdry 主要是通信路径，不是当前最大
+计算 kernel；R09 计算优先级回到 advection/rotation（`1.040 s`），其次是 viscosity
+（`0.666 s`）。下一模型实验先取得实际 advection loops 的 ifort vectorization report，
+只选择一个不改变离散格式或浮点顺序的假设。最终诊断证据为
+`profile_bundle_logs/r09-wetdry-compute-exchange-diagnostic-summary_20260811T182131Z_profile_bundle.json`。
