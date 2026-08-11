@@ -302,3 +302,12 @@ IPO 已完成相同 CSE。该候选没有信息增量，因此未运行 DEMO、�
 `b7508c1`，记录保存在 `/tmp/r19-wall-base-cache-failed/`。后续若继续该子段，应优先
 检查 production 中重复的 `Akv-Akv_bak`、`Akt-Akt_bak` 是否同样已被代码生成消除，
 仍以候选二进制哈希作为 DEMO 前的低成本证伪门槛。
+
+production 差值复用随后也未达到接受门槛。缓存 `Akv-Akv_bak` 与
+`Akt-Akt_bak` 后，build job `118980787` 生成了不同二进制，但 score job
+`118981072` 中 Grid-1/Grid-2 R19 仅改善 `0.09%/0.20%`；Grid-2 R09 同时回退
+`1.83%`，其绝对代价远大于 R19 节省。raw total 的 `0.12%` 改善伴随有利 R03/R44
+波动，不能归因于源码。候选未 commit、未复跑，源码恢复到 `5031759`，记录保存在
+`/tmp/r19-production-differences-failed/`。R19 当前已连续排除主循环换序、wall-base
+CSE 和 production 差值复用；在没有新的 profiler/编译器证据前停止机械微调，回到
+accepted score bundle 重排剩余宽计算 region。
