@@ -1151,14 +1151,11 @@
           END DO
         END IF
       END IF
+      cff=1.0_r8/6.0_r8
       DO j=Jstr,Jend+1
         DO i=IstrU-1,Iend
           Dgrad(i,j)=DVom(i-1,j)-2.0_r8*DVom(i,j)+DVom(i+1,j)
         END DO
-      END DO
-
-      cff=1.0_r8/6.0_r8
-      DO j=Jstr,Jend+1
         DO i=IstrU,Iend
           UFe(i,j)=0.25_r8*(ubar(i,j  ,krhs)+                           &
 #   ifdef NEARSHORE_MELLOR
@@ -1196,14 +1193,15 @@
           END DO
         END IF
       END IF
-      DO j=JstrV-1,Jend
+      cff=1.0_r8/6.0_r8
+      DO i=Istr,Iend+1
+        Dgrad(i,JstrV-1)=DUon(i,JstrV-2)-                              &
+     &                   2.0_r8*DUon(i,JstrV-1)+DUon(i,JstrV)
+      END DO
+      DO j=JstrV,Jend
         DO i=Istr,Iend+1
           Dgrad(i,j)=DUon(i,j-1)-2.0_r8*DUon(i,j)+DUon(i,j+1)
         END DO
-      END DO
-
-      cff=1.0_r8/6.0_r8
-      DO j=JstrV,Jend
         DO i=Istr,Iend+1
           VFx(i,j)=0.25_r8*(vbar(i  ,j,krhs)+                           &
 #   ifdef NEARSHORE_MELLOR
