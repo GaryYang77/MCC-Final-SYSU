@@ -63,6 +63,7 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 
 - R35 `step3d_t/tracer_corrector` 的 setup、horizontal advection、vertical
   advection、vertical diffusion、final update 五段计时。
+- R22 `pre_step3d` 七段和 R09 `step2d` 八段计时。
 - contact3d/f2csum 的 plan、pack、MPI、unpack；broadcast；`put_refine3d` 总段。
 - rank/node 元数据和按需 Perfetto trace。
 
@@ -70,10 +71,8 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 
 - R35 最大子段 horizontal advection 内部的 X stencil、Y stencil、flux
   divergence/update 和 nesting flux assembly 拆分。
-- R22 `pre_step3d` 内的 AB 历史项、tracer predictor、垂向隐式系数/solve、
-  forcing/mask 拆分。
-- R09 `step2d` 的 predictor/corrector、zeta、ubar/vbar、advection、pressure、
-  Coriolis、viscosity 拆分。
+- R22 与 R09 的当前阶段仍较宽；只有当某个子段成为下一项优化目标且源码审查仍无法
+  区分计算/通信时，再继续拆分该子段。
 - R34 `step3d_uv` 的垂向黏性系数、forward elimination、back substitution、
   barotropic correction、BC/halo 拆分。
 - halo2d/3d/4d 的 site 名称虽已在 Python 分析器注册，但模型源码尚无相应
@@ -184,3 +183,11 @@ GLS guard 同时回退，按预声明门禁拒绝。commit `952677f` 复用已�
 自动复跑；新的筛选 reference 是
 `r22-vertical-time-metric-4n64-16ppn_20260811T164844Z_21545`。累计可信收益仍不足 5%，
 不得运行完整三天。
+
+R09 随后通过 sites 199--206 拆成 transport/setup、free surface、pressure gradient、
+advection/rotation、viscosity、forcing/coupling、momentum update 和 BC/exchange。
+job `118964367` 的 Grid-2 父子覆盖率为 99.62%；最大三个子段分别为
+`1.761/1.040/0.666 s`。普通 score build job `118963924` 与 accepted 二进制哈希完全
+一致，证明插桩和扩大的 site 存储均已编译掉。下一项先审查 transport/setup 中的
+mass-flux 循环、halo 和 volume-conservation 边界，结合 ifort 向量化报告选择单一
+计算假设；不得把其中的 MPI 等待误归因于 stencil 算术。
