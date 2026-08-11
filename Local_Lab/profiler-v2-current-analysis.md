@@ -589,3 +589,40 @@ roots, divisions, and invariant GLS constants. Production/dissipation remains
 the second target and must not be mixed into that experiment. The bounded
 bundle is
 `profile_bundle_logs/r19-phases-diagnostic-summary_20260811T204510Z_profile_bundle.json`.
+
+## 2026-08-12 R15 CoSiNE biology broad split
+
+After the R19 coefficient and production hypotheses were rejected, the
+accepted score bundle was reranked again. Grid-2 R15 biology was the next
+wide compute region at about `3.406 s`, ahead of R27 tracer biharmonic mixing
+at `2.251 s` and R34 `step3d_uv` at `0.986 s`. With only sites 239--240 left
+in the existing diagnostic capacity, the first R15 pass deliberately uses a
+broad two-part split: local setup/light/biogeochemical reactions (site 239),
+then sinking, bounds, and final tracer writeback (site 240).
+
+Diagnostic build job `118981479` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T215307Z_63581/bin/oceanM`,
+SHA-256
+`f667e8db7291d2a886d841a6f37474b13c85616e6b9619206bed29aa4ee7584e`.
+The parallel ordinary score build job `118981463` produced
+`Local_Lab/runs/validation/candidate_20260811T215301Z_13189/bin/oceanM` with
+the unchanged accepted SHA-256
+`1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`.
+
+Summary job `118981786`, run
+`Local_Lab/runs/profile128/r15-biology-phases-diagnostic-summary_20260811T215947Z_63313`,
+ended normally, passed all diagnostic checks, and remained bitwise identical
+for all 26 compared variables.
+
+| R15 biology phase | Grid 1 mean | Grid 2 mean | Grid 2 share of R15 |
+| --- | ---: | ---: | ---: |
+| local setup/light/reactions | 0.800 s | 2.689 s | 78.7% |
+| sinking/bounds/final writeback | 0.235 s | 0.724 s | 21.2% |
+
+The two sites cover `1.0352/1.0368 s` on Grid 1 (`99.85%`) and
+`3.4129/3.4191 s` on Grid 2 (`99.82%`). Grid 1 has 11 ranks with no wet rows,
+so the site records correctly have zero calls there while all 64 rank records
+remain present. The next profiler change should refine only site 239 into
+state/setup, light attenuation, and the main local source/sink equations.
+Sinking is not the first compute target. The bounded bundle is
+`profile_bundle_logs/r15-biology-phases-diagnostic-summary_20260811T215947Z_profile_bundle.json`.

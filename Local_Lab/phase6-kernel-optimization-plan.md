@@ -311,3 +311,15 @@ production 差值复用随后也未达到接受门槛。缓存 `Akv-Akv_bak` 与
 `/tmp/r19-production-differences-failed/`。R19 当前已连续排除主循环换序、wall-base
 CSE 和 production 差值复用；在没有新的 profiler/编译器证据前停止机械微调，回到
 accepted score bundle 重排剩余宽计算 region。
+
+accepted bundle 的再次重排把 Grid-2 R15 CoSiNE biology 定为下一个尚未细分的宽
+计算 region（约 `3.406 s`，高于 R27 `2.251 s` 与 R34 `0.986 s`）。sites 239--240
+先将其保守拆成局地生化反应与沉降/最终回写两大段。summary job `118981786` 正常
+结束、26 变量逐位一致，Grid-1/Grid-2 两段对 R15 的覆盖率分别为
+`99.85%/99.82%`。Grid-2 局地生化反应为 `2.689 s`（R15 的 78.7%），沉降/最终
+回写为 `0.724 s`（21.2%）。因此下一步只继续细分局地生化反应，优先区分状态提取、
+光限制和主 source/sink 方程；不得先凭源码长度修改 sinking，也不得把多个生化公式
+改写混入同一实验。证据为 run
+`Local_Lab/runs/profile128/r15-biology-phases-diagnostic-summary_20260811T215947Z_63313`
+及 bundle
+`profile_bundle_logs/r15-biology-phases-diagnostic-summary_20260811T215947Z_profile_bundle.json`。

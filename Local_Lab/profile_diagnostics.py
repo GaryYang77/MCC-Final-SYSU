@@ -122,6 +122,8 @@ SITE_DEFINITIONS = {
         SiteDefinition(236, 19, "gls", "gls_vertical_mixing", "corrector_implicit_solve", "gls_corrector_implicit_solve"),
         SiteDefinition(237, 19, "gls", "gls_vertical_mixing", "corrector_coefficients", "gls_corrector_coefficients"),
         SiteDefinition(238, 19, "mpi", "gls_vertical_mixing", "corrector_bc_exchange", "gls_corrector_bc_exchange"),
+        SiteDefinition(239, 15, "biology", "biology_source_sink", "local_reactions", "biology_local_reactions"),
+        SiteDefinition(240, 15, "biology", "biology_source_sink", "sinking_final_update", "biology_sinking_final_update"),
     )
 }
 
@@ -449,6 +451,7 @@ def validate_diagnostic_report(
         | set(range(221, 225))
         | set(range(225, 229))
         | set(range(229, 239))
+        | set(range(239, 241))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -506,6 +509,7 @@ def validate_profile_consistency(
         "step2d_viscosity": 9,
         "tracer_flux_assembly": 35,
         "gls_vertical_mixing": 19,
+        "biology_source_sink": 15,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])

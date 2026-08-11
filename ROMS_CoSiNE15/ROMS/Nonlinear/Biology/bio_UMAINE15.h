@@ -392,6 +392,9 @@
 #ifdef MASKING
         IF (MAXVAL(rmask(Istr:Iend,j)).le.0.0_r8) CYCLE J_LOOP
 #endif
+#ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 239)
+#endif
       
       
         DO k=1,N(ng)
@@ -1474,6 +1477,10 @@
 #endif
 
 
+#ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 239, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, iNLM, 240)
+#endif
 ! 
 !-----------------------------------------------------------------------
 !     CALCULATING THE SINKING FLUX
@@ -1802,6 +1809,9 @@
             END DO
           END DO
         END DO
+#ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 240, 0.0_r8, 0.0_r8, 0)
+#endif
         
         
       END DO J_LOOP
@@ -2744,7 +2754,6 @@
       RETURN
       END SUBROUTINE optic_property
 #endif
-
 
 
 
