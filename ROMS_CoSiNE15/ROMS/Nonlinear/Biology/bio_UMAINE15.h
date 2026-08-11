@@ -637,6 +637,7 @@
 #ifdef PROFILE_DIAGNOSTIC
        CALL profile_site_off (ng, iNLM, 242, 0.0_r8, 0.0_r8, 0)
        CALL profile_site_on (ng, iNLM, 243)
+       CALL profile_site_on (ng, iNLM, 244)
 #endif
        DO k=1,N(ng)
           DO i=Istr,Iend
@@ -1360,6 +1361,10 @@
       
       
       
+#ifdef PROFILE_DIAGNOSTIC
+       CALL profile_site_off (ng, iNLM, 244, 0.0_r8, 0.0_r8, 0)
+       CALL profile_site_on (ng, iNLM, 245)
+#endif
 !other flux
 
 #if defined OXYGEN || defined CARBON
@@ -1489,6 +1494,7 @@
 
 
 #ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 245, 0.0_r8, 0.0_r8, 0)
         CALL profile_site_off (ng, iNLM, 243, 0.0_r8, 0.0_r8, 0)
         CALL profile_site_off (ng, iNLM, 239, 0.0_r8, 0.0_r8, 0)
         CALL profile_site_on (ng, iNLM, 240)
@@ -2766,6 +2772,5 @@
       RETURN
       END SUBROUTINE optic_property
 #endif
-
 
 

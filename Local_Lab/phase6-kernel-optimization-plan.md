@@ -333,3 +333,13 @@ loop 与其后的 O2/CO2 gas-exchange calls。下一轮只在 loop-nest 边界�
 `Local_Lab/runs/profile128/r15-local-reactions-diagnostic-summary_20260811T221600Z_39597`
 及 bundle
 `profile_bundle_logs/r15-local-reactions-diagnostic-summary_20260811T221600Z_profile_bundle.json`。
+
+sites 244--245 最终在 loop/call 边界把 source/sink 段分成点式 CoSiNE 反应与 O2/CO2
+gas exchange。summary job `118983545` 正常结束、26 变量逐位一致；Grid-2 两段分别
+为 `1.094/0.951 s`，合计覆盖 site 243 的 `99.91%`。Grid-1 两段为
+`0.352/0.234 s`，覆盖同样为 `99.91%`。点式反应 loop 仅略高于 gas exchange，故
+下一模型实验先取得实际预处理源码的 ifort report，只选择一个不改变生化方程与浮点
+顺序的重复计算/内存假设，并把 gas exchange 作为稳定 guard；两者不得混改。证据为
+run `Local_Lab/runs/profile128/r15-source-sink-diagnostic-summary_20260811T222901Z_57614`
+及 bundle
+`profile_bundle_logs/r15-source-sink-diagnostic-summary_20260811T222901Z_profile_bundle.json`。

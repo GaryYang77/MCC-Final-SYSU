@@ -656,3 +656,32 @@ last profiler split should separate those at their loop/call boundary; it
 must not put timers inside the innermost grid-point loop. The bounded bundle
 is
 `profile_bundle_logs/r15-local-reactions-diagnostic-summary_20260811T221600Z_profile_bundle.json`.
+
+## 2026-08-12 R15 source/sink final split
+
+Sites 244--245 split site 243 at the existing loop/call boundary into the
+pointwise CoSiNE reaction loop and the subsequent O2/CO2 gas-exchange work.
+Diagnostic build job `118983033` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T222214Z_39310/bin/oceanM`,
+SHA-256
+`cd847c95584850ecc5e9393df4675cc1232ad32c1969f3e8416a0b123882d268`.
+Ordinary score build job `118983020` again produced the unchanged accepted
+SHA-256
+`1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`.
+
+Summary job `118983545`, run
+`Local_Lab/runs/profile128/r15-source-sink-diagnostic-summary_20260811T222901Z_57614`,
+passed normal end, exact comparison, and all diagnostic checks.
+
+| source/sink child | Grid 1 mean | Grid 2 mean | Grid 2 share of R15 |
+| --- | ---: | ---: | ---: |
+| pointwise CoSiNE reactions | 0.352 s | 1.094 s | 31.7% |
+| O2/CO2 gas exchange | 0.234 s | 0.951 s | 27.6% |
+
+The two children cover site 243 by `99.91%` on both grids. The pointwise
+reaction loop is the first compute target, but only narrowly. Obtain an ifort
+vectorization report from the actual preprocessed source before choosing one
+exact-equivalence repeated-computation or memory hypothesis. Gas exchange is
+a stable guard and must not be modified in the same model experiment. The
+bounded bundle is
+`profile_bundle_logs/r15-source-sink-diagnostic-summary_20260811T222901Z_profile_bundle.json`.
