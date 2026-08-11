@@ -702,3 +702,19 @@ Grid-1 R15 did not improve, and Grid-2 R09 regressed 2.31%. The 0.54% lower
 raw total coincided with favorable R03/R44 movement and is not attributable
 to the source. The candidate was not committed or rerun; its record is in
 `/tmp/r15-redundant-k-branches-failed/`.
+
+A second exact pointwise hypothesis cached five tracer values in scalars and
+reused them through the grazing/remineralization block while preserving every
+arithmetic association. Build job `118984782` produced a distinct binary, but
+score job `118985082`, run
+`Local_Lab/runs/profile128/r15-tracer-scalar-cache-4n64-16ppn_20260811T230245Z_9095`,
+rejected it. All 26 comparisons were exact; Grid-2 R15 regressed 0.77%,
+Grid-2 R09/R35 regressed 3.41%/0.80%, and total regressed 0.45%. Grid-1 R15
+improved only 0.26%. The larger scalar live set likely increased register
+pressure. The candidate was restored without commit or rerun; evidence is in
+`/tmp/r15-tracer-scalar-cache-failed/`.
+
+After two pointwise exact failures, the next R15 target is the nearly equal
+gas-exchange child (`0.951 s` on Grid 2). Inspect the actual inlined CO2/O2
+solver loops and their compiler report before selecting one hypothesis; do
+not continue mechanical scalar caching in the pointwise loop.

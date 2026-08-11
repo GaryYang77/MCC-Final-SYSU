@@ -354,3 +354,13 @@ length 2 向量化，估计 speedup 仅 `1.27`；5 个 `exp` 在 `-fp-model prec
 尝试 exact 优化，应针对编译器报告中的 unaligned loads 或可证明不改除法/exp 结果的
 单一数据复用假设。改变 `fp-model`/SVML 属 numerical 编译实验，必须独立声明且仍受
 5% 全量触发门槛约束。
+
+随后用 5 个 tracer 标量替换 grazing/remineralization 段的重复 `Bio` 加载，保持每个
+乘法、加法、除法和 `exp` 的原结合顺序。候选 build job `118984782` 生成不同二进制，
+但 score job `118985082` 的 Grid-2 R15 回退 `0.77%`，Grid-2 R09/R35 同时回退
+`3.41%/0.80%`，total 回退 `0.45%`；仅 Grid-1 R15 改善 `0.26%`。候选未 commit、
+未复跑，记录在 `/tmp/r15-tracer-scalar-cache-failed/`。显式增加 tracer scalar live
+ranges 很可能提高寄存器压力，后续不得继续扩展 pointwise loop 的手工 scalar cache。
+R15 pointwise exact 微调连续两次失败后，应先转向同一 R15 内几乎同量级的 gas
+exchange（Grid-2 `0.951 s`），从其实际 inlined CO2/O2 调用与 solver loop 的编译报告
+形成下一假设，而不是继续机械清理点式公式。
