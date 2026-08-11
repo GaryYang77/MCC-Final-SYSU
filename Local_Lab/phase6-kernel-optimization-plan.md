@@ -293,3 +293,12 @@ raw total 回退 `1.18%`。accepted/candidate compile-only jobs `118979004/11897
 `/tmp/r19-coefficient-i-contiguous-failed/`。下一步不得继续为 coefficient 主循环增加
 scratch 或强制向量化；若转向第二计算段 production/dissipation，只允许先验证一个
 保持原乘法顺序的公共子表达式复用假设。
+
+production/dissipation 的首个窄假设也在 build 阶段被否定：将 Lmy25 wall function
+两项中重复的左结合前缀 `gls_power*cmu_fac1*tke_power` 显式缓存后，job
+`118980384` 生成的 SHA-256 仍为 accepted
+`1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`，证明 Intel
+IPO 已完成相同 CSE。该候选没有信息增量，因此未运行 DEMO、未 commit；源码恢复到
+`b7508c1`，记录保存在 `/tmp/r19-wall-base-cache-failed/`。后续若继续该子段，应优先
+检查 production 中重复的 `Akv-Akv_bak`、`Akt-Akt_bak` 是否同样已被代码生成消除，
+仍以候选二进制哈希作为 DEMO 前的低成本证伪门槛。
