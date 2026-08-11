@@ -191,3 +191,10 @@ job `118964367` 的 Grid-2 父子覆盖率为 99.62%；最大三个子段分别�
 一致，证明插桩和扩大的 site 存储均已编译掉。下一项先审查 transport/setup 中的
 mass-flux 循环、halo 和 volume-conservation 边界，结合 ifort 向量化报告选择单一
 计算假设；不得把其中的 MPI 等待误归因于 stencil 算术。
+
+sites 207--212 进一步确认 Grid-2 transport/setup 的 `1.853 s` 中，`wetdry_tile`
+占 `1.139 s`（61.5%），mass-flux exchange 占 `0.417 s`，本地 mass-flux 循环仅占
+`0.154 s`，子段覆盖 99.39%。因此当前计算目标转为 wet/dry mask kernel；先结合实际
+预处理源码与 ifort report 检查重复扫描、连续访问和分支/SIMD，不把 MPI exchange
+混入同一模型实验。证据为 job `118965815` 和
+`profile_bundle_logs/r09-transport-phases-diagnostic-summary_20260811T174749Z_profile_bundle.json`。
