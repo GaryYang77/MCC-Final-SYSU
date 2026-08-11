@@ -373,3 +373,19 @@ CO2 gas-exchange 的 exact 不变量外提同样失败：将 `k1*k2`、`k1p*k2p`
 寄存器代价。R15 已完成三级定位并连续否定三种不同 exact 假设；在没有新的编译器
 证据前停止微调，下一宽计算 region 转为 Grid-2 R27 biharmonic tracer mixing
 （accepted score 约 `2.251 s`），先细分其 active stencil/BC 阶段再选择模型实验。
+
+R27 路径核对已完成：应用同时定义 `MIX_GEO_TS` 与 `MIX_S_TS`，但 `t3dmix.F` 的
+条件顺序优先包含 `t3dmix4_s.h`，所以当前执行的是 S-surface biharmonic kernel，
+不是 IDE 中容易误判的 `t3dmix4_geo.h`。diagnostic commit `e329fea` 的 sites 246--248
+分别覆盖 tracer-independent coefficient cache、第一重 harmonic/Laplacian、第二重
+harmonic 与最终 update；普通 build job `118986324` 的 SHA 与 accepted score 二进制
+完全一致，确认打桩未进入正式构建。summary job `118986594` 正常结束、26 变量逐位
+一致、diagnostics validation PASS。Grid-2 R27 parent 为 `2.2829 s`，三段分别为
+`0.0612/1.3787/0.8205 s`，覆盖 parent `99.02%`；第一重 harmonic 占 parent
+`60.4%`，是下一模型优化目标。Grid-1 顺序一致，三段 `0.0247/0.5407/0.3005 s`，
+覆盖 `99.42%`。sites 247--248 每 rank 有 173400 次调用，observer effect 只用于段间
+归因，不得与 score wall 比较。下一 exact 假设优先复用已在 tracer/predictor 验证过的
+all-wet face 判定，在全湿 tile 跳过值为 1 的 U/V 静态和 wet/dry mask 乘法；有任一
+非 1 face 的 tile 必须逐运算保留原路径。先用 ifort report 核对第一重两个 face loop
+的向量化，再决定是否值得一次 4n64 score DEMO。证据 bundle：
+`profile_bundle_logs/r27-t3dmix4-phases-diagnostic-summary_20260811T233659Z_profile_bundle.json`。

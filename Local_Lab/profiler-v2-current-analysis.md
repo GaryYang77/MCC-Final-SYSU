@@ -734,3 +734,31 @@ exact hypotheses. Stop local micro-tuning without new evidence. The next wide
 compute region is Grid-2 R27 biharmonic tracer mixing (about `2.251 s` in the
 accepted score bundle); profile its active stencil and boundary phases before
 any model rewrite.
+
+## 2026-08-12 R27 biharmonic tracer-mixing phases
+
+The application header defines both `MIX_GEO_TS` and `MIX_S_TS`, but
+`t3dmix.F` tests `MIX_S_TS` first. Therefore the active R27 implementation is
+`t3dmix4_s.h`, not `t3dmix4_geo.h`; this also explains why the two earlier
+coefficient-cache optimizations changed R27.
+
+Diagnostic commit `e329fea` added sites 246--248 at loop-nest boundaries for
+the tracer-independent coefficient cache, first harmonic/Laplacian pass, and
+second harmonic plus update. Ordinary build job `118986324` reproduced the
+accepted score SHA-256 exactly
+(`1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`), so
+the sites are absent from score binaries. Diagnostic build job `118986330`
+produced SHA-256
+`940b8b7296ed0b604cbb2cca1a672bee476a732747f35d27448cab2aa0394db7`.
+
+Summary job `118986594`, run
+`Local_Lab/runs/profile128/r27-t3dmix4-phases-diagnostic-summary_20260811T233659Z_13316`,
+ended normally with all 26 comparisons exact and diagnostic validation PASS.
+On Grid 2, R27 was `2.2829 s`; coefficient cache, first harmonic, and second
+harmonic/update were `0.0612/1.3787/0.8205 s`, together covering `99.02%` of
+the parent. The first harmonic alone is about `60.4%` of R27 and is the next
+target. Grid 1 showed the same ordering (`0.0247/0.5407/0.3005 s`, `99.42%`
+coverage). The high 173400 calls/rank for each harmonic child are expected
+from tracer-level boundaries and make this a diagnostic-only attribution;
+its wall is not compared with score performance. Evidence bundle:
+`profile_bundle_logs/r27-t3dmix4-phases-diagnostic-summary_20260811T233659Z_profile_bundle.json`.
