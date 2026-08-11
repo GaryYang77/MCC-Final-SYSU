@@ -799,7 +799,11 @@
      &                  BRY_CONTACT(iwest ,cr)%Tflux,                 &
      &                  BRY_CONTACT(ieast ,cr)%Tflux,                 &
      &                  BRY_CONTACT(isouth,cr)%Tflux,                 &
+#  ifdef PROFILE_DIAGNOSTIC
+     &                  BRY_CONTACT(inorth,cr)%Tflux, ng)
+#  else
      &                  BRY_CONTACT(inorth,cr)%Tflux)
+#  endif
             IF (exit_flag.ne.NoError) RETURN
           END IF
         END DO

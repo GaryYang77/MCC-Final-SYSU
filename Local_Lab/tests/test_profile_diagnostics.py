@@ -193,3 +193,26 @@ def test_profile_consistency_maps_horizontal_subphases_to_r35() -> None:
 
     assert validation["passed"]
     assert validation["checks"][0]["ratio"] == pytest.approx(0.7)
+
+
+def test_tracer_flux_assembly_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        188: "tracer_flux_assembly_setup",
+        189: "tracer_flux_assembly_pack",
+        190: "tracer_flux_assembly_mpi",
+        191: "tracer_flux_assembly_unpack",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "nesting.F"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE assemble_tracer_fluxes", 1)[1].split(
+        "END SUBROUTINE assemble_tracer_fluxes", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 35
+        assert definition.operation == "tracer_flux_assembly"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (profile_ng, model, {site_id})") == 1
+        assert source.count(f"profile_site_off (profile_ng, model, {site_id},") == 1

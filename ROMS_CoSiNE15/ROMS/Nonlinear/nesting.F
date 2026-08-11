@@ -208,7 +208,11 @@
 #  ifdef SOLVE3D
       SUBROUTINE assemble_tracer_fluxes (ng, model,                    &
      &                                   F_west, F_east,               &
+#  ifdef PROFILE_DIAGNOSTIC
+     &                                   F_south, F_north, profile_ng)
+#  else
      &                                   F_south, F_north)
+#  endif
 !
 !=======================================================================
 !                                                                      !
@@ -218,6 +222,9 @@
 !=======================================================================
 !
       USE mod_param
+#  ifdef PROFILE_DIAGNOSTIC
+      USE mod_parallel, ONLY : numthreads
+#  endif
       USE mod_scalars, ONLY : exit_flag, NoError
       USE distribute_mod, ONLY : mp_assemble
 !
@@ -226,6 +233,9 @@
 !  Imported variable declarations.
 !
       integer, intent(in) :: ng, model
+#  ifdef PROFILE_DIAGNOSTIC
+      integer, intent(in) :: profile_ng
+#  endif
 
       real(r8), intent(inout) :: F_west(:,:,:), F_east(:,:,:)
       real(r8), intent(inout) :: F_south(:,:,:), F_north(:,:,:)
@@ -244,10 +254,17 @@
       NptsWE=SIZE(F_west)
       NptsSN=SIZE(F_south)
       Npts=2*(NptsWE+NptsSN)
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (profile_ng, model, 188)
+# endif
       IF (allocated(Fpack)) THEN
         IF (SIZE(Fpack).ne.Npts) deallocate (Fpack)
       END IF
       IF (.not.allocated(Fpack)) allocate (Fpack(Npts))
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (profile_ng, model, 188, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (profile_ng, model, 189)
+# endif
 
       p=0
       Fpack(p+1:p+NptsWE)=RESHAPE(F_west, (/NptsWE/))
@@ -258,9 +275,22 @@
       p=p+NptsSN
       Fpack(p+1:p+NptsSN)=RESHAPE(F_north, (/NptsSN/))
 
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (profile_ng, model, 189, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (profile_ng, model, 190)
+# endif
       CALL mp_assemble (ng, model, Npts, 0.0_r8, Fpack)
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (profile_ng, model, 190,                  &
+     &                       REAL(Npts,r8)*8.0_r8,                    &
+     &                       REAL(Npts,r8)*8.0_r8,                    &
+     &                       MAX(0,numthreads-1))
+# endif
       IF (exit_flag.ne.NoError) RETURN
 
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (profile_ng, model, 191)
+# endif
       p=0
       F_west=RESHAPE(Fpack(p+1:p+NptsWE), SHAPE(F_west))
       p=p+NptsWE
@@ -269,6 +299,9 @@
       F_south=RESHAPE(Fpack(p+1:p+NptsSN), SHAPE(F_south))
       p=p+NptsSN
       F_north=RESHAPE(Fpack(p+1:p+NptsSN), SHAPE(F_north))
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (profile_ng, model, 191, 0.0_r8, 0.0_r8, 0)
+# endif
 
       RETURN
       END SUBROUTINE assemble_tracer_fluxes

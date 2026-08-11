@@ -71,6 +71,10 @@ SITE_DEFINITIONS = {
         SiteDefinition(185, 35, "tracer", "corrector_horizontal", "sources_nesting", "horizontal_sources_nesting"),
         SiteDefinition(186, 35, "tracer", "corrector_horizontal", "update", "horizontal_divergence_update"),
         SiteDefinition(187, 35, "tracer", "corrector_horizontal", "assembly", "horizontal_flux_assembly"),
+        SiteDefinition(188, 35, "tracer", "tracer_flux_assembly", "setup", "tracer_flux_assembly_setup"),
+        SiteDefinition(189, 35, "tracer", "tracer_flux_assembly", "pack", "tracer_flux_assembly_pack"),
+        SiteDefinition(190, 35, "mpi", "tracer_flux_assembly", "mpi", "tracer_flux_assembly_mpi"),
+        SiteDefinition(191, 35, "tracer", "tracer_flux_assembly", "unpack", "tracer_flux_assembly_unpack"),
     )
 }
 
@@ -389,7 +393,7 @@ def validate_diagnostic_report(
         | set(range(111, 116))
         | {121}
         | set(range(131, 136))
-        | set(range(181, 188))
+        | set(range(181, 192))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -438,6 +442,7 @@ def validate_profile_consistency(
         "corrector_horizontal": 35,
         "f2csum": 49,
         "put_refine3d": 54,
+        "tracer_flux_assembly": 35,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])

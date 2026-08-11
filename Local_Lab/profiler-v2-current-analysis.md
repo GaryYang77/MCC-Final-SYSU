@@ -201,3 +201,42 @@ instrumentation. The authoritative no-profile phase score is therefore
 boundary. The `70.0 s` objective is not yet achieved; `1.72 s` remains. The
 bounded evidence bundle is
 `profile_bundle_logs/all-wet-mask-phase-paired-overhead-on_20260809T022450Z_profile_bundle.json`.
+
+## 2026-08-11 R35 tracer-flux assembly split
+
+The R35 horizontal `assembly` site was split into setup/allocation, pack, MPI,
+and unpack sites 188--191. The final diagnostic build was Slurm job
+`118955218`, binary
+`Local_Lab/builds/profiling/diagnostic_20260811T145213Z_36291/bin/oceanM`,
+SHA-256
+`04715f1564aaea4911e3a40de70bea44246926a18a5ec16989cff61cd2eaaac0`.
+The accepted final summary is job `118955359`, run
+`Local_Lab/runs/profile128/r35-tracer-flux-assembly-gridlabel-final-summary_20260811T145818Z_52798`.
+It ended normally, remained bitwise identical for all 26 variables, and passed
+diagnostic metadata and parent-region consistency checks.
+
+For Grid 2, parent assembly mean was `3.2544 s`; child means were setup
+`0.0006 s`, pack `0.4991 s`, MPI `1.9691 s`, and unpack `0.7839 s`. Thus MPI
+accounts for about 60.5%, while direct pack/unpack memory work accounts for
+about 39.4% (`1.2830 s`). For Grid 1, parent assembly was `1.3238 s`; setup,
+pack, MPI, and unpack were `0.0003/0.1170/0.9584/0.2478 s` respectively. The
+calls per rank match the parent exactly: 300 on Grid 2 and 61 on Grid 1.
+
+An earlier summary job `118954652` is retained as failed profiler evidence: the
+first patch started sites 188/189 in the adjacent boundary-flux routine and
+stopped them in the tracer routine. The model and exact output comparison
+passed, but diagnostic consistency correctly rejected the nonsensical
+cross-call totals. The corrected test now scopes instrumentation assertions to
+the `assemble_tracer_fluxes` subroutine. A second summary established the
+phase values but exposed donor/receiver grid labels being swapped; the final
+diagnostic-only `profile_ng` argument fixes that label without changing the
+non-diagnostic call signature.
+
+Ordinary score build job `118955028` produced SHA-256
+`ff763073d469f1e36a42cc7cd5b12c14ee28d9cd57e38e3a9fd35bd4fe223632`,
+byte-identical to the accepted score binary. The new sites therefore remain
+fully excluded from score/no-profile code. Since the entire Grid-2 assembly
+is below 5% of the roughly 68-second DEMO, even eliminating it cannot by itself
+trigger a full three-day run. Its pack/unpack loops are nevertheless a
+measured exact-equivalence compute candidate for accumulation under the new
+5% full-run budget rule.
