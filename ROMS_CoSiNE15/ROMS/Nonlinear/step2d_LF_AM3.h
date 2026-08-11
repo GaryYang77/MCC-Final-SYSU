@@ -478,6 +478,9 @@
 !
       ptsk=3-kstp
       CORRECTOR_2D_STEP=.not.PREDICTOR_2D_STEP(ng)
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 199)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Compute total depth (m) and vertically integrated mass fluxes.
@@ -729,7 +732,13 @@
 !  Do not perform the actual time stepping during the auxiliary
 !  (nfast(ng)+1) time step.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 199, 0.0_r8, 0.0_r8, 0)
+# endif
       IF (iif(ng).gt.nfast(ng)) RETURN
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 200)
+# endif
 !
 !=======================================================================
 !  Time step free-surface equation.
@@ -899,6 +908,10 @@
      &                      zeta(:,:,knew))
       END IF
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 200, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 201)
+# endif
 !
 !=======================================================================
 !  Compute right-hand-side for the 2D momentum equations.
@@ -975,6 +988,10 @@
           END DO
         END IF
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 201, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 202)
+# endif
 # ifdef UV_ADV
 !
 !-----------------------------------------------------------------------
@@ -1339,6 +1356,10 @@
         END DO
       END DO
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 202, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 203)
+# endif
 # if defined UV_VIS2 || defined UV_VIS4
 !
 !-----------------------------------------------------------------------
@@ -1699,6 +1720,10 @@
         END DO
       END DO
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 203, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 204)
+# endif
 # if defined NEARSHORE_MELLOR && \
     (!defined SOLVE3D         || defined DIAGNOSTICS_UV)
 !
@@ -2046,6 +2071,10 @@
         END DO
       END DO
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 204, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 205)
+# endif
 !
 !=======================================================================
 !  Time step 2D momentum equations.
@@ -2371,6 +2400,10 @@
       END IF
 #  endif
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 205, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 206)
+# endif
 !
 !  If predictor step, load right-side-term into shared arrays for
 !  future use during the subsequent corrector step.
@@ -2477,6 +2510,10 @@
      &                    EWperiodic(ng), NSperiodic(ng),               &
      &                    ubar(:,:,knew),                               &
      &                    vbar(:,:,knew))
+# endif
+
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 206, 0.0_r8, 0.0_r8, 0)
 # endif
 
       RETURN

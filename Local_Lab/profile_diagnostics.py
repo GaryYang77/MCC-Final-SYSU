@@ -82,6 +82,14 @@ SITE_DEFINITIONS = {
         SiteDefinition(196, 22, "predictor", "pre_step3d", "u_momentum", "pre_step3d_u_momentum"),
         SiteDefinition(197, 22, "predictor", "pre_step3d", "v_momentum", "pre_step3d_v_momentum"),
         SiteDefinition(198, 22, "predictor", "pre_step3d", "tracer_bc_exchange", "pre_step3d_tracer_bc_exchange"),
+        SiteDefinition(199, 9, "barotropic", "step2d", "transport_setup", "step2d_transport_setup"),
+        SiteDefinition(200, 9, "barotropic", "step2d", "free_surface", "step2d_free_surface"),
+        SiteDefinition(201, 9, "barotropic", "step2d", "pressure_gradient", "step2d_pressure_gradient"),
+        SiteDefinition(202, 9, "barotropic", "step2d", "advection_rotation", "step2d_advection_rotation"),
+        SiteDefinition(203, 9, "barotropic", "step2d", "viscosity", "step2d_viscosity"),
+        SiteDefinition(204, 9, "barotropic", "step2d", "forcing_coupling", "step2d_forcing_coupling"),
+        SiteDefinition(205, 9, "barotropic", "step2d", "momentum_update", "step2d_momentum_update"),
+        SiteDefinition(206, 9, "barotropic", "step2d", "bc_exchange", "step2d_bc_exchange"),
     )
 }
 
@@ -402,6 +410,7 @@ def validate_diagnostic_report(
         | set(range(131, 136))
         | set(range(181, 192))
         | set(range(192, 199))
+        | set(range(199, 207))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -451,6 +460,7 @@ def validate_profile_consistency(
         "f2csum": 49,
         "put_refine3d": 54,
         "pre_step3d": 22,
+        "step2d": 9,
         "tracer_flux_assembly": 35,
     }
     for operation in diagnostics.get("operations", []):

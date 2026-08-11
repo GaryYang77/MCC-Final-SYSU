@@ -255,3 +255,34 @@ def test_r22_pre_step3d_subphases_are_complete_and_instrumented() -> None:
         assert definition.name == name
         assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
         assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_r09_step2d_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        199: "step2d_transport_setup",
+        200: "step2d_free_surface",
+        201: "step2d_pressure_gradient",
+        202: "step2d_advection_rotation",
+        203: "step2d_viscosity",
+        204: "step2d_forcing_coupling",
+        205: "step2d_momentum_update",
+        206: "step2d_bc_exchange",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "step2d_LF_AM3.h"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE step2d_tile", 1)[1].split(
+        "END SUBROUTINE step2d_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 9
+        assert definition.operation == "step2d"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+    assert source.index("profile_site_off (ng, iNLM, 199,") < source.index(
+        "IF (iif(ng).gt.nfast(ng)) RETURN"
+    )

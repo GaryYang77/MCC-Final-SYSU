@@ -305,3 +305,48 @@ but on the controlling Grid 1, volatile R03 and R44 increased by `0.339` and
 therefore accepted without an automatic rerun under the documented noise
 exception. It is the next exact score reference, but its cumulative credible
 total gain remains far below the 5% full-run trigger.
+
+## 2026-08-12 R09 step2d phase split
+
+R09 `step2d` was split into diagnostic sites 199--206: transport/setup,
+free-surface update, pressure gradient, advection/rotation, horizontal
+viscosity, forcing/coupling, momentum update, and boundary/exchange.
+Diagnostic build job `118963901` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T172033Z_12914/bin/oceanM`,
+SHA-256
+`e38c1652b85d4ce5d3f4ca658576d54b37872e03e3b90dfc905e64164bed5f6b`.
+Summary job `118964367` is retained at
+`Local_Lab/runs/profile128/r09-step2d-phases-diagnostic-summary_20260811T172740Z_2912`.
+It ended normally, passed diagnostic metadata and parent consistency, and all
+26 variables remained bitwise identical to accepted score reference
+`r22-vertical-time-metric-4n64-16ppn_20260811T164844Z_21545`.
+
+| R09 subphase | Grid 1 mean | Grid 2 mean | Grid 2 calls/rank |
+| --- | ---: | ---: | ---: |
+| transport/setup | 0.546 s | 1.761 s | 25500 |
+| free surface | 0.173 s | 0.573 s | 25200 |
+| pressure gradient | 0.114 s | 0.294 s | 25200 |
+| advection/rotation | 0.370 s | 1.040 s | 25200 |
+| horizontal viscosity | 0.255 s | 0.666 s | 25200 |
+| forcing/coupling | 0.021 s | 0.064 s | 25200 |
+| momentum update | 0.174 s | 0.442 s | 25200 |
+| boundary/exchange | 0.122 s | 0.516 s | 25200 |
+
+The child sum covers `99.74%` of R09 on Grid 1 (`1.7755/1.7802 s`) and
+`99.62%` on Grid 2 (`5.3555/5.3757 s`). The extra 300 transport/setup calls
+per rank are the intentional `nfast+1` auxiliary calls; the timer is stopped
+before that path returns, so all sites remain balanced. Grid-2 transport/setup
+is the largest child, followed by advection/rotation and viscosity. The
+transport/setup phase contains both local mass-flux preparation and its early
+halo/volume-conservation work, so it needs source/vectorization inspection
+before deciding whether the next hypothesis is arithmetic, memory, or MPI.
+Boundary/exchange is visibly rank-imbalanced and is not treated as a compute
+optimization target without a further split.
+
+Ordinary score build job `118963924` produced candidate
+`Local_Lab/runs/validation/candidate_20260811T172119Z_3545`, binary SHA-256
+`8c59701c46605a1a4e43c983850b8977d9b0eb7447c23ccce2ad33c205246fdb`.
+It is byte-identical to the accepted score binary, proving that the R09 sites
+and enlarged diagnostic-site storage compile out of score mode. The bounded
+evidence bundle is
+`profile_bundle_logs/r09-step2d-phases-diagnostic-summary_20260811T172740Z_profile_bundle.json`.
