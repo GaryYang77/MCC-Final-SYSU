@@ -260,3 +260,14 @@ Grid-2/Grid-1 R09 分别回退 0.93%/1.90%，raw total 回退 1.20%。候选未 
 通过融合向该 loop 增加工作。下一模型假设只验证该连续 `i` loop 的 Intel
 `VECTOR ALWAYS` 成本模型覆盖，不改变表达式；默认 exact，任何非零误差或 R09 回退
 都直接拒绝。
+
+PSI stress 强制向量化假设也不成立。compile-only job `118977272` 证明
+`!DIR$ VECTOR ALWAYS` 确实使目标 loop 以 vector length 2 向量化，但 ifort 同时给出
+scalar/vector cost `74/80.5` 和预估 speedup `0.91`，即静态成本模型预期更慢。唯一
+score DEMO job `118977361` 正常结束且 26 变量逐位一致，但分配到的
+`j01r2n[12-15]` 对 R19/R22/R35/R49/R54 等无关 region 也造成 25--114% 的系统性
+回退，不能把观测到的 R09 增幅归因于该 directive。由于该 run 没有提供正向证据且
+编译器证据明确不利，按单次门禁拒绝、不自动复跑；源码已恢复到 accepted commit
+`6abbcb5`，失败记录保存在 `/tmp/r09-force-psi-vector-failed/`。下一步停止机械改写
+PSI stress loop，回到 accepted score bundle 重排全局计算热点，再决定需要细化的宽
+region。
