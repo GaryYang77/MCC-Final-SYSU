@@ -227,3 +227,10 @@ R03/R44 波动，不能全部归功于源码，但 target region 在 ranks 间�
 `r09-row-local-dgrad-4n64-16ppn_20260811T190232Z_3600`。累计可信 total 仍远低于 5%，
 不得运行完整三天。下一实验仍限制在 site 221 的剩余 scratch-plane 流量，并保持
 单一假设。
+
+紧接着的 `UFx` 同行 staging 假设被 job `118972788` 否定：尽管 26 变量仍逐位
+一致，Grid-2/Grid-1 R09 分别回退 3.18%/1.45%，raw total 回退 0.85%。该候选未
+commit，源码已恢复到 accepted commit `75c60b0`；失败记录保存在
+`/tmp/r09-row-local-ufx-failed/`。不得继续机械套用相同的逐行边界条件改写；应先在
+accepted 源码上重新取得 diagnostic summary，比较剩余 site 221 与 viscosity 等
+子段，再选择下一个假设。
