@@ -454,3 +454,18 @@ def test_profile_consistency_maps_gls_subphases_to_r19() -> None:
     assert validation["passed"]
     assert validation["checks"][0]["parent_region"] == 19
     assert validation["checks"][0]["ratio"] == pytest.approx(0.99)
+
+
+def test_diagnostic_build_hash_covers_gls_sources_on_both_sides() -> None:
+    launcher = (ROOT / "Local_Lab" / "run_build_diagnostic.sh").read_text(
+        encoding="utf-8"
+    )
+    batch = (ROOT / "Local_Lab" / "build_diagnostic.sbatch").read_text(
+        encoding="utf-8"
+    )
+    for source in (
+        "ROMS_CoSiNE15/ROMS/Nonlinear/gls_prestep.F",
+        "ROMS_CoSiNE15/ROMS/Nonlinear/gls_corstep.F",
+    ):
+        assert launcher.count(source) == 1
+        assert batch.count(source) == 1

@@ -13,6 +13,8 @@ diagnostic_sources=(
   ROMS_CoSiNE15/ROMS/Utility/distribute.F
   ROMS_CoSiNE15/ROMS/Nonlinear/nesting.F
   ROMS_CoSiNE15/ROMS/Nonlinear/step3d_t.F
+  ROMS_CoSiNE15/ROMS/Nonlinear/gls_prestep.F
+  ROMS_CoSiNE15/ROMS/Nonlinear/gls_corstep.F
 )
 diagnostic_source_sha256=$(
   sha256sum "${diagnostic_sources[@]}" | sha256sum | awk '{print $1}'
