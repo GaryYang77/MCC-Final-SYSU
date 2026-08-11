@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from Local_Lab.profile_diagnostics import (
+    SITE_DEFINITIONS,
     build_diagnostic_report,
     build_perfetto_trace,
     parse_diagnostic_files,
@@ -12,6 +13,9 @@ from Local_Lab.profile_diagnostics import (
     validate_profile_consistency,
     write_diagnostic_artifacts,
 )
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 SAMPLE = """\
@@ -141,3 +145,51 @@ def test_profile_consistency_rejects_phase_time_above_parent_region() -> None:
 
     assert not validation["passed"]
     assert validation["checks"][0]["ratio"] == pytest.approx(1.5)
+
+
+def test_r35_horizontal_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        181: "horizontal_metric_mask_setup",
+        182: "horizontal_transport_setup",
+        183: "horizontal_x_flux",
+        184: "horizontal_y_flux",
+        185: "horizontal_sources_nesting",
+        186: "horizontal_divergence_update",
+        187: "horizontal_flux_assembly",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "step3d_t.F"
+    ).read_text(encoding="utf-8")
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 35
+        assert definition.operation == "corrector_horizontal"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_profile_consistency_maps_horizontal_subphases_to_r35() -> None:
+    diagnostics = {
+        "operations": [
+            {
+                "grid": 2,
+                "model": 1,
+                "operation": "corrector_horizontal",
+                "total_wall_mean": None,
+                "phase_wall_mean_sum": 7.0,
+                "phase_coverage_percent": None,
+            }
+        ]
+    }
+    profile = {
+        "records": [
+            {"grid": 2, "model": 1, "region": 35, "wall_mean": 10.0}
+        ]
+    }
+
+    validation = validate_profile_consistency(diagnostics, profile)
+
+    assert validation["passed"]
+    assert validation["checks"][0]["ratio"] == pytest.approx(0.7)

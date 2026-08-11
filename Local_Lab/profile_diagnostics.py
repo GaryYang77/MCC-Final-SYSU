@@ -64,6 +64,13 @@ SITE_DEFINITIONS = {
         SiteDefinition(171, 42, "mpi", "halo4d", "pack", "halo4d_pack"),
         SiteDefinition(172, 42, "mpi", "halo4d", "wait", "halo4d_wait"),
         SiteDefinition(173, 42, "mpi", "halo4d", "unpack", "halo4d_unpack"),
+        SiteDefinition(181, 35, "tracer", "corrector_horizontal", "setup", "horizontal_metric_mask_setup"),
+        SiteDefinition(182, 35, "tracer", "corrector_horizontal", "transport", "horizontal_transport_setup"),
+        SiteDefinition(183, 35, "tracer", "corrector_horizontal", "x_flux", "horizontal_x_flux"),
+        SiteDefinition(184, 35, "tracer", "corrector_horizontal", "y_flux", "horizontal_y_flux"),
+        SiteDefinition(185, 35, "tracer", "corrector_horizontal", "sources_nesting", "horizontal_sources_nesting"),
+        SiteDefinition(186, 35, "tracer", "corrector_horizontal", "update", "horizontal_divergence_update"),
+        SiteDefinition(187, 35, "tracer", "corrector_horizontal", "assembly", "horizontal_flux_assembly"),
     )
 }
 
@@ -377,8 +384,12 @@ def validate_diagnostic_report(
             failures.append(f"rank {item['rank']}: negative clock calibration RTT")
 
     active_sites = {int(group["site_id"]) for group in groups}
-    required_sites = set(range(101, 106)) | set(range(111, 116)) | {121} | set(
-        range(131, 136)
+    required_sites = (
+        set(range(101, 106))
+        | set(range(111, 116))
+        | {121}
+        | set(range(131, 136))
+        | set(range(181, 188))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -424,6 +435,7 @@ def validate_profile_consistency(
         "broadcast": 44,
         "contact3d": 49,
         "corrector": 35,
+        "corrector_horizontal": 35,
         "f2csum": 49,
         "put_refine3d": 54,
     }

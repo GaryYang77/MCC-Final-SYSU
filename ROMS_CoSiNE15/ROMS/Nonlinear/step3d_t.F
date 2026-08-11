@@ -370,6 +370,9 @@
 #  define I_RANGE Istr,Iend
 #  define J_RANGE Jstr,Jend
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 181)
+# endif
       DO j=J_RANGE
         DO i=I_RANGE
           dtpmnp(i,j)=dt(ng)*pm(i,j)*pn(i,j)
@@ -400,8 +403,14 @@
         END DO
       END DO VMASK_J_LOOP
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 181, 0.0_r8, 0.0_r8, 0)
+# endif
       K_LOOP : DO k=1,N(ng)
 # ifdef TS_C4HADVECTION
+#  ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 182)
+#  endif
         DO j=Jstr,Jend
           DO i=Istr,Iend+1
             HuonHalf(i,j)=Huon(i,j,k)*0.5_r8
@@ -412,6 +421,9 @@
             HvomHalf(i,j)=Hvom(i,j,k)*0.5_r8
           END DO
         END DO
+#  ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 182, 0.0_r8, 0.0_r8, 0)
+#  endif
 # endif
         T_LOOP : DO itrc=1,NT(ng)
 
@@ -465,6 +477,9 @@
 !  Fourth-order, centered differences horizontal advective fluxes.
 #  endif
 !
+#  ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, iNLM, 183)
+#  endif
 #  ifdef MASKING
           IF (LallWetU) THEN
             DO j=Jstr,Jend
@@ -542,6 +557,10 @@
             END DO
           END DO
 !
+#  ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, iNLM, 183, 0.0_r8, 0.0_r8, 0)
+          CALL profile_site_on (ng, iNLM, 184)
+#  endif
 #  ifdef MASKING
           IF (LallWetV) THEN
             DO j=Jstrm1,Jendp2
@@ -618,11 +637,17 @@
 #  endif
             END DO
           END DO
+#  ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, iNLM, 184, 0.0_r8, 0.0_r8, 0)
+#  endif
 # endif
 !
 !  Apply tracers point sources to the horizontal advection terms,
 !  if any.
 !
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, iNLM, 185)
+# endif
           IF (LuvSrc(ng).and.ANY(LtracerSrc(:,ng))) THEN
             DO is=1,Nsrc(ng)
               Isrc=SOURCES(ng)%Isrc(is)
@@ -706,6 +731,10 @@
          END IF
 # endif
 !
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, iNLM, 185, 0.0_r8, 0.0_r8, 0)
+          CALL profile_site_on (ng, iNLM, 186)
+# endif
 # ifdef TS_MPDATA
 !  Time-step horizontal advection for intermediate diffusive tracer, Ta.
 !  Advective fluxes have units of Tunits m3/s.  The new tracer has
@@ -748,6 +777,9 @@
             END DO
           END DO
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, iNLM, 186, 0.0_r8, 0.0_r8, 0)
+# endif
         END DO T_LOOP
       END DO K_LOOP
 # if defined DISTRIBUTE && defined NESTING && !defined ONE_WAY
@@ -755,6 +787,9 @@
 !  The complete tracer/level flux set is not consumed inside T_LOOP.
 !  Assemble it now with one collective per active contact region.
 !
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 187)
+#  endif
       IF (RefinedGrid(ng)) THEN
         DO cr=1,Ncontact
           dg=Rcontact(cr)%donor_grid
@@ -769,6 +804,9 @@
           END IF
         END DO
       END IF
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 187, 0.0_r8, 0.0_r8, 0)
+#  endif
 # endif
 !
 !-----------------------------------------------------------------------
