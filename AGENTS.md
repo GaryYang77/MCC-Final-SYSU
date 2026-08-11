@@ -18,9 +18,11 @@
   commit `818523e` 的 `Dgrad` 行 staging 使 Grid-2 R09 mean 下降 1.86% 且 26 变量
   逐位一致，随后 `UFx` 同行 staging 因 R09 回退 3.18% 被拒绝。accepted 源码的
   summary job `118973783` 将当前 R09 计算热点重排为 viscosity `0.666 s`、剩余
-  flux/stencil `0.615 s`、momentum update `0.443 s`。下一步只细分宽 site 203
-  viscosity，确认实际 stress/divergence 热 loop 后再做一个 exact 模型假设；不得把
-  site 221、wetdry MPI 或其他 R09 阶段混入。
+  flux/stencil `0.615 s`、momentum update `0.443 s`。viscosity sites 225--228 已
+  进一步证明 PSI stress flux `0.321 s` 最大，其次 divergence/RHO stress 均约
+  `0.145--0.146 s`。下一模型实验先验证 `Drhs_p` 是否为 PSI-depth 到 PSI-stress 的
+  单生产者/消费者，并只尝试一次 producer-consumer 融合；不得把 RHO stress、
+  divergence、site 221、wetdry MPI 或其他 R09 阶段混入。
 
 ## 服务器访问
 
@@ -50,7 +52,7 @@
   profiling；`validate` 只在下文列出的风险条件或最终累计候选时运行。
   仅当基线缺失、源码树干净且团队明确要求时才可重建 baseline。
 - score profiling 基线（`feat-improve-profiling`，2026-08-04）：wall-only、per-rank min/mean/max、调用次数、I/O/MPI 分类、region 39 与子阶段 51–56、JSON/CSV、HTML dashboard。该轻量模式用于日常候选的性能门禁。
-- profiler-v2（commit `64cec19`，2026-08-08）已通过 Phase-D：score、summary、trace 三种用途分离；summary 可细分 contact/f2csum 的 plan-pack-MPI-unpack、tracer corrector、R22 `pre_step3d` 七个子阶段、R09 `step2d` 八段、transport/setup、wetdry compute/exchange 及 advection/rotation 四段、broadcast 和 `put_refine3d`，并记录 rank/node；trace 可为选定 ranks 离线生成 Perfetto JSON。普通 score build 不含 `PROFILE_DIAGNOSTIC`，新增诊断不会进入最终 no-profile 二进制。R35、R22 与 R09 已达到当前所需粒度，site ID 1--224 已使用，`MaxProfileSites=240`；R34 或 halo 成为第一热点时再分别插桩并确认容量。halo2d/3d/4d 的 pack/wait/unpack 名称虽已注册但源码尚未打桩，不得误称已有分解结果。详见 `Local_Lab/profiler-v2-design.md`、`Local_Lab/profiler-v2-phase-d.md` 和 Phase 6 计划。
+- profiler-v2（commit `64cec19`，2026-08-08）已通过 Phase-D：score、summary、trace 三种用途分离；summary 可细分 contact/f2csum 的 plan-pack-MPI-unpack、tracer corrector、R22 `pre_step3d` 七个子阶段、R09 `step2d` 八段、transport/setup、wetdry compute/exchange、advection/rotation 及 UV_VIS2 viscosity 四段、broadcast 和 `put_refine3d`，并记录 rank/node；trace 可为选定 ranks 离线生成 Perfetto JSON。普通 score build 不含 `PROFILE_DIAGNOSTIC`，新增诊断不会进入最终 no-profile 二进制。R35、R22 与 R09 已达到当前所需粒度，site ID 1--228 已使用，`MaxProfileSites=240`；R34 或 halo 成为第一热点时再分别插桩并确认容量。halo2d/3d/4d 的 pack/wait/unpack 名称虽已注册但源码尚未打桩，不得误称已有分解结果。详见 `Local_Lab/profiler-v2-design.md`、`Local_Lab/profiler-v2-phase-d.md` 和 Phase 6 计划。
 - 4 节点 128 ranks `8x16` 完整三天 profiling：job `118507345`，wall `9589 s`，官方 `vali.py` 已通过。注意：`9589 s` 与公开基准 `01:50:06` 不是同一边界/二进制，**不得直接算 speedup**；最终成绩以 no-profile 二进制对齐。
 - 2 节点 64 ranks `8x8` 完整三天：job `118500776`，wall `10588 s`，输出与 4 节点逐位一致——仅用于 scaling 诊断。
 - 1 节点 32 ranks `4x8` 在首次 nesting 通信处触发 `MPI_Bcast/MPI_ERR_TRUNCATE`：**该结果不得用于任何 scaling 结论，也不要默认其他 32-rank tile 形状可用**。
@@ -205,7 +207,7 @@ score PROFILE 的提升通常能预测 no-profile 的提升，但不是逻辑保
 Phase 6 采用逐热点扩展：一次 profiler 分支只细化当前第一热点，计时点放在阶段或
 loop nest 边界，不进入最内层网格点循环。R35 horizontal tracer advection、R22
 `pre_step3d` 七段，以及 R09 `step2d`、transport/wetdry 和 advection/rotation 的
-逐级细化均已完成；R34 和 halo 等到成为第一热点时再分别扩展。新增 sites 必须验证
+逐级细化及 UV_VIS2 viscosity 四段均已完成；R34 和 halo 等到成为第一热点时再分别扩展。新增 sites 必须验证
 调用次数、父子覆盖率、rank/node 元数据和 observer effect；仅在 Python 注册 site
 名称而 Fortran 源码没有 `profile_site_on/off` 调用，不算已实现诊断。
 

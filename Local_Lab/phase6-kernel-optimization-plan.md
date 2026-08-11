@@ -242,3 +242,12 @@ accepted 源码的重排 summary job `118973783` 显示 Grid-2 viscosity/site221
 stress construction 与 divergence/update loop families，确认父子覆盖后再选择模型
 假设。证据为
 `profile_bundle_logs/r09-post-dgrad-diagnostic-summary_20260811T193436Z_profile_bundle.json`。
+
+当前 application header 明确启用 `UV_VIS2`。sites 225--228 将 site 203 拆成 PSI
+depth、RHO stress flux、PSI stress flux 和 divergence/update；job `118975018` 的
+Grid-2 四段为 `0.053/0.145/0.321/0.146 s`，合计覆盖父段 98.88%，调用次数一致且
+26 变量逐位相同。普通 score build job `118974398` 与 accepted score SHA 完全一致。
+当前具体第一 loop 是 PSI stress flux。下一模型实验先证明 `Drhs_p` 在 active UV_VIS2
+路径中是 PSI-depth loop 到 PSI-stress loop 的单生产者/消费者，再只尝试融合这两个
+loop、消除 scratch-plane round trip；RHO stress 和 divergence 保持不动。证据为
+`profile_bundle_logs/r09-viscosity-phases-diagnostic-summary_20260811T195009Z_profile_bundle.json`。
