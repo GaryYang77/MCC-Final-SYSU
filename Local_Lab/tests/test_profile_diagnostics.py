@@ -380,3 +380,26 @@ def test_r09_advection_subphases_are_complete_and_instrumented() -> None:
         assert definition.name == name
         assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
         assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_r09_viscosity_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        225: "step2d_viscosity_psi_depth",
+        226: "step2d_viscosity_rho_stress_flux",
+        227: "step2d_viscosity_psi_stress_flux",
+        228: "step2d_viscosity_divergence_update",
+    }
+    source = (
+        ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear" / "step2d_LF_AM3.h"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE step2d_tile", 1)[1].split(
+        "END SUBROUTINE step2d_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 9
+        assert definition.operation == "step2d_viscosity"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1

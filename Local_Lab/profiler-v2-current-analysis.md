@@ -501,3 +501,39 @@ The next profiler experiment must therefore split site 203 into its active
 stress construction and divergence/update loop families before any viscosity
 model rewrite. The bounded bundle is
 `profile_bundle_logs/r09-post-dgrad-diagnostic-summary_20260811T193436Z_profile_bundle.json`.
+
+## 2026-08-12 R09 harmonic-viscosity detail split
+
+The active application header defines `UV_VIS2`, not `UV_VIS4`. Sites 225--228
+therefore split site 203 into PSI-point total depth, RHO-point stress flux,
+PSI-point stress flux, and final divergence/update. Diagnostic build job
+`118974394` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T194256Z_33436/bin/oceanM`,
+SHA-256
+`9d7b573482652352ef52efbc2aa6471e9d2d025b98fe4ad904164803bb5b03b2`.
+Summary job `118975018`, run
+`Local_Lab/runs/profile128/r09-viscosity-phases-diagnostic-summary_20260811T195009Z_46567`,
+passed normal end, exact comparison, metadata, and diagnostic consistency.
+
+| harmonic-viscosity phase | Grid 1 mean | Grid 2 mean | Grid 2 share |
+| --- | ---: | ---: | ---: |
+| PSI total depth (`Drhs_p`) | 0.018 s | 0.053 s | 7.9% |
+| RHO stress flux | 0.054 s | 0.145 s | 21.5% |
+| PSI stress flux | 0.126 s | 0.321 s | 47.6% |
+| divergence/update | 0.057 s | 0.146 s | 21.7% |
+
+All four sites execute 5124 times per rank on Grid 1 and 25200 times on Grid
+2. Their sum covers `0.2550/0.2567 s` on Grid 1 (`99.35%`) and
+`0.6659/0.6735 s` on Grid 2 (`98.88%`). PSI stress construction is the first
+specific loop target. Source-lifetime review should test whether its
+`Drhs_p` input has a single producer and consumer under the active UV_VIS2
+branch; if so, fusing those loops can remove a scratch-plane round trip while
+preserving every point expression. RHO stress and divergence must remain out
+of that first model experiment.
+
+Ordinary score build job `118974398` produced
+`Local_Lab/runs/validation/candidate_20260811T194310Z_10750/bin/oceanM`,
+SHA-256
+`1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`,
+byte-identical to the accepted score binary. The bounded bundle is
+`profile_bundle_logs/r09-viscosity-phases-diagnostic-summary_20260811T195009Z_profile_bundle.json`.

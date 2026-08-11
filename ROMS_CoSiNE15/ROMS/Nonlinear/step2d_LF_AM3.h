@@ -1405,6 +1405,9 @@
       CALL profile_site_on (ng, iNLM, 203)
 # endif
 # if defined UV_VIS2 || defined UV_VIS4
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 225)
+#  endif
 !
 !-----------------------------------------------------------------------
 !  If horizontal mixing, compute total depth at PSI-points.
@@ -1421,8 +1424,14 @@
      &                         Drhs(i,j-1)+Drhs(i-1,j-1))
         END DO
       END DO
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 225, 0.0_r8, 0.0_r8, 0)
+#  endif
 # endif
 # ifdef UV_VIS2
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 226)
+#  endif
 !
 !-----------------------------------------------------------------------
 !  Add in horizontal harmonic viscosity.
@@ -1444,6 +1453,10 @@
           VFe(i,j)=om_r(i,j)*om_r(i,j)*cff
         END DO
       END DO
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 226, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 227)
+#  endif
       DO j=Jstr,Jend+1
         DO i=Istr,Iend+1
           cff=visc2_p(i,j)*Drhs_p(i,j)*0.5_r8*                          &
@@ -1463,6 +1476,10 @@
           VFx(i,j)=on_p(i,j)*on_p(i,j)*cff
         END DO
       END DO
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 227, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 228)
+#  endif
 !
 !  Add in harmonic viscosity.
 !
@@ -1492,6 +1509,9 @@
 #  endif
         END DO
       END DO
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 228, 0.0_r8, 0.0_r8, 0)
+#  endif
 # endif
 # ifdef UV_VIS4
 !

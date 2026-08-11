@@ -108,6 +108,10 @@ SITE_DEFINITIONS = {
         SiteDefinition(222, 9, "barotropic", "step2d_advection", "divergence", "step2d_advection_divergence"),
         SiteDefinition(223, 9, "barotropic", "step2d_advection", "coriolis", "step2d_coriolis"),
         SiteDefinition(224, 9, "barotropic", "step2d_advection", "curvilinear", "step2d_curvilinear"),
+        SiteDefinition(225, 9, "barotropic", "step2d_viscosity", "psi_depth", "step2d_viscosity_psi_depth"),
+        SiteDefinition(226, 9, "barotropic", "step2d_viscosity", "rho_stress_flux", "step2d_viscosity_rho_stress_flux"),
+        SiteDefinition(227, 9, "barotropic", "step2d_viscosity", "psi_stress_flux", "step2d_viscosity_psi_stress_flux"),
+        SiteDefinition(228, 9, "barotropic", "step2d_viscosity", "divergence_update", "step2d_viscosity_divergence_update"),
     )
 }
 
@@ -433,6 +437,7 @@ def validate_diagnostic_report(
         | set(range(213, 219))
         | set(range(219, 221))
         | set(range(221, 225))
+        | set(range(225, 229))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -487,6 +492,7 @@ def validate_profile_consistency(
         "wetdry": 9,
         "wetdry_current_masks": 9,
         "step2d_advection": 9,
+        "step2d_viscosity": 9,
         "tracer_flux_assembly": 35,
     }
     for operation in diagnostics.get("operations", []):
