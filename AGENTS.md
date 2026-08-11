@@ -17,9 +17,11 @@
 - R35 horizontal tracer advection 和 R22 `pre_step3d` 已完成第一轮计算优化；
   当前第一计算目标是 Grid-2 R09 `step2d` 的第四阶 advection flux/stencil loops
   （`0.635 s`，占 advection/rotation 的 60.7%）。这些内层 `i` 循环已被 ifort
-  2017 以 vector length 2 向量化，下一模型实验只检验 scratch-plane 内存流量或
-  循环结构的一个 exact 假设，不同时修改 divergence、Coriolis、curvilinear、
-  viscosity 或 wetdry MPI。随后按新 score 重排 R19 GLS、R34 `step3d_uv` 和 halo。
+  2017 以 vector length 2 向量化。commit `818523e` 已将两组 `Dgrad` 按行生产并
+  就近消费，使 Grid-2 R09 mean 下降 1.86% 且 26 变量逐位一致；下一模型实验仍只
+  检验该 site 内剩余 scratch-plane 流量的一个 exact 假设，不同时修改 divergence、
+  Coriolis、curvilinear、viscosity 或 wetdry MPI。随后按新 score 重排 R19 GLS、
+  R34 `step3d_uv` 和 halo。
 
 ## 服务器访问
 
@@ -82,8 +84,8 @@
   预检，超过当前慢节点阈值则安全退出。
 - **reference 规则**：每个 exact-equivalence 新 accepted commit 的 4n64 score DEMO
   直接成为下一项实验的筛选 reference。当前模型的 4n64 score reference 是
-  `Local_Lab/runs/profile128/r22-vertical-time-metric-4n64-16ppn_20260811T164844Z_21545`
-  （commit `952677f`，job `118961520`，26 项 comparison 全零）。生产 reference 是
+  `Local_Lab/runs/profile128/r09-row-local-dgrad-4n64-16ppn_20260811T190232Z_3600`
+  （commit `818523e`，job `118971429`，26 项 comparison 全零）。生产 reference 是
   job `118852631` 的完整 4n96/`6x16` run。reference 首要用于输出和 region 对照，
   不把一次 wall 当成无误差真值。
 - **当前成绩口径**：唯一权威成绩是同源码 no-profile 完整 4n96/`6x16` 的

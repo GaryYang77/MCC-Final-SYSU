@@ -217,3 +217,13 @@ vector length 2 向量化，因此第一模型假设应针对 scratch-plane 内�
 结构，同时保持第四阶 stencil、系数、表达式顺序和 exact 输出；不得把其他三个子段、
 viscosity 或 wetdry MPI 混入。证据为
 `profile_bundle_logs/r09-advection-phases-diagnostic-summary_20260811T184250Z_profile_bundle.json`。
+
+首个 R09 flux/stencil 模型实验 commit `818523e` 将 `UFe/VFx` 前的 `Dgrad` 按行生产
+并就近消费，不改变任何内层表达式。job `118971429` 的 Grid-2 R09 min/mean/max 从
+`5.370619/5.448426/5.641630 s` 降至 `5.280076/5.346913/5.564065 s`，mean 下降
+1.86%；Grid-1 R09 也下降 1.42%，26 变量逐位一致。raw total 的 0.73% 改善包含有利
+R03/R44 波动，不能全部归功于源码，但 target region 在 ranks 间一致改善，故接受为
+新的 exact score reference：
+`r09-row-local-dgrad-4n64-16ppn_20260811T190232Z_3600`。累计可信 total 仍远低于 5%，
+不得运行完整三天。下一实验仍限制在 site 221 的剩余 scratch-plane 流量，并保持
+单一假设。
