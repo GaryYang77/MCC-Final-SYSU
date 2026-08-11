@@ -403,3 +403,54 @@ def test_r09_viscosity_subphases_are_complete_and_instrumented() -> None:
         assert definition.name == name
         assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
         assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_r19_gls_subphases_are_complete_and_instrumented() -> None:
+    expected = {
+        229: ("gls_predictor_horizontal", "gls_prestep.F"),
+        230: ("gls_predictor_vertical", "gls_prestep.F"),
+        231: ("gls_predictor_bc_exchange", "gls_prestep.F"),
+        232: ("gls_corrector_setup_shear", "gls_corstep.F"),
+        233: ("gls_corrector_horizontal_advection", "gls_corstep.F"),
+        234: ("gls_corrector_vertical_advection", "gls_corstep.F"),
+        235: ("gls_corrector_production_dissipation", "gls_corstep.F"),
+        236: ("gls_corrector_implicit_solve", "gls_corstep.F"),
+        237: ("gls_corrector_coefficients", "gls_corstep.F"),
+        238: ("gls_corrector_bc_exchange", "gls_corstep.F"),
+    }
+    nonlinear = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Nonlinear"
+
+    for site_id, (name, filename) in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        source = (nonlinear / filename).read_text(encoding="utf-8")
+        assert definition.parent_region == 19
+        assert definition.operation == "gls_vertical_mixing"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_profile_consistency_maps_gls_subphases_to_r19() -> None:
+    diagnostics = {
+        "operations": [
+            {
+                "grid": 2,
+                "model": 1,
+                "operation": "gls_vertical_mixing",
+                "total_wall_mean": None,
+                "phase_wall_mean_sum": 9.9,
+                "phase_coverage_percent": None,
+            }
+        ]
+    }
+    profile = {
+        "records": [
+            {"grid": 2, "model": 1, "region": 19, "wall_mean": 10.0}
+        ]
+    }
+
+    validation = validate_profile_consistency(diagnostics, profile)
+
+    assert validation["passed"]
+    assert validation["checks"][0]["parent_region"] == 19
+    assert validation["checks"][0]["ratio"] == pytest.approx(0.99)

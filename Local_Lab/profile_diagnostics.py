@@ -112,6 +112,16 @@ SITE_DEFINITIONS = {
         SiteDefinition(226, 9, "barotropic", "step2d_viscosity", "rho_stress_flux", "step2d_viscosity_rho_stress_flux"),
         SiteDefinition(227, 9, "barotropic", "step2d_viscosity", "psi_stress_flux", "step2d_viscosity_psi_stress_flux"),
         SiteDefinition(228, 9, "barotropic", "step2d_viscosity", "divergence_update", "step2d_viscosity_divergence_update"),
+        SiteDefinition(229, 19, "gls", "gls_vertical_mixing", "predictor_horizontal", "gls_predictor_horizontal"),
+        SiteDefinition(230, 19, "gls", "gls_vertical_mixing", "predictor_vertical", "gls_predictor_vertical"),
+        SiteDefinition(231, 19, "mpi", "gls_vertical_mixing", "predictor_bc_exchange", "gls_predictor_bc_exchange"),
+        SiteDefinition(232, 19, "gls", "gls_vertical_mixing", "corrector_setup_shear", "gls_corrector_setup_shear"),
+        SiteDefinition(233, 19, "gls", "gls_vertical_mixing", "corrector_horizontal_advection", "gls_corrector_horizontal_advection"),
+        SiteDefinition(234, 19, "gls", "gls_vertical_mixing", "corrector_vertical_advection", "gls_corrector_vertical_advection"),
+        SiteDefinition(235, 19, "gls", "gls_vertical_mixing", "corrector_production_dissipation", "gls_corrector_production_dissipation"),
+        SiteDefinition(236, 19, "gls", "gls_vertical_mixing", "corrector_implicit_solve", "gls_corrector_implicit_solve"),
+        SiteDefinition(237, 19, "gls", "gls_vertical_mixing", "corrector_coefficients", "gls_corrector_coefficients"),
+        SiteDefinition(238, 19, "mpi", "gls_vertical_mixing", "corrector_bc_exchange", "gls_corrector_bc_exchange"),
     )
 }
 
@@ -438,6 +448,7 @@ def validate_diagnostic_report(
         | set(range(219, 221))
         | set(range(221, 225))
         | set(range(225, 229))
+        | set(range(229, 239))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -494,6 +505,7 @@ def validate_profile_consistency(
         "step2d_advection": 9,
         "step2d_viscosity": 9,
         "tracer_flux_assembly": 35,
+        "gls_vertical_mixing": 19,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])

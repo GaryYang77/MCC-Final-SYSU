@@ -253,6 +253,9 @@
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: gradP
 
 # include "set_bounds.h"
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 232)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Compute several constants.
@@ -435,6 +438,10 @@
         END DO
       END DO
 # endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 232, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 233)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Time-step advective terms.
@@ -616,10 +623,16 @@
           END DO
         END DO
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 233, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 ! Compute vertical advection.
 !
       DO j=Jstr,Jend
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 234)
+# endif
 # ifdef K_C2ADVECTION
         DO k=1,N(ng)
           DO i=Istr,Iend
@@ -678,6 +691,10 @@
             gls(i,j,k,nnew)=MAX(gls(i,j,k,nnew),gls_Pmin(ng))
           END DO
         END DO
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 234, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, iNLM, 235)
+# endif
 !
 !----------------------------------------------------------------------
 !  Compute vertical mixing, turbulent production and turbulent
@@ -798,6 +815,10 @@
      &                    FCP(i,k)-FCP(i,k+1)
           END DO
         END DO
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 235, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, iNLM, 236)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Time-step dissipation and vertical diffusion terms implicitly.
@@ -956,6 +977,10 @@
 !!          gls(i,j,k,nnew)=MAX(gls(i,j,k,nnew), gls_Pmin(ng))
           END DO
         END DO
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 236, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, iNLM, 237)
+# endif
 !
 !---------------------------------------------------------------------
 !  Compute vertical mixing coefficients (m2/s).
@@ -1105,7 +1130,13 @@
             Akt(i,j,0,itrc)=Akt_bak(itrc,ng)
           END DO
         END DO
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 237, 0.0_r8, 0.0_r8, 0)
+# endif
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 238)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Set lateral boundary conditions.
@@ -1147,6 +1178,10 @@
      &                    NghostPoints,                                 &
      &                    EWperiodic(ng), NSperiodic(ng),               &
      &                    Akt)
+# endif
+
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 238, 0.0_r8, 0.0_r8, 0)
 # endif
 
       RETURN

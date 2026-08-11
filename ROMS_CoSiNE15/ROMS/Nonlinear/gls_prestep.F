@@ -151,6 +151,9 @@
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: gradL
 
 # include "set_bounds.h"
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 229)
+# endif
 !
 !-----------------------------------------------------------------------
 !  Predictor step for advection of turbulent kinetic energy variables.
@@ -317,6 +320,10 @@
           END DO
         END DO
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 229, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 230)
+# endif
 !
 ! Compute vertical advection term.
 !
@@ -387,6 +394,10 @@
           END DO
         END DO
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 230, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 231)
+# endif
 !
 !  Apply lateral boundary conditions.
 !
@@ -412,6 +423,10 @@
      &                    EWperiodic(ng), NSperiodic(ng),               &
      &                    tke(:,:,:,3),                                 &
      &                    gls(:,:,:,3))
+# endif
+
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 231, 0.0_r8, 0.0_r8, 0)
 # endif
 
       RETURN
