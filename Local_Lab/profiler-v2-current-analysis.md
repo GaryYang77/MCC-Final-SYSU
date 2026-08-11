@@ -626,3 +626,33 @@ remain present. The next profiler change should refine only site 239 into
 state/setup, light attenuation, and the main local source/sink equations.
 Sinking is not the first compute target. The bounded bundle is
 `profile_bundle_logs/r15-biology-phases-diagnostic-summary_20260811T215947Z_profile_bundle.json`.
+
+## 2026-08-12 R15 local-reaction detail
+
+Sites 241--243 refine only site 239 into setup/state extraction, light
+attenuation, and the source/sink-equation block. Diagnostic build job
+`118982291` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T220858Z_61580/bin/oceanM`,
+SHA-256
+`f7cde25dae474173f7e3162bf2a5c5fbf8bfbc1a90b82184ab9174c9dfd05f54`.
+Ordinary score build job `118982300` again produced the accepted SHA-256
+`1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`.
+
+Summary job `118982658`, run
+`Local_Lab/runs/profile128/r15-local-reactions-diagnostic-summary_20260811T221600Z_39597`,
+passed normal end, exact comparison, rank/node metadata, and all diagnostic
+checks.
+
+| local-reaction phase | Grid 1 mean | Grid 2 mean | Grid 2 share of R15 |
+| --- | ---: | ---: | ---: |
+| setup/state extraction | 0.141 s | 0.417 s | 12.1% |
+| light attenuation | 0.080 s | 0.252 s | 7.3% |
+| source/sink equations and gas exchange | 0.584 s | 2.039 s | 59.1% |
+
+The three children cover site 239 by `99.93%` on Grid 1 and `99.90%` on
+Grid 2. The source/sink block is the first target, but it combines one large
+pointwise `k/i` reaction loop with subsequent O2/CO2 gas-exchange calls. The
+last profiler split should separate those at their loop/call boundary; it
+must not put timers inside the innermost grid-point loop. The bounded bundle
+is
+`profile_bundle_logs/r15-local-reactions-diagnostic-summary_20260811T221600Z_profile_bundle.json`.

@@ -394,6 +394,7 @@
 #endif
 #ifdef PROFILE_DIAGNOSTIC
         CALL profile_site_on (ng, iNLM, 239)
+        CALL profile_site_on (ng, iNLM, 241)
 #endif
       
       
@@ -519,6 +520,9 @@
         DO i=Istr,Iend
           PARsur(i)=PARfrac(ng)*srflx(i,j)*rho0*Cp
         END DO
+#ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 241, 0.0_r8, 0.0_r8, 0)
+#endif
 !
 !=======================================================================
 !  Start internal iterations to achieve convergence of the nonlinear
@@ -531,6 +535,9 @@
 !  however, do not improve the accuaracy of the solution.
 !
         ITER_LOOP: DO Iter=1,BioIter(ng)
+#ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, iNLM, 242)
+#endif
 !
 !-----------------------------------------------------------------------
 !  Light-limited computations.
@@ -627,6 +634,10 @@
 
     cff5 = 1          ! for diagnostic code only
 
+#ifdef PROFILE_DIAGNOSTIC
+       CALL profile_site_off (ng, iNLM, 242, 0.0_r8, 0.0_r8, 0)
+       CALL profile_site_on (ng, iNLM, 243)
+#endif
        DO k=1,N(ng)
           DO i=Istr,Iend
 
@@ -1478,6 +1489,7 @@
 
 
 #ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, iNLM, 243, 0.0_r8, 0.0_r8, 0)
         CALL profile_site_off (ng, iNLM, 239, 0.0_r8, 0.0_r8, 0)
         CALL profile_site_on (ng, iNLM, 240)
 #endif
@@ -2754,7 +2766,6 @@
       RETURN
       END SUBROUTINE optic_property
 #endif
-
 
 
 

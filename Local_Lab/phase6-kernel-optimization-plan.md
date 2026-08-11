@@ -323,3 +323,13 @@ accepted bundle 的再次重排把 Grid-2 R15 CoSiNE biology 定为下一个尚�
 `Local_Lab/runs/profile128/r15-biology-phases-diagnostic-summary_20260811T215947Z_63313`
 及 bundle
 `profile_bundle_logs/r15-biology-phases-diagnostic-summary_20260811T215947Z_profile_bundle.json`。
+
+sites 241--243 继续只细分 R15 的局地反应段。summary job `118982658` 正常结束、
+26 变量逐位一致；Grid-2 setup/state、light attenuation、source/sink equations 分别为
+`0.417/0.252/2.039 s`，合计覆盖 site 239 的 `99.90%`。Grid-1 覆盖 `99.93%`。
+source/sink equations 已占整个 Grid-2 R15 约 59%，但该段仍同时包含单个大点式生化
+loop 与其后的 O2/CO2 gas-exchange calls。下一轮只在 loop-nest 边界把这两者分开，
+不得在最内层 `i` 循环打计时点。证据为 run
+`Local_Lab/runs/profile128/r15-local-reactions-diagnostic-summary_20260811T221600Z_39597`
+及 bundle
+`profile_bundle_logs/r15-local-reactions-diagnostic-summary_20260811T221600Z_profile_bundle.json`。

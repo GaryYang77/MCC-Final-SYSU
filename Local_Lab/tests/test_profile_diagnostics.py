@@ -508,6 +508,59 @@ def test_profile_consistency_maps_biology_subphases_to_r15() -> None:
     assert validation["checks"][0]["ratio"] == pytest.approx(3.3 / 3.4)
 
 
+def test_r15_local_reaction_details_are_complete_and_instrumented() -> None:
+    expected = {
+        241: "biology_setup_state",
+        242: "biology_light_attenuation",
+        243: "biology_source_sink_equations",
+    }
+    source = (
+        ROOT
+        / "ROMS_CoSiNE15"
+        / "ROMS"
+        / "Nonlinear"
+        / "Biology"
+        / "bio_UMAINE15.h"
+    ).read_text(encoding="utf-8")
+    source = source.split("SUBROUTINE biology_tile", 1)[1].split(
+        "END SUBROUTINE biology_tile", 1
+    )[0]
+
+    for site_id, name in expected.items():
+        definition = SITE_DEFINITIONS[site_id]
+        assert definition.parent_region == 15
+        assert definition.operation == "biology_local_reactions_detail"
+        assert definition.name == name
+        assert source.count(f"profile_site_on (ng, iNLM, {site_id})") == 1
+        assert source.count(f"profile_site_off (ng, iNLM, {site_id},") == 1
+
+
+def test_profile_consistency_maps_biology_details_to_r15() -> None:
+    diagnostics = {
+        "operations": [
+            {
+                "grid": 2,
+                "model": 1,
+                "operation": "biology_local_reactions_detail",
+                "total_wall_mean": None,
+                "phase_wall_mean_sum": 2.7,
+                "phase_coverage_percent": None,
+            }
+        ]
+    }
+    profile = {
+        "records": [
+            {"grid": 2, "model": 1, "region": 15, "wall_mean": 3.4}
+        ]
+    }
+
+    validation = validate_profile_consistency(diagnostics, profile)
+
+    assert validation["passed"]
+    assert validation["checks"][0]["parent_region"] == 15
+    assert validation["checks"][0]["ratio"] == pytest.approx(2.7 / 3.4)
+
+
 def test_diagnostic_build_hash_covers_kernel_sources_on_both_sides() -> None:
     launcher = (ROOT / "Local_Lab" / "run_build_diagnostic.sh").read_text(
         encoding="utf-8"
