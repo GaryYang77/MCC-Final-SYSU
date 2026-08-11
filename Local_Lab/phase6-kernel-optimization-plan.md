@@ -251,3 +251,12 @@ Grid-2 四段为 `0.053/0.145/0.321/0.146 s`，合计覆盖父段 98.88%，调�
 路径中是 PSI-depth loop 到 PSI-stress loop 的单生产者/消费者，再只尝试融合这两个
 loop、消除 scratch-plane round trip；RHO stress 和 divergence 保持不动。证据为
 `profile_bundle_logs/r09-viscosity-phases-diagnostic-summary_20260811T195009Z_profile_bundle.json`。
+
+`Drhs_p` producer-consumer 融合随后被 job `118976241` 否定：26 变量仍逐位一致，但
+Grid-2/Grid-1 R09 分别回退 0.93%/1.90%，raw total 回退 1.20%。候选未 commit，
+源码已恢复到 accepted commit `2531734`，失败记录保存在
+`/tmp/r09-fuse-drhsp-psi-stress-failed/`。这与 ifort report 对 PSI stress loop 的
+“vectorization possible but seems inefficient”及高 load/register cost 一致：不能再
+通过融合向该 loop 增加工作。下一模型假设只验证该连续 `i` loop 的 Intel
+`VECTOR ALWAYS` 成本模型覆盖，不改变表达式；默认 exact，任何非零误差或 R09 回退
+都直接拒绝。
