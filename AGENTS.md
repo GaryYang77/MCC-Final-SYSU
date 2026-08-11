@@ -74,12 +74,13 @@
   但 tile 长度、内存带宽和 MPI 拓扑不同于最终配置，只能作为候选筛选与因果归因，
   不能单独证明生产收益。
 - **生产配置**：4 节点、96 ranks、每节点 24 ranks、`6x16`、L3-balanced NUMA-row
-  binding。每个 kernel 阶段的累计候选、所有配置/亲和性候选以及最终完整任务必须在
-  该配置确认；同 allocation 先跑 60/300 预检，超过当前慢节点阈值则安全退出。
+  binding。只有累计 DEMO 达到可信总时间下降 5% 的 kernel 候选，以及团队选定的
+  配置/亲和性候选和最终完整任务，才在该配置确认；同 allocation 先跑 60/300
+  预检，超过当前慢节点阈值则安全退出。
 - **reference 规则**：每个 exact-equivalence 新 accepted commit 的 4n64 score DEMO
   直接成为下一项实验的筛选 reference。当前模型的 4n64 score reference 是
-  `Local_Lab/runs/profile128/assemblef1d-in-place-4n64-16ppn_20260809T223055Z_41712`
-  （commit `1ba85ab`，job `118852220`，26 项 comparison 全零）。生产 reference 是
+  `Local_Lab/runs/profile128/tracer-flux-direct-copy-4n64-16ppn_20260811T151359Z_47837`
+  （commit `8e4fc92`，job `118955758`，26 项 comparison 全零）。生产 reference 是
   job `118852631` 的完整 4n96/`6x16` run。reference 首要用于输出和 region 对照，
   不把一次 wall 当成无误差真值。
 - **当前成绩口径**：唯一权威成绩是同源码 no-profile 完整 4n96/`6x16` 的

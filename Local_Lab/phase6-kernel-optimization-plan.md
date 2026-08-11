@@ -166,3 +166,9 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 Grid-2 R35 仅下降 0.22%，完整 no-profile 仅下降约 0.49%，而完整任务
 `Dongsha60/u` 已使用 89.4% 的官方 RMSE 阈值。候选虽通过官方验证，仍因收益/精度
 余量比不合理而拒绝合入；accepted exact 源码继续保持在 `bb50230`。
+
+随后 profiler 将 R35 tracer-flux assembly 拆成 setup/pack/MPI/unpack，并据此完成
+首个有效计算优化：commit `8e4fc92` 用直接连续循环替换 pack/unpack 的 `RESHAPE`
+临时量。Grid-2 pack/unpack 分别下降 28.2%/25.6%，assembly 下降 11.3%，R35
+下降 3.84%，score DEMO 总时间下降 0.77%，26 变量逐位一致。该 commit 已成为新的
+accepted exact reference；由于总时间不足 5%，按预算规则不运行完整三天。
