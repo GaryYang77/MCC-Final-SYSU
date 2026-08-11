@@ -14,9 +14,10 @@
 - Phase 6 从“以通信/嵌套为主”转向“以 ROMS 计算 kernel 为主”，但仍按实测热点
   排序，不为展示特色而修改非热点。一个阶段只细化当前第一热点，一个实验只优化一个
   可证伪假设，完成后重新 profiling 再决定下一项。
-- 当前第一计算目标是 Grid-2 R35 `step3d_t/tracer_corrector` 中的 horizontal
-  tracer advection；随后按新证据考虑 R22 `pre_step3d`、R09 `step2d`、R34
-  `step3d_uv`、R19 GLS 和 halo pack/wait/unpack。
+- R35 horizontal tracer advection 已完成第一轮计算与 assembly 优化；当前第一计算
+  目标转为 Grid-2 R22 `pre_step3d`。R22 已拆分七个子阶段，下一步继续处理实测的
+  tracer vertical advection/diffusion，再按新 score 重排 R09 `step2d`、R19 GLS、
+  R34 `step3d_uv` 和 halo pack/wait/unpack。
 
 ## 服务器访问
 
@@ -46,7 +47,7 @@
   profiling；`validate` 只在下文列出的风险条件或最终累计候选时运行。
   仅当基线缺失、源码树干净且团队明确要求时才可重建 baseline。
 - score profiling 基线（`feat-improve-profiling`，2026-08-04）：wall-only、per-rank min/mean/max、调用次数、I/O/MPI 分类、region 39 与子阶段 51–56、JSON/CSV、HTML dashboard。该轻量模式用于日常候选的性能门禁。
-- profiler-v2（commit `64cec19`，2026-08-08）已通过 Phase-D：score、summary、trace 三种用途分离；summary 可细分 contact/f2csum 的 plan-pack-MPI-unpack、tracer corrector 五个子阶段、broadcast 和 `put_refine3d`，并记录 rank/node；trace 可为选定 ranks 离线生成 Perfetto JSON。普通 score build 不含 `PROFILE_DIAGNOSTIC`，新增诊断不会进入最终 no-profile 二进制。当前只有 R35 达到子阶段粒度，R22/R09/R34 仍是宽 region；halo2d/3d/4d 的 pack/wait/unpack 名称已注册但源码尚未打桩，不得误称已有分解结果。详见 `Local_Lab/profiler-v2-design.md`、`Local_Lab/profiler-v2-phase-d.md` 和 Phase 6 计划。
+- profiler-v2（commit `64cec19`，2026-08-08）已通过 Phase-D：score、summary、trace 三种用途分离；summary 可细分 contact/f2csum 的 plan-pack-MPI-unpack、tracer corrector、R22 `pre_step3d` 七个子阶段、broadcast 和 `put_refine3d`，并记录 rank/node；trace 可为选定 ranks 离线生成 Perfetto JSON。普通 score build 不含 `PROFILE_DIAGNOSTIC`，新增诊断不会进入最终 no-profile 二进制。R35 与 R22 已达到子阶段粒度，R09/R34 仍是宽 region；halo2d/3d/4d 的 pack/wait/unpack 名称已注册但源码尚未打桩，不得误称已有分解结果。详见 `Local_Lab/profiler-v2-design.md`、`Local_Lab/profiler-v2-phase-d.md` 和 Phase 6 计划。
 - 4 节点 128 ranks `8x16` 完整三天 profiling：job `118507345`，wall `9589 s`，官方 `vali.py` 已通过。注意：`9589 s` 与公开基准 `01:50:06` 不是同一边界/二进制，**不得直接算 speedup**；最终成绩以 no-profile 二进制对齐。
 - 2 节点 64 ranks `8x8` 完整三天：job `118500776`，wall `10588 s`，输出与 4 节点逐位一致——仅用于 scaling 诊断。
 - 1 节点 32 ranks `4x8` 在首次 nesting 通信处触发 `MPI_Bcast/MPI_ERR_TRUNCATE`：**该结果不得用于任何 scaling 结论，也不要默认其他 32-rank tile 形状可用**。
@@ -79,8 +80,8 @@
   预检，超过当前慢节点阈值则安全退出。
 - **reference 规则**：每个 exact-equivalence 新 accepted commit 的 4n64 score DEMO
   直接成为下一项实验的筛选 reference。当前模型的 4n64 score reference 是
-  `Local_Lab/runs/profile128/tracer-flux-direct-copy-4n64-16ppn_20260811T151359Z_47837`
-  （commit `8e4fc92`，job `118955758`，26 项 comparison 全零）。生产 reference 是
+  `Local_Lab/runs/profile128/r22-vertical-time-metric-4n64-16ppn_20260811T164844Z_21545`
+  （commit `952677f`，job `118961520`，26 项 comparison 全零）。生产 reference 是
   job `118852631` 的完整 4n96/`6x16` run。reference 首要用于输出和 region 对照，
   不把一次 wall 当成无误差真值。
 - **当前成绩口径**：唯一权威成绩是同源码 no-profile 完整 4n96/`6x16` 的
@@ -199,8 +200,8 @@ score PROFILE 的提升通常能预测 no-profile 的提升，但不是逻辑保
 只有 score 的宽 region 无法回答下一步优化问题时才构建 diagnostic binary；该流程用于诊断，不替代上面的 score 门禁：
 
 Phase 6 采用逐热点扩展：一次 profiler 分支只细化当前第一热点，计时点放在阶段或
-loop nest 边界，不进入最内层网格点循环。第一轮只继续拆分 R35 horizontal tracer
-advection；R22/R09/R34 和 halo 等到成为第一热点时再分别扩展。新增 sites 必须验证
+loop nest 边界，不进入最内层网格点循环。R35 horizontal tracer advection 与 R22
+`pre_step3d` 七段已完成；R09/R34 和 halo 等到成为第一热点时再分别扩展。新增 sites 必须验证
 调用次数、父子覆盖率、rank/node 元数据和 observer effect；仅在 Python 注册 site
 名称而 Fortran 源码没有 `profile_site_on/off` 调用，不算已实现诊断。
 

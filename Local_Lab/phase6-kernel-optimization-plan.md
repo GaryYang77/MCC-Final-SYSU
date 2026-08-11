@@ -172,3 +172,15 @@ Grid-2 R35 仅下降 0.22%，完整 no-profile 仅下降约 0.49%，而完整任
 临时量。Grid-2 pack/unpack 分别下降 28.2%/25.6%，assembly 下降 11.3%，R35
 下降 3.84%，score DEMO 总时间下降 0.77%，26 变量逐位一致。该 commit 已成为新的
 accepted exact reference；由于总时间不足 5%，按预算规则不运行完整三天。
+
+R22 随后通过 sites 192--198 拆成 tracer setup、horizontal、vertical advection、
+vertical diffusion、U/V momentum 和 BC/exchange；job `118958689` 的 Grid-2 父子覆盖
+率为 99.96%。horizontal/vertical advection/vertical diffusion 分别为
+`2.273/1.407/1.352 s`。C4 direct-flux 候选虽使 R22 下降 2.60%，但 raw total 与稳定
+GLS guard 同时回退，按预声明门禁拒绝。commit `952677f` 复用已存在的 predictor
+`cffpmnp`，消除 vertical update 中按 tracer/level 重算 `cff*pm*pn`；job `118961520`
+的 R22 下降 0.94%，26 变量逐位一致，稳定 compute guards 支持改善方向。raw total
+的 0.62% 回退完全被控制 Grid 上 R03/R44 的已知波动覆盖，因此按单次门禁接受、不
+自动复跑；新的筛选 reference 是
+`r22-vertical-time-metric-4n64-16ppn_20260811T164844Z_21545`。累计可信收益仍不足 5%，
+不得运行完整三天。

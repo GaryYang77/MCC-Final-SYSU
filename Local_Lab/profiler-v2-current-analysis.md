@@ -281,3 +281,27 @@ Ordinary score build job `118958278` produced candidate
 `98be8b4a3c11e548596ac00ab9a6b9b1e2d3ed0270c867919490e8febd67f485`.
 It is byte-identical to the current accepted score binary, proving that all new
 R22 diagnostic sites compile out of score mode.
+
+## 2026-08-12 first R22 model experiments
+
+The exact C4 direct-flux experiment removed the horizontal intermediate
+gradient materialization without algebraic cancellation. Job `118960121`, run
+`r22-c4-direct-flux-4n64-16ppn_20260811T163329Z_61411`, was bitwise identical
+and reduced Grid-2 R22 by `2.60%`, but raw total rose `0.50%` and unchanged GLS
+rose `3.63%`. Because its predeclared total/guard condition was not satisfied,
+the source was rejected and restored; the server run remains evidence and the
+local record is archived under `/tmp/r22-c4-direct-flux-failed/`.
+
+The next exact experiment reused the already computed `cffpmnp` in the final
+vertical-advection update instead of repeating `cff*pm*pn` for every tracer and
+level. Commit `952677f`; build job `118961035`, binary SHA-256
+`8c59701c46605a1a4e43c983850b8977d9b0eb7447c23ccce2ad33c205246fdb`;
+score job `118961520`, run
+`r22-vertical-time-metric-4n64-16ppn_20260811T164844Z_21545`. All 26 variables
+were bitwise identical. Grid-2 R22 fell from `6.853677` to `6.789401 s`
+(`-0.94%`), while R09/R19/R35 were stable or improved. Raw total rose `0.62%`,
+but on the controlling Grid 1, volatile R03 and R44 increased by `0.339` and
+`0.748 s`, exceeding the entire `0.422 s` total regression. The candidate was
+therefore accepted without an automatic rerun under the documented noise
+exception. It is the next exact score reference, but its cumulative credible
+total gain remains far below the 5% full-run trigger.
