@@ -6,6 +6,7 @@ MP_ROUTINES = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Utility" / "mp_routines.F"
 MOD_PARALLEL = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Modules" / "mod_parallel.F"
 MOD_STRINGS = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Modules" / "mod_strings.F"
 TIMERS = ROOT / "ROMS_CoSiNE15" / "ROMS" / "Utility" / "timers.F"
+SYNC_TO_CLUSTER = ROOT / "Local_Lab" / "sync_to_cluster.sh"
 
 
 def _source(path: Path) -> str:
@@ -109,3 +110,12 @@ def test_nesting_detail_regions_do_not_expand_the_mpi_region_range() -> None:
     assert "DO iregion=Mregion,NregionMPI" in timers
     assert "DO iregion=MregionNesting,Nregion" in timers
     assert "model nesting section profile" in timers
+
+
+def test_cluster_sync_preserves_official_launch_results() -> None:
+    source = _source(SYNC_TO_CLUSTER)
+
+    assert "--delete" in source
+    assert "--exclude '/sysu_official_launch/run_*/'" in source
+    assert "--exclude '/sysu_official_launch/slurm_*.out'" in source
+    assert "--exclude '/sysu_official_launch/slurm_*.err'" in source

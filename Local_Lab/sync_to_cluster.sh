@@ -36,6 +36,9 @@ rsync -az --delete --info=stats2 \
   --exclude '/Local_Lab/baselines/' \
   --exclude '/Local_Lab/cluster_logs/' \
   --exclude '/Local_Lab/deployment_state.txt' \
+  --exclude '/sysu_official_launch/run_*/' \
+  --exclude '/sysu_official_launch/slurm_*.out' \
+  --exclude '/sysu_official_launch/slurm_*.err' \
   --exclude '/output/' \
   --exclude '*.nc' \
   --exclude '*.nc4' \
