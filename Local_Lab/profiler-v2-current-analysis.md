@@ -471,3 +471,33 @@ Ordinary score build job `118969277` produced candidate
 again byte-identical to the accepted score binary. The bounded evidence bundle
 is
 `profile_bundle_logs/r09-advection-phases-diagnostic-summary_20260811T184250Z_profile_bundle.json`.
+
+## 2026-08-12 accepted R09 re-ranking after Dgrad staging
+
+After accepting commit `818523e`, diagnostic build job `118973376` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T192833Z_25307/bin/oceanM`,
+SHA-256
+`7e5594ce4ec25898aa3ccc350c947a2530acf7febc6064ca3865af473aebe693`.
+Summary job `118973783`, run
+`Local_Lab/runs/profile128/r09-post-dgrad-diagnostic-summary_20260811T193436Z_10681`,
+ended normally, passed diagnostic validation, and remained bitwise identical
+to the accepted score run for all 26 variables.
+
+| accepted R09 compute phase | Grid 1 mean | Grid 2 mean |
+| --- | ---: | ---: |
+| horizontal viscosity | 0.255 s | 0.666 s |
+| fourth-order flux/stencil construction | 0.222 s | 0.615 s |
+| momentum update | 0.175 s | 0.443 s |
+| curvilinear term | 0.059 s | 0.163 s |
+| Coriolis | 0.050 s | 0.150 s |
+| flux divergence | 0.035 s | 0.098 s |
+
+Sites 221--224 cover `1.0272/1.0349 s` on Grid 2 (`99.26%`) and
+`0.3663/0.3681 s` on Grid 1 (`99.51%`), with unchanged calls. Diagnostic
+walls are not compared to score or used to claim the accepted speedup; their
+valid use here is the same-run ranking. Horizontal viscosity is now the
+largest R09 compute child, narrowly ahead of the remaining flux/stencil work.
+The next profiler experiment must therefore split site 203 into its active
+stress construction and divergence/update loop families before any viscosity
+model rewrite. The bounded bundle is
+`profile_bundle_logs/r09-post-dgrad-diagnostic-summary_20260811T193436Z_profile_bundle.json`.

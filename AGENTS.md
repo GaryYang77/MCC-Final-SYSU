@@ -14,14 +14,13 @@
 - Phase 6 从“以通信/嵌套为主”转向“以 ROMS 计算 kernel 为主”，但仍按实测热点
   排序，不为展示特色而修改非热点。一个阶段只细化当前第一热点，一个实验只优化一个
   可证伪假设，完成后重新 profiling 再决定下一项。
-- R35 horizontal tracer advection 和 R22 `pre_step3d` 已完成第一轮计算优化；
-  当前第一计算目标是 Grid-2 R09 `step2d` 的第四阶 advection flux/stencil loops
-  （`0.635 s`，占 advection/rotation 的 60.7%）。这些内层 `i` 循环已被 ifort
-  2017 以 vector length 2 向量化。commit `818523e` 已将两组 `Dgrad` 按行生产并
-  就近消费，使 Grid-2 R09 mean 下降 1.86% 且 26 变量逐位一致；下一模型实验仍只
-  检验该 site 内剩余 scratch-plane 流量的一个 exact 假设，不同时修改 divergence、
-  Coriolis、curvilinear、viscosity 或 wetdry MPI。随后按新 score 重排 R19 GLS、
-  R34 `step3d_uv` 和 halo。
+- R35 horizontal tracer advection 和 R22 `pre_step3d` 已完成第一轮计算优化；R09
+  commit `818523e` 的 `Dgrad` 行 staging 使 Grid-2 R09 mean 下降 1.86% 且 26 变量
+  逐位一致，随后 `UFx` 同行 staging 因 R09 回退 3.18% 被拒绝。accepted 源码的
+  summary job `118973783` 将当前 R09 计算热点重排为 viscosity `0.666 s`、剩余
+  flux/stencil `0.615 s`、momentum update `0.443 s`。下一步只细分宽 site 203
+  viscosity，确认实际 stress/divergence 热 loop 后再做一个 exact 模型假设；不得把
+  site 221、wetdry MPI 或其他 R09 阶段混入。
 
 ## 服务器访问
 

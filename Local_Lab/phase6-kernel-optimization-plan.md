@@ -234,3 +234,11 @@ commit，源码已恢复到 accepted commit `75c60b0`；失败记录保存在
 `/tmp/r09-row-local-ufx-failed/`。不得继续机械套用相同的逐行边界条件改写；应先在
 accepted 源码上重新取得 diagnostic summary，比较剩余 site 221 与 viscosity 等
 子段，再选择下一个假设。
+
+accepted 源码的重排 summary job `118973783` 显示 Grid-2 viscosity/site221/momentum
+分别为 `0.666/0.615/0.443 s`；221--224 对 site 202 的覆盖仍为 99.26%，26 变量
+逐位一致。diagnostic wall 只用于同 run 排序，不用于声称收益。当前第一 R09 计算
+热点因此转为宽 site 203 viscosity；下一步在独立 profiler 分支只拆分其实际启用的
+stress construction 与 divergence/update loop families，确认父子覆盖后再选择模型
+假设。证据为
+`profile_bundle_logs/r09-post-dgrad-diagnostic-summary_20260811T193436Z_profile_bundle.json`。
