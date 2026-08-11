@@ -63,7 +63,8 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 
 - R35 `step3d_t/tracer_corrector` 的 setup、horizontal advection、vertical
   advection、vertical diffusion、final update 五段计时。
-- R22 `pre_step3d` 七段和 R09 `step2d` 八段计时。
+- R22 `pre_step3d` 七段，以及 R09 `step2d`、transport/wetdry 和
+  advection/rotation 的逐级细分计时。
 - contact3d/f2csum 的 plan、pack、MPI、unpack；broadcast；`put_refine3d` 总段。
 - rank/node 元数据和按需 Perfetto trace。
 
@@ -71,8 +72,8 @@ profiler-v2 的 score、summary、trace 三层结构可以继续使用；`PROFIL
 
 - R35 最大子段 horizontal advection 内部的 X stencil、Y stencil、flux
   divergence/update 和 nesting flux assembly 拆分。
-- R22 与 R09 的当前阶段仍较宽；只有当某个子段成为下一项优化目标且源码审查仍无法
-  区分计算/通信时，再继续拆分该子段。
+- R09 当前第一计算子段已细化到第四阶 flux/stencil loops；只有 score 结果使其他
+  宽子段成为第一热点且源码审查仍无法区分计算/通信时，才继续拆分。
 - R34 `step3d_uv` 的垂向黏性系数、forward elimination、back substitution、
   barotropic correction、BC/halo 拆分。
 - halo2d/3d/4d 的 site 名称虽已在 Python 分析器注册，但模型源码尚无相应
@@ -206,3 +207,13 @@ exchange 为 `0.492 s`，父子覆盖 99.25%。因此 wetdry 主要是通信路�
 （`0.666 s`）。下一模型实验先取得实际 advection loops 的 ifort vectorization report，
 只选择一个不改变离散格式或浮点顺序的假设。最终诊断证据为
 `profile_bundle_logs/r09-wetdry-compute-exchange-diagnostic-summary_20260811T182131Z_profile_bundle.json`。
+
+R09 advection/rotation sites 221--224 随后拆分 flux/stencil construction、divergence、
+Coriolis 和 curvilinear terms。job `118969887` 的 Grid-2 子段分别为
+`0.635/0.098/0.148/0.164 s`，父子覆盖 99.26%；flux/stencil 占该父段 60.7%，是下一
+计算目标。普通 score build job `118969277` 的 SHA-256 仍与 accepted 二进制逐字节
+一致。官方 ifort 2017 对实际预处理源码的 no-IPO report 表明主要内层 `i` 循环已以
+vector length 2 向量化，因此第一模型假设应针对 scratch-plane 内存流量或窄范围循环
+结构，同时保持第四阶 stencil、系数、表达式顺序和 exact 输出；不得把其他三个子段、
+viscosity 或 wetdry MPI 混入。证据为
+`profile_bundle_logs/r09-advection-phases-diagnostic-summary_20260811T184250Z_profile_bundle.json`。
