@@ -537,3 +537,55 @@ SHA-256
 `1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`,
 byte-identical to the accepted score binary. The bounded bundle is
 `profile_bundle_logs/r09-viscosity-phases-diagnostic-summary_20260811T195009Z_profile_bundle.json`.
+
+## 2026-08-12 R19 GLS phase split
+
+After the supported R09 exact optimization and three rejected PSI-stress
+hypotheses, the accepted score bundle was reranked globally. Grid-2 R19 GLS
+vertical mixing was the first remaining wide compute region at `5.072 s`;
+R34 was only `0.986 s`. Sites 229--238 therefore split only R19 into predictor
+horizontal/vertical/BC-exchange and corrector setup-shear, horizontal/vertical
+advection, production-dissipation, implicit solve, coefficient construction,
+and BC-exchange.
+
+Diagnostic build job `118978051` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T203755Z_19135/bin/oceanM`,
+SHA-256
+`dd341750e053fe5f28dffc748d18d57419647744c6ef671060ba2e09591ad681`.
+The parallel ordinary score build job `118978054` produced
+`Local_Lab/runs/validation/candidate_20260811T203806Z_15364/bin/oceanM` with
+the unchanged accepted SHA-256
+`1522312811585237a7fc3546d88cf5ac2326e72243100a5073557680bebccf37`,
+confirming that the new calls compile out of ordinary score binaries.
+
+Summary job `118978391`, run
+`Local_Lab/runs/profile128/r19-phases-diagnostic-summary_20260811T204510Z_9860`,
+ended normally with all 26 variables bitwise identical. The first report
+exposed a profiler acceptance omission: sites 229--238 were parsed but were
+not yet required and `gls_vertical_mixing` was not mapped to parent R19.
+Commit `e7ace00` adds both checks and a regression test. Reprocessing the same
+rank logs, without rerunning the model, passes all metadata/site checks and
+gives `1.956883/1.959396 s` coverage on Grid 1 (`99.87%`) and
+`5.166464/5.175357 s` on Grid 2 (`99.83%`).
+
+| GLS phase | Grid 1 mean | Grid 2 mean | Grid 2 share of R19 |
+| --- | ---: | ---: | ---: |
+| predictor horizontal | 0.076 s | 0.197 s | 3.8% |
+| predictor vertical | 0.055 s | 0.107 s | 2.1% |
+| predictor BC/exchange | 0.133 s | 0.479 s | 9.3% |
+| corrector setup/shear | 0.062 s | 0.170 s | 3.3% |
+| corrector horizontal advection | 0.083 s | 0.199 s | 3.8% |
+| corrector vertical advection | 0.037 s | 0.105 s | 2.0% |
+| corrector production/dissipation | 0.543 s | 1.351 s | 26.1% |
+| corrector implicit solve | 0.073 s | 0.180 s | 3.5% |
+| corrector coefficient construction | 0.766 s | 1.907 s | 36.8% |
+| corrector BC/exchange | 0.129 s | 0.471 s | 9.1% |
+
+The next compute target is the corrector coefficient-construction loop family,
+not the two communication-heavy BC/exchange phases. Before changing the model,
+obtain an ifort vectorization report for the actual preprocessed coefficient
+loop and audit the active `Lmy25` path for remaining repeated powers, square
+roots, divisions, and invariant GLS constants. Production/dissipation remains
+the second target and must not be mixed into that experiment. The bounded
+bundle is
+`profile_bundle_logs/r19-phases-diagnostic-summary_20260811T204510Z_profile_bundle.json`.

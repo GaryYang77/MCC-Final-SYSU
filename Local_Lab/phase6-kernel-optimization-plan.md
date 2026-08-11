@@ -271,3 +271,14 @@ score DEMO job `118977361` 正常结束且 26 变量逐位一致，但分配到�
 `6abbcb5`，失败记录保存在 `/tmp/r09-force-psi-vector-failed/`。下一步停止机械改写
 PSI stress loop，回到 accepted score bundle 重排全局计算热点，再决定需要细化的宽
 region。
+
+accepted score bundle 的全局重排随后把 Grid-2 R19 GLS vertical mixing 定为首个
+尚未细化的宽计算 region（`5.072 s`；R34 仅 `0.986 s`）。sites 229--238 将 R19
+拆成 predictor 三段与 corrector 七段；summary job `118978391` 正常结束、26 变量
+逐位一致。补齐必需-site 和 R19 父映射后，用同一批日志离线重算得到 Grid-1/Grid-2
+父子覆盖率 `99.87%/99.83%`。Grid-2 第一计算段是 corrector mixing-coefficient
+construction `1.907 s`，第二是 production/dissipation `1.351 s`；predictor/corrector
+BC-exchange 合计约 `0.951 s`，不得混入下一计算实验。下一步先取得实际预处理后的
+coefficient loop ifort 向量化报告，再只选择一个关于重复幂、平方根、除法或 GLS
+不变量的可证伪假设。证据为
+`profile_bundle_logs/r19-phases-diagnostic-summary_20260811T204510Z_profile_bundle.json`。
