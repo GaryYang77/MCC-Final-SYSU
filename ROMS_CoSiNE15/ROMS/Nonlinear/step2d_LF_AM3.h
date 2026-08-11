@@ -1021,6 +1021,9 @@
       CALL profile_site_on (ng, iNLM, 202)
 # endif
 # ifdef UV_ADV
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 221)
+#  endif
 !
 !-----------------------------------------------------------------------
 !  Add in horizontal advection of momentum.
@@ -1257,6 +1260,10 @@
         END DO
       END DO
 #  endif
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 221, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 222)
+#  endif
 !
       DO j=Jstr,Jend
         DO i=IstrU,Iend
@@ -1284,6 +1291,12 @@
 #  endif
         END DO
       END DO
+#  ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 222, 0.0_r8, 0.0_r8, 0)
+#  endif
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, iNLM, 223)
 # endif
 # ifdef UV_COR
 !
@@ -1326,6 +1339,10 @@
 #  endif
         END DO
       END DO
+# endif
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 223, 0.0_r8, 0.0_r8, 0)
+      CALL profile_site_on (ng, iNLM, 224)
 # endif
 # if defined CURVGRID && defined UV_ADV
 !
@@ -1385,6 +1402,7 @@
       END DO
 # endif
 # ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, iNLM, 224, 0.0_r8, 0.0_r8, 0)
       CALL profile_site_off (ng, iNLM, 202, 0.0_r8, 0.0_r8, 0)
       CALL profile_site_on (ng, iNLM, 203)
 # endif

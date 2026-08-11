@@ -429,3 +429,45 @@ Ordinary score build job `118967479` produced candidate
 `8c59701c46605a1a4e43c983850b8977d9b0eb7447c23ccce2ad33c205246fdb`,
 byte-identical to the accepted score binary. The bounded final bundle is
 `profile_bundle_logs/r09-wetdry-compute-exchange-diagnostic-summary_20260811T182131Z_profile_bundle.json`.
+
+## 2026-08-12 R09 advection/rotation detail split
+
+Sites 221--224 split the existing R09 advection/rotation phase into fourth-order
+flux/stencil construction, flux divergence, Coriolis, and curvilinear terms.
+Diagnostic build job `118969270` produced
+`Local_Lab/builds/profiling/diagnostic_20260811T183530Z_996/bin/oceanM`,
+SHA-256
+`94b03265a68d36823ba106d491c94ae098b1b77eebb13eb05662af7c7be75a7a`.
+Summary job `118969887`, run
+`Local_Lab/runs/profile128/r09-advection-phases-diagnostic-summary_20260811T184250Z_16246`,
+ended normally, passed all diagnostic checks, and remained bitwise identical
+to the accepted score reference for all 26 variables.
+
+| advection/rotation detail | Grid 1 mean | Grid 2 mean | Grid 2 share |
+| --- | ---: | ---: | ---: |
+| fourth-order flux/stencil construction | 0.227 s | 0.635 s | 60.7% |
+| flux divergence | 0.035 s | 0.098 s | 9.4% |
+| Coriolis | 0.050 s | 0.148 s | 14.2% |
+| curvilinear term | 0.059 s | 0.164 s | 15.7% |
+
+The child sum covers `0.3696/0.3714 s` on Grid 1 (`99.52%`) and
+`1.0455/1.0533 s` on Grid 2 (`99.26%`). Every child executes 5124 times per
+rank on Grid 1 and 25200 times per rank on Grid 2, matching the parent. The
+fourth-order flux/stencil loops are therefore the next R09 compute target;
+divergence, Coriolis, curvilinear work, viscosity, and wetdry MPI must remain
+outside the first model experiment.
+
+The official ifort 2017 no-IPO report for the actual preprocessed
+`step2d.f90` shows that the major inner `i` loops in this phase already
+vectorize with vector length 2, generally through unaligned/multiversioned
+paths. The first hypothesis should consequently target scratch-plane memory
+traffic or loop structure while preserving the fourth-order stencil,
+coefficients, expression order, and exact output; merely adding SIMD
+directives is not supported by the evidence.
+
+Ordinary score build job `118969277` produced candidate
+`Local_Lab/runs/validation/candidate_20260811T183604Z_27828`, SHA-256
+`8c59701c46605a1a4e43c983850b8977d9b0eb7447c23ccce2ad33c205246fdb`,
+again byte-identical to the accepted score binary. The bounded evidence bundle
+is
+`profile_bundle_logs/r09-advection-phases-diagnostic-summary_20260811T184250Z_profile_bundle.json`.
