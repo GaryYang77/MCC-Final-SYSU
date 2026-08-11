@@ -685,3 +685,20 @@ exact-equivalence repeated-computation or memory hypothesis. Gas exchange is
 a stable guard and must not be modified in the same model experiment. The
 bounded bundle is
 `profile_bundle_logs/r15-source-sink-diagnostic-summary_20260811T222901Z_profile_bundle.json`.
+
+The accepted preprocessed `biology.f90` was then compiled separately under
+the production Intel 2017 toolchain. Compile-only job `118983818` reports that
+the pointwise inner `i` loop is already vectorized at vector length 2, with
+estimated speedup 1.27, five serialized `exp` calls, 25 divides, and many
+unaligned unit-stride loads/stores. The report is preserved at
+`/tmp/r15-biology-pointwise.optrpt` in the local analysis environment.
+
+The first exact model hypothesis removed two `k>1` branches whose two bodies
+were expression-wise identical. Build job `118983953` produced a distinct
+binary, but the single score job `118984274`, run
+`Local_Lab/runs/profile128/r15-redundant-k-branches-4n64-16ppn_20260811T224705Z_55569`,
+rejected it: all 26 comparisons were exact, while Grid-2 R15 regressed 0.61%,
+Grid-1 R15 did not improve, and Grid-2 R09 regressed 2.31%. The 0.54% lower
+raw total coincided with favorable R03/R44 movement and is not attributable
+to the source. The candidate was not committed or rerun; its record is in
+`/tmp/r15-redundant-k-branches-failed/`.

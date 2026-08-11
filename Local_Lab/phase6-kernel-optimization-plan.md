@@ -343,3 +343,14 @@ gas exchange。summary job `118983545` 正常结束、26 变量逐位一致；Gr
 run `Local_Lab/runs/profile128/r15-source-sink-diagnostic-summary_20260811T222901Z_57614`
 及 bundle
 `profile_bundle_logs/r15-source-sink-diagnostic-summary_20260811T222901Z_profile_bundle.json`。
+
+accepted 预处理源码的 compile-only job `118983818` 显示，点式 `i` loop 已以 vector
+length 2 向量化，估计 speedup 仅 `1.27`；5 个 `exp` 在 `-fp-model precise` 下全部
+串行，另有 25 个除法。删除两处两边表达式完全相同的 `k>1` 分支后，候选产生不同
+二进制，但 score job `118984274` 的 Grid-2 R15 反而回退 `0.61%`，Grid-1 无改善，
+且 Grid-2 R09 回退 `2.31%`。raw total 的 `0.54%` 改善伴随有利 R03/R44 波动，不能
+归因于源码。候选未 commit、未复跑，失败记录位于
+`/tmp/r15-redundant-k-branches-failed/`。后续不得继续清理 loop-invariant 分支；若
+尝试 exact 优化，应针对编译器报告中的 unaligned loads 或可证明不改除法/exp 结果的
+单一数据复用假设。改变 `fp-model`/SVML 属 numerical 编译实验，必须独立声明且仍受
+5% 全量触发门槛约束。
