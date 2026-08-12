@@ -143,6 +143,10 @@ SITE_DEFINITIONS = {
         SiteDefinition(257, 49, "nesting", "assemble3d_cross", "pack", "assemble3d_cross_pack"),
         SiteDefinition(258, 49, "mpi", "assemble3d_cross", "mpi", "assemble3d_cross_mpi"),
         SiteDefinition(259, 49, "nesting", "assemble3d_cross", "unpack", "assemble3d_cross_unpack"),
+        SiteDefinition(260, 54, "nesting", "put_refine3d_detail", "tracer", "put_refine3d_tracer"),
+        SiteDefinition(261, 54, "nesting", "put_refine3d_detail", "u_momentum", "put_refine3d_u_momentum"),
+        SiteDefinition(262, 54, "nesting", "put_refine3d_detail", "v_momentum", "put_refine3d_v_momentum"),
+        SiteDefinition(263, 54, "mpi", "put_refine3d_detail", "halo_exchange", "put_refine3d_halo_exchange"),
     )
 }
 
@@ -477,6 +481,7 @@ def validate_diagnostic_report(
         | set(range(249, 253))
         | set(range(253, 257))
         | set(range(257, 260))
+        | set(range(260, 264))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -541,6 +546,7 @@ def validate_profile_consistency(
         "two_way": 55,
         "two_way_f2c3d": 55,
         "assemble3d_cross": 49,
+        "put_refine3d_detail": 54,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])

@@ -6910,6 +6910,9 @@
 !
 !  Tracer-type variables.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 260)
+# endif
       DO m=1,Rcontact(cr)%Npoints
         i=Rcontact(cr)%Irg(m)
         j=Rcontact(cr)%Jrg(m)
@@ -6945,9 +6948,15 @@
           END DO
         END IF
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 260, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 !  3D momentum in the XI-direction.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 261)
+# endif
       DO m=1,Ucontact(cr)%Npoints
         i=Ucontact(cr)%Irg(m)
         j=Ucontact(cr)%Jrg(m)
@@ -6980,9 +6989,15 @@
           END DO
         END IF
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 261, 0.0_r8, 0.0_r8, 0)
+# endif
 !
 !  3D momentum in the ETA-direction.
 !
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 262)
+# endif
       DO m=1,Vcontact(cr)%Npoints
         i=Vcontact(cr)%Irg(m)
         j=Vcontact(cr)%Jrg(m)
@@ -7015,6 +7030,9 @@
           END DO
         END IF
       END DO
+# ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 262, 0.0_r8, 0.0_r8, 0)
+# endif
 
 #  ifdef DISTRIBUTE
 !
@@ -7022,6 +7040,9 @@
 !  Exchange tile information.
 !-----------------------------------------------------------------------
 !
+#   ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_on (ng, model, 263)
+#   endif
       CALL mp_exchange4d (ng, tile, model, 3,                           &
      &                    LBi, UBi, LBj, UBj, 1, N(ng), 1, NT(ng),      &
      &                    NghostPoints,                                 &
@@ -7038,6 +7059,9 @@
      &                    OCEAN(ng)%u(:,:,:,2),                         &
      &                    OCEAN(ng)%v(:,:,:,1),                         &
      &                    OCEAN(ng)%v(:,:,:,2))
+#   ifdef PROFILE_DIAGNOSTIC
+      CALL profile_site_off (ng, model, 263, 0.0_r8, 0.0_r8, 0)
+#   endif
 #  endif
 !
   10  FORMAT (/,' PUT_REFINE3D - unbounded contact points temporal: ',  &
