@@ -170,7 +170,8 @@
 !
       real(r8), allocatable :: Fine3dSum(:,:)
       real(r8), allocatable :: Fine3dCross(:,:,:)
-!$OMP THREADPRIVATE (Fine3dSum, Fine3dCross)
+      real(r8), allocatable :: Fine3dCross4(:,:,:,:)
+!$OMP THREADPRIVATE (Fine3dSum, Fine3dCross, Fine3dCross4)
 !
 !  Refined time-steps counter with respect the coarse grid (ng=1)
 !  single time-step.

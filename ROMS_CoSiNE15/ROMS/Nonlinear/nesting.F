@@ -355,6 +355,7 @@
       USE mod_ncparam
       USE mod_nesting
       USE mod_scalars
+      USE mod_iounits, ONLY : stdout
 
 # ifdef SOLVE3D
 !
@@ -3673,6 +3674,8 @@
 # ifdef SOLVE3D
       integer :: itrc
 # endif
+      integer :: dbg_m, dbg_mm, dbg_err
+      real(r8) :: dbg_s, dbg_g, dbg_s2, dbg_g2
 !
 !-----------------------------------------------------------------------
 !  Average interior fine grid state variable data to the coarse grid
@@ -3833,26 +3836,80 @@
 !  Tracer type-variables.
 !
             AreaAvg=.FALSE.
-            DO itrc=1,NT(rg)
-              GetMask=itrc.eq.1
-              CALL fine2coarse3d (rg, dg, model, tile,                  &
-     &                            r3dvar, Vname(1,idTvar(itrc)),        &
-     &                            AreaAvg, GetMask, RefineScale(dg),    &
-     &                            cr, Rcontact(cr)%Npoints, Rcontact,   &
-     &                            LBiD, UBiD, LBjD, UBjD, 1, N(dg),     &
-     &                            LBiR, UBiR, LBjR, UBjR, 1, N(rg),     &
-     &                            GRID(dg)%om_r,                        &
-     &                            GRID(dg)%on_r,                        &
-     &                            GRID(rg)%pm,                          &
-     &                            GRID(rg)%pn,                          &
+            IF ((NtileI(dg)*NtileJ(dg).eq.numthreads).and.             &
+     &          (N(dg).eq.N(rg)).and.(NT(rg).lt.0)) THEN
+              CALL fine2coarse3d_batch (rg, dg, model, tile,           &
+     &                          r3dvar, Vname(1,idTvar(1)),            &
+     &                          AreaAvg, RefineScale(dg),              &
+     &                          cr, Rcontact(cr)%Npoints, Rcontact,    &
+     &                          LBiD, UBiD, LBjD, UBjD, 1, N(dg),      &
+     &                          LBiR, UBiR, LBjR, UBjR, 1, N(rg),      &
+     &                          GRID(dg)%om_r,                         &
+     &                          GRID(dg)%on_r,                         &
+     &                          GRID(rg)%pm,                           &
+     &                          GRID(rg)%pn,                           &
 #  ifdef MASKING
-     &                            GRID(dg)%rmask_full,                  &
-     &                            GRID(rg)%rmask_full,                  &
+     &                          GRID(dg)%rmask_full,                   &
+     &                          GRID(rg)%rmask_full,                   &
 #  endif
-     &                            OCEAN(dg)%t(:,:,:,Dindex3d,itrc),     &
-     &                            OCEAN(rg)%t(:,:,:,Rindex3d,itrc))
+     &                          OCEAN(dg)%t(:,:,:,Dindex3d,:),         &
+     &                          OCEAN(rg)%t(:,:,:,Rindex3d,:),         &
+     &                          NT(rg))
               IF (exit_flag.ne.NoError) RETURN
-            END DO
+            ELSE
+              DO itrc=1,NT(rg)
+                GetMask=itrc.eq.1
+                CALL fine2coarse3d (rg, dg, model, tile,               &
+     &                              r3dvar, Vname(1,idTvar(itrc)),     &
+     &                              AreaAvg, GetMask, RefineScale(dg), &
+     &                              cr, Rcontact(cr)%Npoints,          &
+     &                              Rcontact,                           &
+     &                              LBiD, UBiD, LBjD, UBjD, 1, N(dg),  &
+     &                              LBiR, UBiR, LBjR, UBjR, 1, N(rg),  &
+     &                              GRID(dg)%om_r,                     &
+     &                              GRID(dg)%on_r,                     &
+     &                              GRID(rg)%pm,                       &
+     &                              GRID(rg)%pn,                       &
+#  ifdef MASKING
+     &                              GRID(dg)%rmask_full,               &
+     &                              GRID(rg)%rmask_full,               &
+#  endif
+     &                              OCEAN(dg)%t(:,:,:,Dindex3d,itrc),  &
+     &                              OCEAN(rg)%t(:,:,:,Rindex3d,itrc))
+                IF (exit_flag.ne.NoError) RETURN
+              END DO
+            END IF
+!
+!  Debug: checksum of the just-written coarse tracer values.
+!
+            IF (iic(rg).le.8) THEN
+              DO itrc=1,NT(rg)
+                dbg_s=0.0_r8
+                dbg_s2=0.0_r8
+                DO dbg_mm=1,Rcontact(cr)%Rnlocal
+                  dbg_m=Rcontact(cr)%Rlocal(dbg_mm)
+                  DO k=1,N(rg)
+                    IF (Rcontact(cr)%F2Cowner(dbg_m).ge.0) THEN
+                      dbg_s=dbg_s+                                    &
+     &                      OCEAN(rg)%t(Rcontact(cr)%Irg(dbg_m),      &
+     &                                Rcontact(cr)%Jrg(dbg_m),k,      &
+     &                                Rindex3d,itrc)
+                    ELSE
+                      dbg_s2=dbg_s2+                                  &
+     &                      OCEAN(rg)%t(Rcontact(cr)%Irg(dbg_m),      &
+     &                                Rcontact(cr)%Jrg(dbg_m),k,      &
+     &                                Rindex3d,itrc)
+                    END IF
+                  END DO
+                END DO
+                CALL mpi_allreduce (dbg_s, dbg_g, 1, MP_FLOAT,        &
+     &                              MPI_SUM, OCN_COMM_WORLD, dbg_err)
+                CALL mpi_allreduce (dbg_s2, dbg_g2, 1, MP_FLOAT,      &
+     &                              MPI_SUM, OCN_COMM_WORLD, dbg_err)
+                IF (Master) WRITE (stdout,'(A,3I6,1P,2E24.16)')       &
+     &                'F2CDBG ', cr, iic(rg), itrc, dbg_g, dbg_g2
+              END DO
+            END IF
 !
 !  Process 3D momentum components (u, v).
 !
@@ -5244,6 +5301,498 @@
 
       RETURN
       END SUBROUTINE fine2coarse3d
+
+      SUBROUTINE fine2coarse3d_batch (ng, dg, model, tile,            &
+     &                                gtype, svname,                  &
+     &                                AreaAvg, Rscale,                &
+     &                                cr, Npoints, contact,           &
+     &                                LBiF, UBiF, LBjF, UBjF,         &
+     &                                LBkF, UBkF,                     &
+     &                                LBiC, UBiC, LBjC, UBjC,         &
+     &                                LBkC, UBkC,                     &
+     &                                Adx, Ady, pmC, pnC,             &
+#  ifdef MASKING
+     &                                Amsk, Cmsk,                     &
+#  endif
+     &                                A, C, nvars)
+!
+!=======================================================================
+!                                                                      !
+!  Batched tracer fine-to-coarse averaging.  All nvars tracers share   !
+!  identical contact geometry, so their crossing-block cells are      !
+!  packed and exchanged in one collective wait.  Owned-block sums and  !
+!  the final scatter keep the sequential arithmetic, making results    !
+!  bitwise identical to fine2coarse3d.                                 !
+!                                                                      !
+!=======================================================================
+!
+      USE mod_param
+      USE mod_parallel
+      USE mod_ncparam
+      USE mod_nesting
+      USE mod_scalars
+      USE mod_iounits, ONLY : stdout
+
+      USE distribute_mod, ONLY : mp_assemble
+      USE distribute_mod, ONLY : mp_assemble_cross_batch
+      USE distribute_mod, ONLY : mp_assemble_f2csum
+!
+!  Imported variable declarations.
+!
+      logical, intent(in) :: AreaAvg
+      integer, intent(in) :: ng, dg, model, tile
+      integer, intent(in) :: gtype, cr, Npoints, Rscale, nvars
+      integer, intent(in) :: LBiF, UBiF, LBjF, UBjF, LBkF, UBkF
+      integer, intent(in) :: LBiC, UBiC, LBjC, UBjC, LBkC, UBkC
+
+      character(len=*), intent(in) :: svname
+
+      TYPE (T_NGC), intent(inout) :: contact(:)
+
+#  ifdef ASSUMED_SHAPE
+      real(r8), intent(in) :: pmC(LBiC:,LBjC:)
+      real(r8), intent(in) :: pnC(LBiC:,LBjC:)
+#   ifdef MASKING
+      real(r8), intent(in) :: Cmsk(LBiC:,LBjC:)
+      real(r8), intent(in) :: Amsk(LBiF:,LBjF:)
+#   endif
+      real(r8), intent(in) :: A(LBiF:,LBjF:,LBkF:,:)
+      real(r8), intent(in) :: Adx(LBiF:,LBjF:)
+      real(r8), intent(in) :: Ady(LBiF:,LBjF:)
+      real(r8), intent(inout) :: C(LBiC:,LBjC:,LBkC:,:)
+#  else
+      real(r8), intent(in) :: pmC(LBiC:UBiC,LBjC:UBjC)
+      real(r8), intent(in) :: pnC(LBiC:UBiC,LBjC:UBjC)
+#   ifdef MASKING
+      real(r8), intent(in) :: Cmsk(LBiC:UBiC,LBjC:UBjC)
+      real(r8), intent(in) :: Amsk(LBiF:UBiF,LBjF:UBjF)
+#   endif
+      real(r8), intent(in) :: A(LBiF:UBiF,LBjF:UBjF,LBkF:UBkF,nvars)
+      real(r8), intent(in) :: Adx(LBiF:UBiF,LBjF:UBjF)
+      real(r8), intent(in) :: Ady(LBiF:UBiF,LBjF:UBjF)
+      real(r8), intent(inout) :: C(LBiC:UBiC,LBjC:UBjC,LBkC:UBkC,nvars)
+#  endif
+!
+!  Local variable declarations.
+!
+      integer :: Iadd, Ic, Jadd, Jc, half, i, idx, j, k, m, v
+      integer :: F_Iend, F_Istr, F_Jend, F_Jstr
+      integer :: BlockLen, Klen, Nlocal
+      integer :: Ncross, Nnodes, Rnodes, ib, ii, jj, kk, rank
+      integer :: NewB, NewK, NewN, Nloc, q, gt
+
+      real(r8) :: my_avg, my_count, my_sum
+
+#  include "set_bounds.h"
+!
+!-----------------------------------------------------------------------
+!  Only the distributed fast path is implemented here; the caller uses
+!  per-variable fine2coarse3d for any other configuration.
+!-----------------------------------------------------------------------
+!
+      IF (AreaAvg) THEN
+        IF (Master) WRITE (stdout,10) 'FINE2COARSE3D_BATCH'
+        exit_flag=7
+        RETURN
+      END IF
+!
+!  Set this rank's fine-grid bounds for the rho-point contact region.
+!
+      F_Istr=BOUNDS(dg)%IstrT(MyRank)
+      F_Iend=BOUNDS(dg)%IendT(MyRank)
+      F_Jstr=BOUNDS(dg)%JstrT(MyRank)
+      F_Jend=BOUNDS(dg)%JendT(MyRank)
+
+      half=(Rscale-1)/2
+      BlockLen=Rscale*Rscale
+      Klen=UBkF-LBkF+1
+      Nnodes=NtileI(dg)*NtileJ(dg)-1
+!
+!  Classify donor blocks once (shared with fine2coarse3d).
+!
+      IF (contact(cr)%F2CnCross.lt.0) THEN
+        contact(cr)%F2Cowner=-1
+        contact(cr)%F2Ccross=0
+        Ncross=0
+        DO m=1,Npoints
+          i=contact(cr)%Idg(m)
+          j=contact(cr)%Jdg(m)
+          DO rank=0,Nnodes
+            F_Istr=BOUNDS(dg)%IstrT(rank)
+            F_Iend=BOUNDS(dg)%IendT(rank)
+            F_Jstr=BOUNDS(dg)%JstrT(rank)
+            F_Jend=BOUNDS(dg)%JendT(rank)
+            IF (((F_Istr.le.i-half).and.(i+half.le.F_Iend)).and.      &
+     &          ((F_Jstr.le.j-half).and.(j+half.le.F_Jend))) THEN
+              contact(cr)%F2Cowner(m)=rank
+            END IF
+          END DO
+          IF (contact(cr)%F2Cowner(m).lt.0) THEN
+            Ncross=Ncross+1
+            contact(cr)%F2Ccross(m)=Ncross
+          END IF
+        END DO
+        contact(cr)%F2CnCross=Ncross
+        IF (Ncross.gt.0) THEN
+          allocate (contact(cr)%F2CcellOwner(BlockLen,Ncross))
+          allocate (contact(cr)%F2Creceiver(Ncross))
+          contact(cr)%F2CcellOwner=-1
+          contact(cr)%F2Creceiver=-2
+          DO m=1,Npoints
+            IF (contact(cr)%F2Ccross(m).gt.0) THEN
+              i=contact(cr)%Idg(m)
+              j=contact(cr)%Jdg(m)
+              DO rank=0,Nnodes
+                F_Istr=BOUNDS(dg)%IstrT(rank)
+                F_Iend=BOUNDS(dg)%IendT(rank)
+                F_Jstr=BOUNDS(dg)%JstrT(rank)
+                F_Jend=BOUNDS(dg)%JendT(rank)
+                DO Jadd=-half,half
+                  jj=j+Jadd
+                  DO Iadd=-half,half
+                    ii=i+Iadd
+                    ib=(Jadd+half)*Rscale+Iadd+half+1
+                    IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.     &
+     &                  ((F_Jstr.le.jj).and.(jj.le.F_Jend)))         &
+     &                contact(cr)%F2CcellOwner                        &
+     &                  (ib,contact(cr)%F2Ccross(m))=rank
+                  END DO
+                END DO
+              END DO
+            END IF
+          END DO
+        END IF
+      ELSE
+        Ncross=contact(cr)%F2CnCross
+      END IF
+!
+!  Cache the consuming rank of each coarse contact point.
+!
+      IF (ANY(contact(cr)%Rowner.eq.-2)) THEN
+        contact(cr)%Rowner=-1
+        Rnodes=NtileI(ng)*NtileJ(ng)-1
+        DO m=1,Npoints
+          i=contact(cr)%Irg(m)
+          j=contact(cr)%Jrg(m)
+          DO rank=0,Rnodes
+            F_Istr=BOUNDS(ng)%IstrT(rank)
+            F_Iend=BOUNDS(ng)%IendT(rank)
+            F_Jstr=BOUNDS(ng)%JstrT(rank)
+            F_Jend=BOUNDS(ng)%JendT(rank)
+            IF (((F_Istr.le.i).and.(i.le.F_Iend)).and.               &
+     &          ((F_Jstr.le.j).and.(j.le.F_Jend)))                   &
+     &        contact(cr)%Rowner(m)=rank
+          END DO
+        END DO
+        contact(cr)%Rnlocal=0
+        DO m=1,Npoints
+          IF (contact(cr)%Rowner(m).eq.MyRank) THEN
+            contact(cr)%Rnlocal=contact(cr)%Rnlocal+1
+            contact(cr)%Rlocal(contact(cr)%Rnlocal)=m
+          END IF
+        END DO
+      END IF
+      IF ((Ncross.gt.0).and.ANY(contact(cr)%F2Creceiver.eq.-2)) THEN
+        DO m=1,Npoints
+          IF (contact(cr)%F2Ccross(m).gt.0) THEN
+            contact(cr)%F2Creceiver(contact(cr)%F2Ccross(m))=         &
+     &                            contact(cr)%Rowner(m)
+          END IF
+        END DO
+      END IF
+!
+!  Cache this rank's locally owned crossing-block cells per gtype.
+!
+      IF (contact(cr)%F2CnLocal.lt.0) THEN
+        allocate (contact(cr)%F2Cnl(4))
+        contact(cr)%F2Cnl=0
+        IF (Ncross.gt.0) THEN
+          allocate (contact(cr)%F2Clocal(4,BlockLen*Ncross,4))
+          DO gt=1,4
+            SELECT CASE (gt)
+              CASE (1)
+                F_Istr=BOUNDS(dg)%IstrP(MyRank)
+                F_Iend=BOUNDS(dg)%IendP(MyRank)
+                F_Jstr=BOUNDS(dg)%JstrP(MyRank)
+                F_Jend=BOUNDS(dg)%JendP(MyRank)
+              CASE (2)
+                F_Istr=BOUNDS(dg)%IstrT(MyRank)
+                F_Iend=BOUNDS(dg)%IendT(MyRank)
+                F_Jstr=BOUNDS(dg)%JstrT(MyRank)
+                F_Jend=BOUNDS(dg)%JendT(MyRank)
+              CASE (3)
+                F_Istr=BOUNDS(dg)%IstrP(MyRank)
+                F_Iend=BOUNDS(dg)%IendP(MyRank)
+                F_Jstr=BOUNDS(dg)%JstrT(MyRank)
+                F_Jend=BOUNDS(dg)%JendT(MyRank)
+              CASE (4)
+                F_Istr=BOUNDS(dg)%IstrT(MyRank)
+                F_Iend=BOUNDS(dg)%IendT(MyRank)
+                F_Jstr=BOUNDS(dg)%JstrP(MyRank)
+                F_Jend=BOUNDS(dg)%JendP(MyRank)
+            END SELECT
+            Nloc=0
+            DO m=1,Npoints
+              IF (contact(cr)%F2Ccross(m).gt.0) THEN
+                i=contact(cr)%Idg(m)
+                j=contact(cr)%Jdg(m)
+                DO Jadd=-half,half
+                  jj=j+Jadd
+                  DO Iadd=-half,half
+                    ii=i+Iadd
+                    IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.     &
+     &                  ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
+                      Nloc=Nloc+1
+                    END IF
+                  END DO
+                END DO
+              END IF
+            END DO
+            contact(cr)%F2Cnl(gt)=Nloc
+            q=0
+            DO m=1,Npoints
+              IF (contact(cr)%F2Ccross(m).gt.0) THEN
+                i=contact(cr)%Idg(m)
+                j=contact(cr)%Jdg(m)
+                DO Jadd=-half,half
+                  jj=j+Jadd
+                  DO Iadd=-half,half
+                    ii=i+Iadd
+                    ib=(Jadd+half)*Rscale+Iadd+half+1
+                    IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.     &
+     &                  ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
+                      q=q+1
+                      contact(cr)%F2Clocal(1,q,gt)=ii
+                      contact(cr)%F2Clocal(2,q,gt)=jj
+                      contact(cr)%F2Clocal(3,q,gt)=ib
+                      contact(cr)%F2Clocal(4,q,gt)=                  &
+     &                                   contact(cr)%F2Ccross(m)
+                    END IF
+                  END DO
+                END DO
+              END IF
+            END DO
+          END DO
+        END IF
+        contact(cr)%F2CnLocal=0
+      END IF
+
+      F_Istr=BOUNDS(dg)%IstrT(MyRank)
+      F_Iend=BOUNDS(dg)%IendT(MyRank)
+      F_Jstr=BOUNDS(dg)%JstrT(MyRank)
+      F_Jend=BOUNDS(dg)%JendT(MyRank)
+!
+!  Allocate per-variable crossing buffers and compute the wet-cell
+!  counts once for every tracer.
+!
+      IF (allocated(Fine3dSum)) THEN
+        IF ((SIZE(Fine3dSum,DIM=1).lt.Klen).or.                      &
+     &      (SIZE(Fine3dSum,DIM=2).lt.Npoints)) THEN
+          NewK=MAX(Klen,SIZE(Fine3dSum,DIM=1))
+          NewN=MAX(Npoints,SIZE(Fine3dSum,DIM=2))
+          deallocate (Fine3dSum)
+          allocate (Fine3dSum(NewK,NewN))
+        END IF
+      ELSE
+        allocate (Fine3dSum(Klen,Npoints))
+      END IF
+      IF (Ncross.gt.0) THEN
+        IF (allocated(Fine3dCross4)) THEN
+          IF ((SIZE(Fine3dCross4,DIM=1).lt.BlockLen).or.             &
+     &        (SIZE(Fine3dCross4,DIM=2).lt.Klen).or.                 &
+     &        (SIZE(Fine3dCross4,DIM=3).lt.Ncross).or.               &
+     &        (SIZE(Fine3dCross4,DIM=4).lt.nvars)) THEN
+            NewB=MAX(BlockLen,SIZE(Fine3dCross4,DIM=1))
+            NewK=MAX(Klen,SIZE(Fine3dCross4,DIM=2))
+            NewN=MAX(Ncross,SIZE(Fine3dCross4,DIM=3))
+            deallocate (Fine3dCross4)
+            allocate (Fine3dCross4(NewB,NewK,NewN,nvars))
+          END IF
+        ELSE
+          allocate (Fine3dCross4(BlockLen,Klen,Ncross,nvars))
+        END IF
+      END IF
+
+      IF (allocated(Fine3dCount)) THEN
+        IF (SIZE(Fine3dCount).ne.Npoints) deallocate (Fine3dCount)
+      END IF
+      IF (.not.allocated(Fine3dCount)) THEN
+        allocate (Fine3dCount(Npoints))
+      END IF
+      IF (allocated(Fine3dCrossMask)) deallocate (Fine3dCrossMask)
+      IF (Ncross.gt.0) THEN
+        allocate (Fine3dCrossMask(BlockLen,Ncross))
+        Fine3dCrossMask=0.0_r8
+      END IF
+      Fine3dCount=0.0_r8
+      DO m=1,Npoints
+        i=contact(cr)%Idg(m)
+        j=contact(cr)%Jdg(m)
+        IF (contact(cr)%F2Cowner(m).eq.MyRank) THEN
+          DO Jadd=-half,half
+            DO Iadd=-half,half
+# ifdef MASKING
+              Fine3dCount(m)=Fine3dCount(m)+                          &
+     &                       MIN(1.0_r8,Amsk(i+Iadd,j+Jadd))
+# else
+              Fine3dCount(m)=Fine3dCount(m)+1.0_r8
+# endif
+            END DO
+          END DO
+        ELSE IF (contact(cr)%F2Ccross(m).gt.0) THEN
+          DO Jadd=-half,half
+            jj=j+Jadd
+            DO Iadd=-half,half
+              ii=i+Iadd
+              ib=(Jadd+half)*Rscale+Iadd+half+1
+              IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.           &
+     &            ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
+# ifdef MASKING
+                Fine3dCrossMask(ib,contact(cr)%F2Ccross(m))=          &
+     &                         Amsk(ii,jj)
+# else
+                Fine3dCrossMask(ib,contact(cr)%F2Ccross(m))=1.0_r8
+# endif
+              END IF
+            END DO
+          END DO
+        END IF
+      END DO
+      CALL mp_assemble (dg, model, Npoints, 0.0_r8, Fine3dCount)
+      IF (exit_flag.ne.NoError) RETURN
+      IF (Ncross.gt.0) THEN
+        CALL mp_assemble (dg, model, BlockLen*Ncross, 0.0_r8,         &
+     &                    Fine3dCrossMask)
+        IF (exit_flag.ne.NoError) RETURN
+      END IF
+!
+!  Fill each tracer's locally owned crossing cells and complete the
+!  batched exchange.
+!
+      IF (Ncross.gt.0) THEN
+        gt=ABS(gtype)-p3dvar+1
+        DO v=1,nvars
+          DO q=1,contact(cr)%F2Cnl(gt)
+            ii=contact(cr)%F2Clocal(1,q,gt)
+            jj=contact(cr)%F2Clocal(2,q,gt)
+            ib=contact(cr)%F2Clocal(3,q,gt)
+            DO kk=1,Klen
+              k=LBkF+kk-1
+              Fine3dCross4(ib,kk,contact(cr)%F2Clocal(4,q,gt),v)=    &
+     &                                                A(ii,jj,k,v)
+            END DO
+          END DO
+        END DO
+        CALL mp_assemble_cross_batch (dg, model, nvars, 0.0_r8,       &
+     &                                Fine3dCross4(1:BlockLen,         &
+     &                                             1:Klen,             &
+     &                                             1:Ncross,           &
+     &                                             1:nvars),           &
+     &                                contact(cr)%F2Creceiver,         &
+     &                                contact(cr)%F2CcellOwner,       &
+     &                                -(100000+4*(cr-1)+              &
+     &                                  ABS(gtype)-p3dvar+1))
+        IF (exit_flag.ne.NoError) RETURN
+      END IF
+!
+!  Complete the owned-block sums and scatter every tracer.
+!
+      DO v=1,nvars
+        CALL mp_assemble_f2csum (dg, model, Klen, Npoints, 0.0_r8,    &
+     &                           A(:,:,:,v), Amsk,                    &
+     &                           Fine3dSum(1:Klen,1:Npoints),         &
+     &                           contact(cr)%F2Cowner,                &
+     &                           contact(cr)%Rowner,                  &
+     &                           PlanKey=-(20000000+4*(cr-1)+         &
+     &                             ABS(gtype)-p3dvar+1),              &
+     &                           Idg=contact(cr)%Idg,                 &
+     &                           Jdg=contact(cr)%Jdg,                 &
+     &                           LBi=LBiF, LBj=LBjF, LBkF=LBkF,       &
+     &                           half=half)
+        IF (exit_flag.ne.NoError) RETURN
+
+        Nlocal=contact(cr)%Rnlocal
+        DO idx=1,Nlocal
+          m=contact(cr)%Rlocal(idx)
+          Ic=contact(cr)%Irg(m)
+          Jc=contact(cr)%Jrg(m)
+          IF (((Istr.le.Ic).and.(Ic.le.Iend)).and.                   &
+     &        ((Jstr.le.Jc).and.(Jc.le.Jend))) THEN
+            IF (contact(cr)%F2Cowner(m).ge.0) THEN
+              IF (Fine3dCount(m).gt.0.0_r8) THEN
+                DO k=LBkC,UBkC
+                  kk=k-LBkC+1
+                  my_avg=Fine3dSum(kk,m)/Fine3dCount(m)
+# ifdef MASKING
+                  my_avg=my_avg*Cmsk(Ic,Jc)
+# endif
+                  C(Ic,Jc,k,v)=my_avg
+                END DO
+              ELSE
+                DO k=LBkC,UBkC
+                  C(Ic,Jc,k,v)=0.0_r8
+                END DO
+              END IF
+            ELSE
+# ifdef MASKING
+              my_count=0.0_r8
+              DO Jadd=-half,half
+                DO Iadd=-half,half
+                  ib=(Jadd+half)*Rscale+Iadd+half+1
+                  my_count=my_count+                                   &
+     &                     MIN(1.0_r8,                                 &
+     &                         Fine3dCrossMask                         &
+     &                         (ib,contact(cr)%F2Ccross(m)))
+                END DO
+              END DO
+              IF (my_count.gt.0.0_r8) THEN
+                DO k=LBkC,UBkC
+                  kk=k-LBkC+1
+                  my_sum=0.0_r8
+                  DO Jadd=-half,half
+                    DO Iadd=-half,half
+                      ib=(Jadd+half)*Rscale+Iadd+half+1
+                      my_sum=my_sum+                                   &
+     &                       Fine3dCross4                              &
+     &                       (ib,kk,contact(cr)%F2Ccross(m),v)*        &
+     &                       Fine3dCrossMask                           &
+     &                       (ib,contact(cr)%F2Ccross(m))
+                    END DO
+                  END DO
+                  my_avg=my_sum/my_count
+                  my_avg=my_avg*Cmsk(Ic,Jc)
+                  C(Ic,Jc,k,v)=my_avg
+                END DO
+              ELSE
+                DO k=LBkC,UBkC
+                  C(Ic,Jc,k,v)=0.0_r8
+                END DO
+              END IF
+# else
+              DO k=LBkC,UBkC
+                kk=k-LBkC+1
+                my_sum=0.0_r8
+                DO Jadd=-half,half
+                  DO Iadd=-half,half
+                    ib=(Jadd+half)*Rscale+Iadd+half+1
+                    my_sum=my_sum+                                     &
+     &                     Fine3dCross4                                &
+     &                     (ib,kk,contact(cr)%F2Ccross(m),v)
+                  END DO
+                END DO
+                my_avg=my_sum/REAL(BlockLen,r8)
+                C(Ic,Jc,k,v)=my_avg
+              END DO
+# endif
+            END IF
+          END IF
+        END DO
+      END DO
+
+ 10   FORMAT (/,' FINE2COARSE3D_BATCH - unsupported configuration ',  &
+     &        'for ',a)
+      RETURN
+      END SUBROUTINE fine2coarse3d_batch
 # endif
 !
       SUBROUTINE get_contact2d (dg, model, tile,                        &

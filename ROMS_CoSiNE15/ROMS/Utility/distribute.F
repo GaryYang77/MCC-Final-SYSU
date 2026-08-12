@@ -2549,6 +2549,304 @@
       RETURN
       END SUBROUTINE mp_assemblef_3d
 !
+      SUBROUTINE mp_assemble_cross_batch (ng, model, nvars, Aspv,     &
+     &                                    A4, Receiver, CellOwner,    &
+     &                                    PlanKey)
+!
+!***********************************************************************
+!                                                                      !
+!  Batched variant of the cell-owner sparse assembly used by fine-to-  !
+!  coarse coupling.  All nvars 3D blocks share identical cell routing, !
+!  so their messages are packed and posted together and completed by a !
+!  single wait.  Per-variable values are bitwise identical to the      !
+!  sequential routine.                                                 !
+!                                                                      !
+!***********************************************************************
+!
+      USE mod_param
+      USE mod_parallel
+      USE mod_iounits
+      USE mod_scalars
+!
+      implicit none
+!
+!  Imported variable declarations.
+!
+      integer, intent(in) :: ng, model, nvars
+
+      real(r8), intent(in) :: Aspv
+
+      real(r8), intent(inout) :: A4(:,:,:,:)
+      integer, intent(in) :: Receiver(:)
+      integer, intent(in) :: CellOwner(:,:)
+      integer, intent(in) :: PlanKey
+!
+!  Local variable declarations.
+!
+      integer :: Lstr, MyError, Serror
+      integer :: block, i, k, m, nreq, p, q, rank, slot, source, v
+
+      integer :: Asize(4)
+
+      integer, dimension(0:numthreads-1) :: Offset, Roffset
+      integer, dimension(2*numthreads*nvars) :: Req
+      integer, dimension(MPI_STATUS_SIZE,2*numthreads*nvars) :: Status
+
+      real(r8), allocatable :: Asend(:,:)
+      real(r8), allocatable :: Arecv(:,:)
+
+      TYPE(T_Assemble3DPlan), pointer :: Plan
+
+      character (len=MPI_MAX_ERROR_STRING) :: string
+
+# ifdef PROFILE
+!
+!-----------------------------------------------------------------------
+!  Turn on time clocks.
+!-----------------------------------------------------------------------
+!
+      CALL wclock_on (ng, model, 49)
+# endif
+!
+!-----------------------------------------------------------------------
+!  Check input parameters.
+!-----------------------------------------------------------------------
+!
+      Asize(1)=UBOUND(A4, DIM=1)
+      Asize(2)=UBOUND(A4, DIM=2)
+      Asize(3)=UBOUND(A4, DIM=3)
+      Asize(4)=UBOUND(A4, DIM=4)
+      IF ((Asize(4).ne.nvars).or.                                     &
+     &    (SIZE(CellOwner,DIM=1).ne.Asize(1)).or.                     &
+     &    (SIZE(CellOwner,DIM=2).ne.Asize(3)).or.                     &
+     &    (SIZE(Receiver).ne.Asize(3))) THEN
+        IF (Master) WRITE (stdout,10) SIZE(CellOwner),                &
+     &                                  Asize(1)*Asize(3), nvars
+        exit_flag=7
+      END IF
+      IF (Aspv.ne.0.0_r8) THEN
+        IF (Master) WRITE (stdout,20) Aspv
+        exit_flag=7
+      END IF
+!
+!-----------------------------------------------------------------------
+!  Locate or build the cached route plan with the same keying as the
+!  sequential cell-owner path.
+!-----------------------------------------------------------------------
+!
+      slot=0
+      DO q=1,Nassemble3DPlan
+        IF ((Assemble3DPlan(q)%ng.eq.ng).and.                         &
+     &      (Assemble3DPlan(q)%model.eq.model).and.                   &
+     &      (Assemble3DPlan(q)%key.eq.PlanKey).and.                   &
+     &      (Assemble3DPlan(q)%nthreads.eq.numthreads).and.           &
+     &      (Assemble3DPlan(q)%n1.eq.Asize(1)).and.                   &
+     &      (Assemble3DPlan(q)%n2.eq.Asize(2)).and.                   &
+     &      (Assemble3DPlan(q)%n3.eq.Asize(3))) THEN
+          slot=q
+          EXIT
+        END IF
+      END DO
+      IF ((slot.eq.0).and.(Nassemble3DPlan.lt.MaxAssemble3DPlans)) THEN
+        Nassemble3DPlan=Nassemble3DPlan+1
+        slot=Nassemble3DPlan
+        Plan=>Assemble3DPlan(slot)
+        Plan%ng=ng
+        Plan%model=model
+        Plan%key=PlanKey
+        Plan%nthreads=numthreads
+        Plan%n1=Asize(1)
+        Plan%n2=Asize(2)
+        Plan%n3=Asize(3)
+        allocate (Plan%counts(0:numthreads-1))
+        allocate (Plan%displs(0:numthreads-1))
+        allocate (Plan%rcounts(0:numthreads-1))
+        allocate (Plan%rdispls(0:numthreads-1))
+        Plan%counts=0
+        Plan%rcounts=0
+        block=Asize(2)
+        Plan%nzero=0
+        DO m=1,Asize(3)
+          rank=Receiver(m)
+          IF (rank.ge.numthreads) THEN
+            exit_flag=7
+          ELSE
+            DO i=1,Asize(1)
+              source=CellOwner(i,m)
+              IF (source.ge.numthreads) THEN
+                exit_flag=7
+              ELSE
+                IF ((source.eq.MyRank).and.(rank.ge.0))                &
+     &            Plan%counts(rank)=Plan%counts(rank)+block
+                IF ((rank.eq.MyRank).and.(source.ge.0))                &
+     &            Plan%rcounts(source)=Plan%rcounts(source)+block
+                IF ((rank.eq.MyRank).and.(source.lt.0))                &
+     &            Plan%nzero=Plan%nzero+1
+              END IF
+            END DO
+          END IF
+        END DO
+        Plan%displs(0)=0
+        Plan%rdispls(0)=0
+        DO rank=1,numthreads-1
+          Plan%displs(rank)=Plan%displs(rank-1)+                       &
+     &                       Plan%counts(rank-1)
+          Plan%rdispls(rank)=Plan%rdispls(rank-1)+                    &
+     &                        Plan%rcounts(rank-1)
+        END DO
+        Plan%nsend=SUM(Plan%counts)/block
+        Plan%nrecv=SUM(Plan%rcounts)/block
+        allocate (Plan%send_i(MAX(1,Plan%nsend)))
+        allocate (Plan%send_m(MAX(1,Plan%nsend)))
+        allocate (Plan%send_p(MAX(1,Plan%nsend)))
+        allocate (Plan%recv_i(MAX(1,Plan%nrecv)))
+        allocate (Plan%recv_m(MAX(1,Plan%nrecv)))
+        allocate (Plan%recv_p(MAX(1,Plan%nrecv)))
+        allocate (Plan%zero_i(MAX(1,Plan%nzero)))
+        allocate (Plan%zero_m(MAX(1,Plan%nzero)))
+        Offset=0
+        q=0
+        DO m=1,Asize(3)
+          rank=Receiver(m)
+          IF (rank.ge.0) THEN
+            DO i=1,Asize(1)
+              IF (CellOwner(i,m).eq.MyRank) THEN
+                q=q+1
+                Plan%send_i(q)=i
+                Plan%send_m(q)=m
+                Plan%send_p(q)=Plan%displs(rank)+Offset(rank)
+                Offset(rank)=Offset(rank)+block
+              END IF
+            END DO
+          END IF
+        END DO
+        Roffset=0
+        q=0
+        p=0
+        DO m=1,Asize(3)
+          IF (Receiver(m).eq.MyRank) THEN
+            DO i=1,Asize(1)
+              source=CellOwner(i,m)
+              IF (source.lt.0) THEN
+                p=p+1
+                Plan%zero_i(p)=i
+                Plan%zero_m(p)=m
+              ELSE
+                q=q+1
+                Plan%recv_i(q)=i
+                Plan%recv_m(q)=m
+                Plan%recv_p(q)=Plan%rdispls(source)+Roffset(source)
+                Roffset(source)=Roffset(source)+block
+              END IF
+            END DO
+          END IF
+        END DO
+      END IF
+!
+!-----------------------------------------------------------------------
+!  Pack every variable into its send slot, then post all messages and
+!  complete them with a single wait.
+!-----------------------------------------------------------------------
+!
+      IF (slot.gt.0) THEN
+        Plan=>Assemble3DPlan(slot)
+        allocate (Asend(nvars,MAX(1,SUM(Plan%counts))))
+        allocate (Arecv(nvars,MAX(1,SUM(Plan%rcounts))))
+        DO v=1,nvars
+          DO q=1,Plan%nsend
+            i=Plan%send_i(q)
+            m=Plan%send_m(q)
+            p=Plan%send_p(q)
+            DO k=1,Asize(2)
+              p=p+1
+              Asend(v,p)=A4(i,k,m,v)
+            END DO
+          END DO
+        END DO
+
+        MyError=MPI_SUCCESS
+        DO v=1,nvars
+          SparseContactTag=MOD(SparseContactTag+1,100000)
+          nreq=0
+          DO rank=0,numthreads-1
+            IF (Plan%rcounts(rank).gt.0) THEN
+              nreq=nreq+1
+              CALL mpi_irecv (Arecv(v,Plan%rdispls(rank)+1),          &
+     &                        Plan%rcounts(rank), MP_FLOAT, rank,      &
+     &                        SparseContactTag, OCN_COMM_WORLD,        &
+     &                        Req(nreq), MyError)
+              IF (MyError.ne.MPI_SUCCESS) EXIT
+            END IF
+          END DO
+          IF (MyError.eq.MPI_SUCCESS) THEN
+            DO rank=0,numthreads-1
+              IF (Plan%counts(rank).gt.0) THEN
+                nreq=nreq+1
+                CALL mpi_isend (Asend(v,Plan%displs(rank)+1),         &
+     &                          Plan%counts(rank), MP_FLOAT, rank,     &
+     &                          SparseContactTag, OCN_COMM_WORLD,      &
+     &                          Req(nreq), MyError)
+                IF (MyError.ne.MPI_SUCCESS) EXIT
+              END IF
+            END DO
+          END IF
+          IF ((MyError.eq.MPI_SUCCESS).and.(nreq.gt.0)) THEN
+            CALL mpi_waitall (nreq, Req, Status, MyError)
+          END IF
+          IF (MyError.eq.MPI_SUCCESS) THEN
+            DO q=1,Plan%nzero
+              A4(Plan%zero_i(q),:,Plan%zero_m(q),v)=0.0_r8
+            END DO
+            DO q=1,Plan%nrecv
+              i=Plan%recv_i(q)
+              m=Plan%recv_m(q)
+              p=Plan%recv_p(q)
+              DO k=1,Asize(2)
+                p=p+1
+                A4(i,k,m,v)=Arecv(v,p)
+              END DO
+            END DO
+          END IF
+        END DO
+        deallocate (Asend, Arecv)
+      ELSE
+        IF (Master) WRITE (stdout,30) MaxAssemble3DPlans
+        exit_flag=7
+      END IF
+!
+!-----------------------------------------------------------------------
+!  Error reporting.
+!-----------------------------------------------------------------------
+!
+      IF (MyError.ne.MPI_SUCCESS) THEN
+        CALL mpi_error_string (MyError, string, Lstr, Serror)
+        Lstr=LEN_TRIM(string)
+        WRITE (stdout,40) 'MP_ASSEMBLE_CROSS_BATCH', MyRank,          &
+     &                    MyError, string(1:Lstr)
+        exit_flag=2
+      END IF
+# ifdef PROFILE
+!
+!-----------------------------------------------------------------------
+!  Turn off time clocks.
+!-----------------------------------------------------------------------
+!
+      CALL wclock_off (ng, model, 49)
+# endif
+
+ 10   FORMAT (/,' MP_ASSEMBLE_CROSS_BATCH - inconsistent array size, ',&
+     &        'CellOwner/Receiver = ',2i10,/,19x,'nvars = ',i10)
+ 20   FORMAT (/,' MP_ASSEMBLE_CROSS_BATCH - illegal special value, ',  &
+     &        1p,e17.10,/,19x,'a zero value is needed for global ',    &
+     &        'reduction.')
+ 30   FORMAT (/,' MP_ASSEMBLE_CROSS_BATCH - too many route plans, ',   &
+     &        'maximum is ',i4,'.')
+ 40   FORMAT (/,' MP_ASSEMBLE_CROSS_BATCH - error during ',a,' call, ',&
+     &        'Node = ',i3.3,' Error = ',i3,/,13x,a)
+
+      RETURN
+      END SUBROUTINE mp_assemble_cross_batch
+!
       SUBROUTINE mp_assemble_contact3d (ng, model, Npts, Aspv, Ad,    &
      &                                  Ac, Owner, Receiver, PlanKey, &
      &                                  Idg, Jdg, Imax, Jmax, LBk,    &
