@@ -25,6 +25,12 @@
   一次性只读拷贝，禁止重新生成 baseline。
 - agent worktree 通过 `core.hooksPath` 启用 pre-push 钩子，拒绝推送 `main` 与
   任何 tag。
+- 节点存储/内存有限：agent 只允许清理自己的目录
+  `/public/home/fangxihong/MCC-Final-SYSU-Codex` 内的 run、build、日志与
+  diagnostic/trace 产物；严禁删除、移动或压缩 Stable/ComputeImproved/不吃压力队
+  提交目录、`/public/share/mcc2026_final` 共享输入以及已封存的
+  `Local_Lab/baselines/mcc_4x20`。清理前先保留实验记录与 JSON/HTML 报告，空间
+  紧张时优先移除失败的 diagnostic/trace 大文件和过期 DEMO 输出。
 - 历史路径勘误：本文早期章节的远程路径
   `/public/home/fangxihong/MCC-Final-SYSU` 已不存在，现为
   `MCC-Final-SYSU-Stable` 与 `MCC-Final-SYSU-ComputeImproved` 两个目录，勿按旧
