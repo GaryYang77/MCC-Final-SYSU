@@ -762,3 +762,16 @@ coverage). The high 173400 calls/rank for each harmonic child are expected
 from tracer-level boundaries and make this a diagnostic-only attribution;
 its wall is not compared with score performance. Evidence bundle:
 `profile_bundle_logs/r27-t3dmix4-phases-diagnostic-summary_20260811T233659Z_profile_bundle.json`.
+
+The resulting exact first-harmonic all-wet fast path was accepted as model
+commit `c13df28`. Score job `118987411` passed all 26 comparisons bitwise and
+reduced Grid-2 R27 from `2.2506630` to `1.8905753 s` (`-16.00%`); Grid-1 R27
+fell `2.74%`. Total wall fell `72.02 -> 70.16 s` (`-2.58%`) despite adverse
+movement in R03/R44 and Grid-2 R09/R35. Candidate compiler job `118987588`
+confirmed the fully wet loops remain VL2-vectorized while non-unit-stride
+loads fall from four to two and the estimated loop cost falls from `20/14` to
+`9/6`; mixed tiles retain the original loop. Triggered validate job
+`118987606` also passed with 26 exact metrics. This score run is the next
+reference. The total gain is below 5%, so no full job was run. Evidence:
+`Local_Lab/experiments/r27-first-harmonic-all-wet.md` and
+`profile_bundle_logs/r27-first-harmonic-all-wet-4n64-16ppn_20260811T235556Z_profile_bundle.json`.

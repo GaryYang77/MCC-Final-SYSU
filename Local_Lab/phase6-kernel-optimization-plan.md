@@ -389,3 +389,15 @@ all-wet face 判定，在全湿 tile 跳过值为 1 的 U/V 静态和 wet/dry ma
 非 1 face 的 tile 必须逐运算保留原路径。先用 ifort report 核对第一重两个 face loop
 的向量化，再决定是否值得一次 4n64 score DEMO。证据 bundle：
 `profile_bundle_logs/r27-t3dmix4-phases-diagnostic-summary_20260811T233659Z_profile_bundle.json`。
+
+第一重 harmonic 的 all-wet face exact 快路径已作为 model commit `c13df28` 接受。
+score job `118987411` 正常结束且 26 项逐位一致；Grid-2 R27 从 `2.2506630` 降至
+`1.8905753 s`（`-16.00%`），Grid-1 R27 降 `2.74%`，总 wall 从 `72.02` 降至
+`70.16 s`（`-2.58%`）。candidate compile-only job `118987588` 证明全湿 U/V loops
+仍以 VL2 向量化，非连续加载由 4 降至 2，cost 从 `20/14` 降至 `9/6`；任一非单位
+mask 的方向仍走原 loop。因修改 mask fast path 而触发的独立 validate job
+`118987606` 也以 26 项全零通过。新的日常 score reference 是
+`Local_Lab/runs/profile128/r27-first-harmonic-all-wet-4n64-16ppn_20260811T235556Z_44686`。
+累计可比 total 改善仍只有 `2.58%`，低于 5% 门槛，未运行 4n96 或三天全量。
+下一步重新按该 reference 排序宽计算热点；若继续 R27，只允许一次单独的第二重
+harmonic all-wet 假设，不得把它与其他 kernel 混改。
