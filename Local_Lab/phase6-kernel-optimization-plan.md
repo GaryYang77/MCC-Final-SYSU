@@ -401,3 +401,14 @@ mask 的方向仍走原 loop。因修改 mask fast path 而触发的独立 valid
 累计可比 total 改善仍只有 `2.58%`，低于 5% 门槛，未运行 4n96 或三天全量。
 下一步重新按该 reference 排序宽计算热点；若继续 R27，只允许一次单独的第二重
 harmonic all-wet 假设，不得把它与其他 kernel 混改。
+
+第二重 harmonic all-wet exact 快路径也已作为 model commit `477e430` 接受。
+score job `118988636` 的 26 项 comparison 全零；Grid-2 R27 从 `1.8905753` 降至
+`1.6553296 s`（`-12.44%`），Grid-1 降 `3.01%`，total 从 `70.16` 降至
+`68.72 s`（`-2.05%`）。compiler job `118988800` 显示新 loop 保持 VL2，cost 从
+`25/13.5` 降至约 `9/5`；validate job `118988820` 亦以 26 项全零通过。两项 R27
+优化相对进入 R27 前的 reference 累计 `72.02 -> 68.72 s`（`-4.58%`），仍未达到
+5% 全量触发线，因此没有运行 4n96/full。新的日常 reference 是
+`Local_Lab/runs/profile128/r27-second-harmonic-all-wet-4n64-16ppn_20260812T002302Z_53023`。
+R27 两个主要 harmonic 阶段现已处理完；下一步必须重新按新 bundle 排序其他宽计算
+region，优先回到尚有新假设证据的 R35/R22/R09/R19，而不是继续扩张 R27 code size。

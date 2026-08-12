@@ -85,8 +85,8 @@
   预检，超过当前慢节点阈值则安全退出。
 - **reference 规则**：每个 exact-equivalence 新 accepted commit 的 4n64 score DEMO
   直接成为下一项实验的筛选 reference。当前模型的 4n64 score reference 是
-  `Local_Lab/runs/profile128/r27-first-harmonic-all-wet-4n64-16ppn_20260811T235556Z_44686`
-  （commit `c13df28`，job `118987411`，26 项 comparison 全零）。生产 reference 是
+  `Local_Lab/runs/profile128/r27-second-harmonic-all-wet-4n64-16ppn_20260812T002302Z_53023`
+  （commit `477e430`，job `118988636`，26 项 comparison 全零）。生产 reference 是
   job `118852631` 的完整 4n96/`6x16` run。reference 首要用于输出和 region 对照，
   不把一次 wall 当成无误差真值。
 - **当前成绩口径**：唯一权威成绩是同源码 no-profile 完整 4n96/`6x16` 的

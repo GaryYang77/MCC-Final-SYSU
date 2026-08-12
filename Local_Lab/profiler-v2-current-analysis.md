@@ -775,3 +775,16 @@ loads fall from four to two and the estimated loop cost falls from `20/14` to
 reference. The total gain is below 5%, so no full job was run. Evidence:
 `Local_Lab/experiments/r27-first-harmonic-all-wet.md` and
 `profile_bundle_logs/r27-first-harmonic-all-wet-4n64-16ppn_20260811T235556Z_profile_bundle.json`.
+
+The independent second-harmonic all-wet extension was accepted as model
+commit `477e430`. Score job `118988636` was exact and reduced Grid-2 R27
+`1.8905753 -> 1.6553296 s` (`-12.44%`) and Grid-1 R27 by `3.01%`; total wall
+fell `70.16 -> 68.72 s` (`-2.05%`). Compiler job `118988800` kept the new
+loops VL2-vectorized and reduced their estimated scalar/vector cost from
+`25/13.5` to about `9/5`. Triggered validate job `118988820` passed with 26
+exact metrics. R03/R44 moved favorably and are not credited to source; R27 is
+the causal signal. The two R27 commits cumulatively move the comparable DEMO
+`72.02 -> 68.72 s` (`-4.58%`), below the 5% full trigger. The new reference
+and evidence are recorded in
+`Local_Lab/experiments/r27-second-harmonic-all-wet.md` and
+`profile_bundle_logs/r27-second-harmonic-all-wet-4n64-16ppn_20260812T002302Z_profile_bundle.json`.
