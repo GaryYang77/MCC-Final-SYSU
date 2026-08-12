@@ -140,6 +140,9 @@ SITE_DEFINITIONS = {
         SiteDefinition(254, 55, "mpi", "two_way_f2c3d", "mpi_counts_mask", "two_way_f2c3d_mpi_counts_mask"),
         SiteDefinition(255, 55, "nesting", "two_way_f2c3d", "cross_fill", "two_way_f2c3d_cross_fill"),
         SiteDefinition(256, 55, "mpi", "two_way_f2c3d", "mpi_f2c_cross", "two_way_f2c3d_mpi_f2c_cross"),
+        SiteDefinition(257, 49, "nesting", "assemble3d_cross", "pack", "assemble3d_cross_pack"),
+        SiteDefinition(258, 49, "mpi", "assemble3d_cross", "mpi", "assemble3d_cross_mpi"),
+        SiteDefinition(259, 49, "nesting", "assemble3d_cross", "unpack", "assemble3d_cross_unpack"),
     )
 }
 
@@ -473,6 +476,7 @@ def validate_diagnostic_report(
         | set(range(246, 249))
         | set(range(249, 253))
         | set(range(253, 257))
+        | set(range(257, 260))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -536,6 +540,7 @@ def validate_profile_consistency(
         "t3dmix4_s": 27,
         "two_way": 55,
         "two_way_f2c3d": 55,
+        "assemble3d_cross": 49,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])

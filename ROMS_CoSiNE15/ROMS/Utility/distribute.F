@@ -2180,6 +2180,9 @@
         END IF
         IF (slot.gt.0) THEN
           Plan=>Assemble3DPlan(slot)
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, model, 257)
+# endif
           DO q=1,Plan%nsend
             i=Plan%send_i(q)
             m=Plan%send_m(q)
@@ -2189,7 +2192,18 @@
               Asend(p)=A(i,k,m)
             END DO
           END DO
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 257, 0.0_r8, 0.0_r8, 0)
+          CALL profile_site_on (ng, model, 258)
+# endif
           CALL mp_sparse_exchange (Plan, Asend, Arecv, MyError)
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 258,                    &
+     &         REAL(SUM(Plan%counts),r8)*8.0_r8,                    &
+     &         REAL(SUM(Plan%rcounts),r8)*8.0_r8,                   &
+     &         COUNT((Plan%counts.gt.0).or.(Plan%rcounts.gt.0)))
+          CALL profile_site_on (ng, model, 259)
+# endif
           IF (MyError.eq.MPI_SUCCESS) THEN
             DO q=1,Plan%nzero
               A(Plan%zero_i(q),:,Plan%zero_m(q))=0.0_r8
@@ -2204,6 +2218,9 @@
               END DO
             END DO
           END IF
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 259, 0.0_r8, 0.0_r8, 0)
+# endif
         ELSE
           Counts=0
           Rcounts=0
