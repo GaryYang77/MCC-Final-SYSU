@@ -5,7 +5,7 @@ repo_root=$(cd "$(dirname "$0")/.." && pwd)
 remote_host="fangxihong@cancon.hpccube.com"
 remote_port=65023
 remote_key="${HOME}/.ssh/fangxihong_key"
-remote_root="/public/home/fangxihong/MCC-Final-SYSU"
+remote_root="${MCC_REMOTE_ROOT:-/public/home/fangxihong/MCC-Final-SYSU}"
 remote_inputs="/public/home/fangxihong/ROMS_CoSiNE15/Inputfiles"
 local_commit=$(git -C "$repo_root" rev-parse HEAD)
 local_status_sha256=$(git -C "$repo_root" status --porcelain | sha256sum | cut -d' ' -f1)
@@ -18,6 +18,7 @@ rsync -az --delete --info=stats2 \
   --exclude '/ROMS_CoSiNE15.tar' \
   --exclude '/miniforge3/' \
   --exclude '/.git/' \
+  --exclude '/.git' \
   --exclude '/.agents/' \
   --exclude '/.codex/' \
   --exclude '/__pycache__/' \

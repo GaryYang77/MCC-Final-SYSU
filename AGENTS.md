@@ -1,5 +1,35 @@
 # MCC 2026 决赛优化约束
 
+## 独立优化 agent（Codex）隔离与保护规则
+
+以下规则约束独立优化 agent（Codex）的仓库与节点操作，防止破坏正式提交版本；其余
+章节的 Phase 6 门禁流程对 agent 一律照旧。
+
+- agent 集成分支为 `codex/opt-main`（从 `main` 的 `de7252a` 分叉），在独立
+  worktree `/mnt/e/GaryYang77/MCC-Final-SYSU-codex` 工作，不修改主 worktree
+  （包括其中的未提交改动和 `Submission/`）。
+- 实验分支 `perf/<single-hypothesis>` 只从 `codex/opt-main` 分叉并只 merge 回
+  `codex/opt-main`；禁止向 `main` merge、rebase、push 或删除 `main`。本文其余
+  章节的 `main` 对 agent 均指 `codex/opt-main`。
+- 只读禁区（禁止删除、修改、覆盖）：GitHub `main` 与 tag
+  `mcc-phase5-validated-2205s`、`mcc-compute-improved-validated-2147s`；节点目录
+  `/public/home/fangxihong/MCC-Final-SYSU-Stable`、
+  `/public/home/fangxihong/MCC-Final-SYSU-ComputeImproved`、
+  `/public/home/fangxihong/不吃压力队-MCC20261295-MCC2026决赛作品`；本地
+  `Submission/`。
+- agent 节点工作区为 `/public/home/fangxihong/MCC-Final-SYSU-Codex`：
+  `sync_to_cluster.sh` 的 `remote_root` 可用环境变量 `MCC_REMOTE_ROOT` 覆盖
+  （默认值不变）；agent 同步前
+  `export MCC_REMOTE_ROOT=/public/home/fangxihong/MCC-Final-SYSU-Codex`。
+  该工作区的 `Local_Lab/baselines/mcc_4x20` 与筛选 reference run 从 Stable 目录
+  一次性只读拷贝，禁止重新生成 baseline。
+- agent worktree 通过 `core.hooksPath` 启用 pre-push 钩子，拒绝推送 `main` 与
+  任何 tag。
+- 历史路径勘误：本文早期章节的远程路径
+  `/public/home/fangxihong/MCC-Final-SYSU` 已不存在，现为
+  `MCC-Final-SYSU-Stable` 与 `MCC-Final-SYSU-ComputeImproved` 两个目录，勿按旧
+  路径读写。
+
 ## 目标与环境
 
 - 目标：在结果通过精度验证的前提下，缩短 ROMS-CoSiNE15 完整三天模拟的运行时间。公开基准 `01:50:06`。
