@@ -40,3 +40,11 @@ receiver block 的每个单元写入来源 rank 的值，并对无 owner 的单�
 单次 4n64 60/300 score DEMO，reference 为
 `r27-second-harmonic-all-wet-4n64-16ppn_20260812T002302Z_53023`。
 若 comparison 出现非零或 R55 回退则拒绝并恢复。
+
+## 结果（2026-08-13）
+
+- 4n64 score DEMO `r55-drop-cross-zero-4n64-16ppn_20260812T193159Z_48870`：
+  exact，26 变量全零。Grid-2 R55 = 4.6910 s（reference bundle 5.1633 s，
+  -9.1%），R39 = 8.6711 s（9.1690 s，-5.4%）。raw total 68.1740 s 偏高且
+  R35/R49 同步上浮，判定为 allocation 噪声；目标 region 方向有效，接受并合并
+  `codex/opt-main`（31a053e）。

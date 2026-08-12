@@ -30,3 +30,10 @@ cross 分支的 `my_count` 掩码求和及 `Cmsk(Ic,Jc)` 乘法与分支判断�
 单次 4n64 60/300 score DEMO，reference 为
 `r27-second-harmonic-all-wet-4n64-16ppn_20260812T002302Z_53023`。
 任一 comparison 非零或 R55 回退则拒绝并恢复。
+
+## 结果（2026-08-13）
+
+- 4n64 score DEMO `r55-scatter-hoist-4n64-16ppn_20260812T203518Z_52131`：
+  exact，26 变量全零。Grid-2 R55 = 3.2578 s（较 H2 运行 3.4031 s 再 -4.3%），
+  R39 = 7.2102 s，raw total 64.7844 s。接受并合并 `codex/opt-main`
+  （307fa38）。该运行即当前累计堆栈的 4n64 样本。

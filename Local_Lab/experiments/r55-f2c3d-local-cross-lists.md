@@ -30,3 +30,10 @@ cross block 的 25 个单元逐层做 tile 边界判断，但每 rank 只拥有�
 单次 4n64 60/300 score DEMO，reference 为
 `r27-second-harmonic-all-wet-4n64-16ppn_20260812T002302Z_53023`。
 任一 comparison 非零或 R55 回退则拒绝并恢复。
+
+## 结果（2026-08-13）
+
+- 4n64 score DEMO `r55-local-cross-lists-4n64-16ppn_20260812T195421Z_26646`：
+  exact，26 变量全零。Grid-2 R55 = 3.4031 s（-34.1% vs 5.1633 s），
+  R39 = 7.3530 s（-19.8% vs 9.1690 s），R49 = 2.8118 s。接受并合并
+  `codex/opt-main`（d69e52c）。
