@@ -4775,7 +4775,6 @@
           ELSE
             allocate (Fine3dCross(BlockLen,Klen,Ncross))
           END IF
-          Fine3dCross(1:BlockLen,1:Klen,1:Ncross)=0.0_r8
         END IF
 
         IF (GetMask) THEN
