@@ -136,6 +136,10 @@ SITE_DEFINITIONS = {
         SiteDefinition(250, 55, "nesting", "two_way", "fine2coarse_2d", "two_way_fine2coarse_2d"),
         SiteDefinition(251, 55, "nesting", "two_way", "set_depth", "two_way_set_depth"),
         SiteDefinition(252, 55, "nesting", "two_way", "fine2coarse_3d", "two_way_fine2coarse_3d"),
+        SiteDefinition(253, 55, "nesting", "two_way_f2c3d", "zero_counts", "two_way_f2c3d_zero_counts"),
+        SiteDefinition(254, 55, "mpi", "two_way_f2c3d", "mpi_counts_mask", "two_way_f2c3d_mpi_counts_mask"),
+        SiteDefinition(255, 55, "nesting", "two_way_f2c3d", "cross_fill", "two_way_f2c3d_cross_fill"),
+        SiteDefinition(256, 55, "mpi", "two_way_f2c3d", "mpi_f2c_cross", "two_way_f2c3d_mpi_f2c_cross"),
     )
 }
 
@@ -468,6 +472,7 @@ def validate_diagnostic_report(
         | set(range(244, 246))
         | set(range(246, 249))
         | set(range(249, 253))
+        | set(range(253, 257))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -530,6 +535,7 @@ def validate_profile_consistency(
         "biology_source_sink_detail": 15,
         "t3dmix4_s": 27,
         "two_way": 55,
+        "two_way_f2c3d": 55,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])

@@ -99,7 +99,7 @@
 !  Profiler-v2 diagnostic state.  These arrays exist only in a dedicated
 !  diagnostic binary; the score PROFILE binary has no calls or storage.
 !
-      integer, parameter :: MaxProfileSites = 256
+      integer, parameter :: MaxProfileSites = 260
       integer, parameter :: MaxProfileTraceEvents = 200000
 
       logical :: ProfileDiagnostic = .FALSE.

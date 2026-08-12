@@ -4771,6 +4771,9 @@
             F_Jend=BOUNDS(dg)%JendP(MyRank)
         END SELECT
 
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_on (ng, model, 253)
+# endif
         IF (allocated(Fine3dSum)) THEN
           IF ((SIZE(Fine3dSum,DIM=1).lt.Klen).or.                     &
      &        (SIZE(Fine3dSum,DIM=2).lt.Npoints)) THEN
@@ -4802,6 +4805,10 @@
           Fine3dCross(1:BlockLen,1:Klen,1:Ncross)=0.0_r8
         END IF
 
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 253, 0.0_r8, 0.0_r8, 0)
+        CALL profile_site_on (ng, model, 254)
+# endif
         IF (GetMask) THEN
           IF (allocated(Fine3dCount)) THEN
             IF (SIZE(Fine3dCount).ne.Npoints) deallocate (Fine3dCount)
@@ -4856,9 +4863,15 @@
             IF (exit_flag.ne.NoError) RETURN
           END IF
         END IF
+# ifdef PROFILE_DIAGNOSTIC
+        CALL profile_site_off (ng, model, 254, 0.0_r8, 0.0_r8, 0)
+# endif
 
         IF (NtileI(dg)*NtileJ(dg).eq.numthreads) THEN
           IF (Ncross.gt.0) THEN
+# ifdef PROFILE_DIAGNOSTIC
+            CALL profile_site_on (ng, model, 255)
+# endif
             DO m=1,Npoints
               i=contact(cr)%Idg(m)
               j=contact(cr)%Jdg(m)
@@ -4880,7 +4893,13 @@
                 END DO
               END IF
             END DO
+# ifdef PROFILE_DIAGNOSTIC
+            CALL profile_site_off (ng, model, 255, 0.0_r8, 0.0_r8, 0)
+# endif
           END IF
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, model, 256)
+# endif
           Npts=Klen*Npoints
           CALL mp_assemble_f2csum (dg, model, Klen, Npoints, 0.0_r8,  &
      &                             A, Amsk,                           &
@@ -4947,6 +4966,9 @@
      &                      PlanKey=-(100000+4*(cr-1)+                &
      &                                ABS(gtype)-p3dvar+1))
           IF (exit_flag.ne.NoError) RETURN
+# ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 256, 0.0_r8, 0.0_r8, 0)
+# endif
         END IF
 
         Nlocal=contact(cr)%Rnlocal
