@@ -4996,44 +4996,73 @@
           Jc=contact(cr)%Jrg(m)
           IF (((Istr.le.Ic).and.(Ic.le.Iend)).and.                     &
      &        ((Jstr.le.Jc).and.(Jc.le.Jend))) THEN
-            DO k=LBkC,UBkC
-              kk=k-LBkC+1
-              my_avg=0.0_r8
-              IF (contact(cr)%F2Cowner(m).ge.0) THEN
-                IF (Fine3dCount(m).gt.0.0_r8) THEN
+            IF (contact(cr)%F2Cowner(m).ge.0) THEN
+              IF (Fine3dCount(m).gt.0.0_r8) THEN
+                DO k=LBkC,UBkC
+                  kk=k-LBkC+1
                   my_avg=Fine3dSum(kk,m)/Fine3dCount(m)
-                END IF
+#  ifdef MASKING
+                  my_avg=my_avg*Cmsk(Ic,Jc)
+#  endif
+                  C(Ic,Jc,k)=my_avg
+                END DO
               ELSE
-                my_count=0.0_r8
+                DO k=LBkC,UBkC
+                  C(Ic,Jc,k)=0.0_r8
+                END DO
+              END IF
+            ELSE
+#  ifdef MASKING
+              my_count=0.0_r8
+              DO Jadd=-half,half
+                DO Iadd=-half,half
+                  ib=(Jadd+half)*Rscale+Iadd+half+1
+                  my_count=my_count+                                   &
+     &                     MIN(1.0_r8,                                 &
+     &                         Fine3dCrossMask                         &
+     &                         (ib,contact(cr)%F2Ccross(m)))
+                END DO
+              END DO
+              IF (my_count.gt.0.0_r8) THEN
+                DO k=LBkC,UBkC
+                  kk=k-LBkC+1
+                  my_sum=0.0_r8
+                  DO Jadd=-half,half
+                    DO Iadd=-half,half
+                      ib=(Jadd+half)*Rscale+Iadd+half+1
+                      my_sum=my_sum+                                   &
+     &                       Fine3dCross                               &
+     &                       (ib,kk,contact(cr)%F2Ccross(m))*           &
+     &                       Fine3dCrossMask                            &
+     &                       (ib,contact(cr)%F2Ccross(m))
+                    END DO
+                  END DO
+                  my_avg=my_sum/my_count
+                  my_avg=my_avg*Cmsk(Ic,Jc)
+                  C(Ic,Jc,k)=my_avg
+                END DO
+              ELSE
+                DO k=LBkC,UBkC
+                  C(Ic,Jc,k)=0.0_r8
+                END DO
+              END IF
+#  else
+              DO k=LBkC,UBkC
+                kk=k-LBkC+1
                 my_sum=0.0_r8
                 DO Jadd=-half,half
                   DO Iadd=-half,half
                     ib=(Jadd+half)*Rscale+Iadd+half+1
-#   ifdef MASKING
-                    my_sum=my_sum+                                   &
-     &                     Fine3dCross                               &
-     &                     (ib,kk,contact(cr)%F2Ccross(m))*           &
-     &                     Fine3dCrossMask                            &
-     &                     (ib,contact(cr)%F2Ccross(m))
-                    my_count=my_count+                                &
-     &                       MIN(1.0_r8,                               &
-     &                           Fine3dCrossMask                       &
-     &                           (ib,contact(cr)%F2Ccross(m)))
-#   else
-                    my_sum=my_sum+                                   &
-     &                     Fine3dCross                               &
+                    my_sum=my_sum+                                     &
+     &                     Fine3dCross                                 &
      &                     (ib,kk,contact(cr)%F2Ccross(m))
-                    my_count=my_count+1.0_r8
-#   endif
                   END DO
                 END DO
-                IF (my_count.gt.0.0_r8) my_avg=my_sum/my_count
-              END IF
-#   ifdef MASKING
-              my_avg=my_avg*Cmsk(Ic,Jc)
-#   endif
-              C(Ic,Jc,k)=my_avg
-            END DO
+                my_avg=my_sum/REAL(BlockLen,r8)
+                C(Ic,Jc,k)=my_avg
+              END DO
+#  endif
+            END IF
           END IF
         END DO
         RETURN
