@@ -190,6 +190,12 @@
       integer :: Imin, Imax, Jmin, Jmax
       integer :: i, itrc, j, k
 
+#if defined DIFF_3DCOEF && defined TS_U3ADV_SPLIT && defined MASKING && \
+    defined WET_DRY && !defined TS_MIX_STABILITY && \
+    !defined TS_MIX_CLIMA
+      logical :: LallWetU, LallWetV
+#endif
+
       real(r8) :: cff, cff1, cff2, cff3
 
       real(r8), dimension(IminS:ImaxS,JminS:JmaxS) :: FE
@@ -229,6 +235,36 @@
         Jmin=MAX(Jstr-1,1)
         Jmax=MIN(Jend+1,Mm(ng))
       END IF
+#if defined DIFF_3DCOEF && defined TS_U3ADV_SPLIT && defined MASKING && \
+    defined WET_DRY && !defined TS_MIX_STABILITY && \
+    !defined TS_MIX_CLIMA
+!
+!  Both face masks are shared by every vertical level and tracer.  Detect
+!  fully wet tiles once so the first harmonic flux loops can avoid loading
+!  and multiplying by unit masks.  Any non-unit face keeps the original
+!  arithmetic path for the entire direction.
+!
+      LallWetU=.TRUE.
+      UMASK_J_LOOP : DO j=Jmin,Jmax
+        DO i=Imin,Imax+1
+          IF ((umask(i,j).ne.1.0_r8).or.                               &
+     &        (umask_wet(i,j).ne.1.0_r8)) THEN
+            LallWetU=.FALSE.
+            EXIT UMASK_J_LOOP
+          END IF
+        END DO
+      END DO UMASK_J_LOOP
+      LallWetV=.TRUE.
+      VMASK_J_LOOP : DO j=Jmin,Jmax+1
+        DO i=Imin,Imax
+          IF ((vmask(i,j).ne.1.0_r8).or.                               &
+     &        (vmask_wet(i,j).ne.1.0_r8)) THEN
+            LallWetV=.FALSE.
+            EXIT VMASK_J_LOOP
+          END IF
+        END DO
+      END DO VMASK_J_LOOP
+#endif
 #if defined DIFF_3DCOEF && defined TS_U3ADV_SPLIT
 !
 !  Cache tracer-independent face coefficients.  They are reused by both
@@ -263,6 +299,50 @@
 #ifdef PROFILE_DIAGNOSTIC
           CALL profile_site_on (ng, iNLM, 247)
 #endif
+#if defined DIFF_3DCOEF && defined TS_U3ADV_SPLIT && defined MASKING && \
+    defined WET_DRY && !defined TS_MIX_STABILITY && \
+    !defined TS_MIX_CLIMA
+          IF (LallWetU) THEN
+            DO j=Jmin,Jmax
+              DO i=Imin,Imax+1
+                FX(i,j)=cffU(i,j,k)*                                   &
+     &                  (t(i  ,j,k,nrhs,itrc)-                         &
+     &                   t(i-1,j,k,nrhs,itrc))
+              END DO
+            END DO
+          ELSE
+            DO j=Jmin,Jmax
+              DO i=Imin,Imax+1
+                cff=cffU(i,j,k)
+                cff=cff*umask(i,j)
+                cff=cff*umask_wet(i,j)
+                FX(i,j)=cff*                                           &
+     &                  (t(i  ,j,k,nrhs,itrc)-                         &
+     &                   t(i-1,j,k,nrhs,itrc))
+              END DO
+            END DO
+          END IF
+          IF (LallWetV) THEN
+            DO j=Jmin,Jmax+1
+              DO i=Imin,Imax
+                FE(i,j)=cffV(i,j,k)*                                   &
+     &                  (t(i,j  ,k,nrhs,itrc)-                         &
+     &                   t(i,j-1,k,nrhs,itrc))
+              END DO
+            END DO
+          ELSE
+            DO j=Jmin,Jmax+1
+              DO i=Imin,Imax
+                cff=cffV(i,j,k)
+                cff=cff*vmask(i,j)
+                cff=cff*vmask_wet(i,j)
+                FE(i,j)=cff*                                           &
+     &                  (t(i,j  ,k,nrhs,itrc)-                         &
+     &                   t(i,j-1,k,nrhs,itrc))
+              END DO
+            END DO
+          END IF
+#else
           DO j=Jmin,Jmax
             DO i=Imin,Imax+1
 #ifdef DIFF_3DCOEF
@@ -371,6 +451,7 @@
 #endif
             END DO
           END DO
+#endif
 !
 !  Compute first harmonic operator and multiply by the metrics of the
 !  second harmonic operator.
