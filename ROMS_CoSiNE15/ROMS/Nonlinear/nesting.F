@@ -491,39 +491,63 @@
 !  Correct coarse grid tracer values at the refinement grid, ng,
 !  boundary with the refined accumulated fluxes (Hz*u*T/n, Hz*v*T/m).
 !
+#   ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, model, 249)
+#   endif
           DO tile=first_tile(ngc),last_tile(ngc),+1
             CALL correct_tracer (ngc, ng, model, tile)
           END DO
 !$OMP BARRIER
+#   ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 249, 0.0_r8, 0.0_r8, 0)
+#   endif
 #  endif
 !
 !  Replace coarse grid 2D state variables with the averaged fine grid
 !  values (two-way coupling).
 !
+#  ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, model, 250)
+#  endif
           DO tile=last_tile(ngc),first_tile(ngc),-1
             CALL fine2coarse (ng, model, r2dvar, tile)
           END DO
 !$OMP BARRIER
           IF (exit_flag.ne.NoError) GO TO 10
+#  ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 250, 0.0_r8, 0.0_r8, 0)
+#  endif
 
 #  ifdef SOLVE3D
 !
 !  Update coarse grid depth variables. We have a new coarse grid
 !  adjusted free-surface, Zt_avg1.
 !
+#   ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, model, 251)
+#   endif
           DO tile=first_tile(ngc),last_tile(ngc),+1
             CALL set_depth (ngc, tile)
           END DO
 !$OMP BARRIER
+#   ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 251, 0.0_r8, 0.0_r8, 0)
+#   endif
 !
 !  Replace coarse grid 3D state variables with the averaged fine grid
 !  values (two-way coupling).
 !
+#   ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_on (ng, model, 252)
+#   endif
           DO tile=last_tile(ngc),first_tile(ngc),-1
             CALL fine2coarse (ng, model, r3dvar, tile)
           END DO
 !$OMP BARRIER
           IF (exit_flag.ne.NoError) GO TO 10
+#   ifdef PROFILE_DIAGNOSTIC
+          CALL profile_site_off (ng, model, 252, 0.0_r8, 0.0_r8, 0)
+#   endif
 #  endif
 # else
 !

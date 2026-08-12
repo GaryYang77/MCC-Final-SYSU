@@ -132,6 +132,10 @@ SITE_DEFINITIONS = {
         SiteDefinition(246, 27, "tracer_mixing", "t3dmix4_s", "coefficient_cache", "t3dmix4_coefficient_cache"),
         SiteDefinition(247, 27, "tracer_mixing", "t3dmix4_s", "first_harmonic", "t3dmix4_first_harmonic"),
         SiteDefinition(248, 27, "tracer_mixing", "t3dmix4_s", "second_harmonic_update", "t3dmix4_second_harmonic_update"),
+        SiteDefinition(249, 55, "nesting", "two_way", "correct_tracer", "two_way_correct_tracer"),
+        SiteDefinition(250, 55, "nesting", "two_way", "fine2coarse_2d", "two_way_fine2coarse_2d"),
+        SiteDefinition(251, 55, "nesting", "two_way", "set_depth", "two_way_set_depth"),
+        SiteDefinition(252, 55, "nesting", "two_way", "fine2coarse_3d", "two_way_fine2coarse_3d"),
     )
 }
 
@@ -463,6 +467,7 @@ def validate_diagnostic_report(
         | set(range(241, 244))
         | set(range(244, 246))
         | set(range(246, 249))
+        | set(range(249, 253))
     )
     missing_sites = sorted(required_sites - active_sites)
     if missing_sites:
@@ -524,6 +529,7 @@ def validate_profile_consistency(
         "biology_local_reactions_detail": 15,
         "biology_source_sink_detail": 15,
         "t3dmix4_s": 27,
+        "two_way": 55,
     }
     for operation in diagnostics.get("operations", []):
         name = str(operation["operation"])
