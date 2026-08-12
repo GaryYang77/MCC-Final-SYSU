@@ -530,6 +530,44 @@
 !
 !  Compute FX=d(LapT)/d(xi) and FE=d(LapT)/d(eta) terms.
 !
+#if defined DIFF_3DCOEF && defined TS_U3ADV_SPLIT && defined MASKING && \
+    defined WET_DRY && !defined TS_MIX_STABILITY && \
+    !defined TS_MIX_CLIMA
+          IF (LallWetU) THEN
+            DO j=Jstr,Jend
+              DO i=Istr,Iend+1
+                FX(i,j)=cffU(i,j,k)*                                   &
+     &                  (LapT(i,j)-LapT(i-1,j))
+              END DO
+            END DO
+          ELSE
+            DO j=Jstr,Jend
+              DO i=Istr,Iend+1
+                FX(i,j)=cffU(i,j,k)*                                   &
+     &                  (LapT(i,j)-LapT(i-1,j))
+                FX(i,j)=FX(i,j)*umask(i,j)
+                FX(i,j)=FX(i,j)*umask_wet(i,j)
+              END DO
+            END DO
+          END IF
+          IF (LallWetV) THEN
+            DO j=Jstr,Jend+1
+              DO i=Istr,Iend
+                FE(i,j)=cffV(i,j,k)*                                   &
+     &                  (LapT(i,j)-LapT(i,j-1))
+              END DO
+            END DO
+          ELSE
+            DO j=Jstr,Jend+1
+              DO i=Istr,Iend
+                FE(i,j)=cffV(i,j,k)*                                   &
+     &                  (LapT(i,j)-LapT(i,j-1))
+                FE(i,j)=FE(i,j)*vmask(i,j)
+                FE(i,j)=FE(i,j)*vmask_wet(i,j)
+              END DO
+            END DO
+          END IF
+#else
           DO j=Jstr,Jend
             DO i=Istr,Iend+1
 #ifdef DIFF_3DCOEF
@@ -582,6 +620,7 @@
 #endif
             END DO
           END DO
+#endif
 !
 !  Time-step biharmonic, S-surfaces diffusion term (m Tunits).
 !
