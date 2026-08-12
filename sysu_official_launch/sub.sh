@@ -38,7 +38,7 @@ roms_root="$repo_root/ROMS_CoSiNE15"
 run_dir="$launch_dir/run_${SLURM_JOB_ID:?}"
 binary="$launch_dir/oceanM"
 input="$run_dir/ocean.in"
-expected_sha=1152299ea019b653a4007bca10490c01bb9c0ce8af90c87835eec0167a11a410
+expected_sha=d1a7f5e3e27a0e11084451543410f89121bb2dcc905cc5772425e7b073cc67da
 
 # 为本次作业建立独立结果目录。ROMS 和 Inputfiles 通过软链接引用原目录，
 # 不复制、不改写官方源码及输入 NetCDF；新结果只写入 run_<job-id>/output。
