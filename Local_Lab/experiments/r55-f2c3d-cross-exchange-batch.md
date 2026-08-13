@@ -73,3 +73,15 @@ scatter 算术完全不变，因此输出逐位一致。
 - 结论：bug 在 `mp_assemble_cross_batch` 的消息投递/匹配/解包（per-v-wait 与
   single-wait 两版均失败）。下一步应在该例程内打印 Asend/Arecv 前几个元素与
   tag/nsend/nrecv，对比发送与接收端。
+
+## 端到端数据流核对（2026-08-13，接近定位）
+
+- `F2CRAW`：rank36 收到的线上数据对 v=1,2,3 完全正确（temp 2.09、salt 34.62、
+  NO3 40.16），且与 rank0 的 Asend 逐位一致——消息投递与 tag 匹配正确。
+- `F2CUNP`：unpack 后 `Fine3dCross4` 与 `Arecv` 逐位一致，v=4（PO4≈2.16e-3）
+  也正确——fill、pack、exchange、unpack 四个环节全部正确。
+- 矛盾：`F2CXCH`/`F2CDBG` 的 cross 总量仍呈 ~17.4/单元的计数级常数，而
+  F2CUNP 证明缓冲区内是正确值。剩余嫌疑：散射读取的 `Fine3dCrossMask`/
+  `Fine3dCount` 共享状态，或 debug 求和本身覆盖了过期缓冲区域。
+- 下一步：在散射内打印每个 cross 点的 my_count/my_sum 与 `Fine3dCross4`
+  对应单元，确定散射输入是否为其所见值。
