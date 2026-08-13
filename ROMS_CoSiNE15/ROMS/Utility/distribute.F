@@ -2585,6 +2585,7 @@
 !
       integer :: Lstr, MyError, Serror
       integer :: block, i, k, m, nreq, p, q, rank, slot, source, v
+      integer :: dbg_cr
 
       integer :: Asize(4)
 
@@ -2768,6 +2769,13 @@
         DO v=1,nvars
           SparseContactTag=MOD(SparseContactTag+1,100000)
           nreq=0
+          IF ((MyRank.eq.0).and.(iic(ng).le.10).and.(v.eq.1)) THEN
+            dbg_cr=-(PlanKey+99998)/4
+            WRITE (stdout,'(A,4I8,1P,3E24.16)') 'F2CRAW snd', ng,      &
+     &        dbg_cr,                                                   &
+     &        Plan%nsend, Plan%nrecv, Asend(1,1), Asend(1,2),        &
+     &        Asend(1,3)
+          END IF
           DO rank=0,numthreads-1
             IF (Plan%rcounts(rank).gt.0) THEN
               nreq=nreq+1
@@ -2793,6 +2801,13 @@
           IF ((MyError.eq.MPI_SUCCESS).and.(nreq.gt.0)) THEN
             CALL mpi_waitall (nreq, Req, Status, MyError)
           END IF
+          IF ((MyRank.eq.36).and.(iic(ng).le.10).and.(v.le.3).and.     &
+     &        (Plan%nrecv.gt.0)) THEN
+            dbg_cr=-(PlanKey+99998)/4
+            WRITE (stdout,'(A,2I8,3I8,1P,3E24.16)') 'F2CRAW rcv',      &
+     &        ng, v, dbg_cr, SparseContactTag, Plan%nrecv,           &
+     &        Arecv(v,1), Arecv(v,2), Arecv(v,3)
+          END IF
           IF (MyError.eq.MPI_SUCCESS) THEN
             DO q=1,Plan%nzero
               A4(Plan%zero_i(q),:,Plan%zero_m(q),v)=0.0_r8
@@ -2806,6 +2821,11 @@
                 A4(i,k,m,v)=Arecv(v,p)
               END DO
             END DO
+            IF ((MyRank.eq.36).and.(iic(ng).le.10).and.(v.le.4).and.  &
+     &          (Plan%nrecv.gt.0)) THEN
+              WRITE (stdout,'(A,2I8,1P,2E24.16)') 'F2CUNP', ng, v,   &
+     &          A4(Plan%recv_i(1),1,Plan%recv_m(1),v), Arecv(v,1)
+            END IF
           END IF
         END DO
         deallocate (Asend, Arecv)
