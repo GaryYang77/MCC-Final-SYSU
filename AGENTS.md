@@ -33,8 +33,10 @@
   紧张时优先移除失败的 diagnostic/trace 大文件和过期 DEMO 输出。
 - 历史路径勘误：本文早期章节的远程路径
   `/public/home/fangxihong/MCC-Final-SYSU` 已不存在，现为
-  `MCC-Final-SYSU-Stable` 与 `MCC-Final-SYSU-ComputeImproved` 两个目录，勿按旧
-  路径读写。
+  `MCC-Final-SYSU-Stable`（2205.57 s，`55b7a909`）、
+  `MCC-Final-SYSU-ComputeImproved`（2147.77 s，`de7252a`）与
+  `MCC-Final-SYSU-ComputeV2`（2005.86 s，`codex/opt-main` `455ce8a`，
+  agent 三项 exact R55 优化并完整三天验证）三个目录，勿按旧路径读写。
 
 ## 目标与环境
 
