@@ -62,3 +62,14 @@ scatter 算术完全不变，因此输出逐位一致。
   一致。根因仍未找到，需队列恢复后一次数据流诊断（在 exchange 前后打印
   Fine3dCross4 的 checksum）才能定案。
 - 队列 kshcexclu06 持续 96 节点 drain，无法运行任何作业。
+
+## 定案诊断（2026-08-13）
+
+- `F2CFILL`（exchange 前，rank 拥有的 fill 单元校验和）：随 tracer 大幅变化
+  （v=1: 6.25e6、v=14: 9.63e8、v=15: 1.04e9）——**fill 与 4D 数组关联正确**。
+- `F2CXCH`（exchange 后，receiver block 全 25 单元校验和）：v=1..17 几乎恒定
+  ~2.54e7（≈ 17.4/单元，即湿单元计数量级），大 tracer 略有抬升——**批量交换
+  的接收数据被污染，与 fill 无关**。
+- 结论：bug 在 `mp_assemble_cross_batch` 的消息投递/匹配/解包（per-v-wait 与
+  single-wait 两版均失败）。下一步应在该例程内打印 Asend/Arecv 前几个元素与
+  tag/nsend/nrecv，对比发送与接收端。
