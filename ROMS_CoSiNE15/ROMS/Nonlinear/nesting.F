@@ -5380,7 +5380,7 @@
       integer :: BlockLen, Klen, Nlocal
       integer :: Ncross, Nnodes, Rnodes, ib, ii, jj, kk, rank
       integer :: NewB, NewK, NewN, Nloc, q, gt
-      integer :: dbg_err2
+      integer :: dbg_err2, dbg_m, dbg_mm, ib2
 
       real(r8) :: my_avg, my_count, my_sum
       real(r8) :: dbg_s3, dbg_g3
@@ -5715,6 +5715,32 @@
      &                                -(100000+4*(cr-1)+              &
      &                                  ABS(gtype)-p3dvar+1))
         IF (exit_flag.ne.NoError) RETURN
+!
+!  Debug: global checksum of the exchanged crossing cells (receiver
+!  blocks only).
+!
+        IF (iic(ng).le.4) THEN
+          DO v=1,nvars
+            dbg_s3=0.0_r8
+            DO dbg_mm=1,contact(cr)%Rnlocal
+              dbg_m=contact(cr)%Rlocal(dbg_mm)
+              IF (contact(cr)%F2Cowner(dbg_m).lt.0) THEN
+                DO kk=1,Klen
+                  DO ib2=1,BlockLen
+                    dbg_s3=dbg_s3+                                  &
+     &                     Fine3dCross4(ib2,kk,                     &
+     &                                  contact(cr)%F2Ccross(dbg_m), &
+     &                                  v)
+                  END DO
+                END DO
+              END IF
+            END DO
+            CALL mpi_allreduce (dbg_s3, dbg_g3, 1, MP_FLOAT,        &
+     &                          MPI_SUM, OCN_COMM_WORLD, dbg_err2)
+            IF (Master) WRITE (stdout,'(A,3I6,1P,E24.16)')          &
+     &                'F2CXCH', cr, iic(ng), v, dbg_g3
+          END DO
+        END IF
       END IF
 !
 !  Complete the owned-block sums and scatter every tracer.
