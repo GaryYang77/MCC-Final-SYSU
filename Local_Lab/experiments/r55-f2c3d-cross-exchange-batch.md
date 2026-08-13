@@ -50,3 +50,15 @@ scatter 算术完全不变，因此输出逐位一致。
     LBOUND 语义与 v 维对齐；3) per-v-wait 与 single-wait 两版均已失败，
     说明不是并发投递本身，而是填充/交换/散射的 4D 数据流。
 - 分区 kshcexclu06 的 96 节点已全部 drain，无法继续集群验证。
+
+## 追加观察（2026-08-13，第二周期）
+
+- cross 校验和 ≈ 每个 (point,k) 恒定 ~17.36（≈每块湿单元计数 my_count），大 tracer
+  （13/14/15）略有抬升但远小于真值——更接近“计数量级的常数污染”，而非
+  “正确值+常数偏移”。
+- 静态复核结论：fill/scatter/plan-build 与已验收代码逐字符一致；counts 用
+  MPI_ALLREDUCE（无 tag），掩膜 exchange 与 cross exchange 路由相同但串行
+  waitall 完成；4D section 形参与实参维度、LBOUND 语义均与已验证的 3D 模式
+  一致。根因仍未找到，需队列恢复后一次数据流诊断（在 exchange 前后打印
+  Fine3dCross4 的 checksum）才能定案。
+- 队列 kshcexclu06 持续 96 节点 drain，无法运行任何作业。
