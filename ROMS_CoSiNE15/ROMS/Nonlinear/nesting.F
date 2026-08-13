@@ -3837,7 +3837,7 @@
 !
             AreaAvg=.FALSE.
             IF ((NtileI(dg)*NtileJ(dg).eq.numthreads).and.             &
-     &          (N(dg).eq.N(rg)).and.(NT(rg).lt.0)) THEN
+     &          (N(dg).eq.N(rg))) THEN
               CALL fine2coarse3d_batch (rg, dg, model, tile,           &
      &                          r3dvar, Vname(1,idTvar(1)),            &
      &                          AreaAvg, RefineScale(dg),              &
@@ -5380,8 +5380,10 @@
       integer :: BlockLen, Klen, Nlocal
       integer :: Ncross, Nnodes, Rnodes, ib, ii, jj, kk, rank
       integer :: NewB, NewK, NewN, Nloc, q, gt
+      integer :: dbg_err2
 
       real(r8) :: my_avg, my_count, my_sum
+      real(r8) :: dbg_s3, dbg_g3
 
 #  include "set_bounds.h"
 !
@@ -5683,6 +5685,26 @@
             END DO
           END DO
         END DO
+!
+!  Debug: global checksum of the freshly filled crossing cells.
+!
+        IF (iic(ng).le.4) THEN
+          DO v=1,nvars
+            dbg_s3=0.0_r8
+            DO q=1,contact(cr)%F2Cnl(gt)
+              ib=contact(cr)%F2Clocal(3,q,gt)
+              DO kk=1,Klen
+                dbg_s3=dbg_s3+                                      &
+     &                 Fine3dCross4(ib,kk,                          &
+     &                              contact(cr)%F2Clocal(4,q,gt),v)
+              END DO
+            END DO
+            CALL mpi_allreduce (dbg_s3, dbg_g3, 1, MP_FLOAT,        &
+     &                          MPI_SUM, OCN_COMM_WORLD, dbg_err2)
+            IF (Master) WRITE (stdout,'(A,3I6,1P,E24.16)')          &
+     &                'F2CFILL', cr, iic(ng), v, dbg_g3
+          END DO
+        END IF
         CALL mp_assemble_cross_batch (dg, model, nvars, 0.0_r8,       &
      &                                Fine3dCross4(1:BlockLen,         &
      &                                             1:Klen,             &
