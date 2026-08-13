@@ -32,3 +32,21 @@ scatter 算术完全不变，因此输出逐位一致。
 单次 4n64 60/300 score DEMO，reference 为
 `r27-second-harmonic-all-wet-4n64-16ppn_20260812T002302Z_53023`。
 任一 comparison 非零、R55 回退或 total 显著回退则拒绝并恢复。
+
+## 调试进展（2026-08-13，暂停于分区 drain）
+
+- 4n64 上批量路径 blowup；1-rank validate（无 cross blocks）通过；batch 禁用的
+  控制版 4n64 exact 通过——问题限定在多 rank 批量路径。
+- 逐变量全局校验和（`F2CDBG`，cr=2、外层步 1-8、17 个 tracer、owned/cross 拆分）：
+  - 顺序路径：owned/cross 均正确。
+  - 批量路径：owned 数值与顺序路径一致（correct），cross 数值 ≈ 每个
+    (point,k) 约 17.36——与 v 无关，接近每块湿单元计数 my_count；第 2 外层步
+    起全部 NaN（粗网格 contact 点被污染后经 put_refine3d 传回细网格边界）。
+  - 结论：Fine3dCross4 内容疑似被“计数/掩膜量级”的数据污染，而算术转写经
+    逐字符比对与顺序路径完全一致；f2csum/owned 路径正确。
+- 待验证假设（需要队列恢复后一次 diagnostic/checksum 周期）：
+  1) 掩膜 exchange（mp_assemblef_2d 的 mp_sparse_exchange）与批量 cross
+     exchange 的 tag/消息匹配是否串扰；2) 4D section 在 ifort 下的实际
+    LBOUND 语义与 v 维对齐；3) per-v-wait 与 single-wait 两版均已失败，
+    说明不是并发投递本身，而是填充/交换/散射的 4D 数据流。
+- 分区 kshcexclu06 的 96 节点已全部 drain，无法继续集群验证。
