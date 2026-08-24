@@ -1,9 +1,10 @@
 # -----------------------------------------------------------------------------
-# MCC source archives, environments, and large input datasets
+# Local environments and large input datasets
 # -----------------------------------------------------------------------------
 ROMS_CoSiNE15.tar
 /miniforge3/
 /output/
+/Local_Lab/
 
 /ROMS_CoSiNE15/Inputfiles/
 /ROMS_CoSiNE15/Data/
@@ -42,11 +43,9 @@ ROMS_CoSiNE15.tar
 /ROMS_CoSiNE15/Build*/
 /ROMS_CoSiNE15/bin_local/
 /ROMS_CoSiNE15/local_demo/
+/ROMS_CoSiNE15/ocean.fastpath.in
 oceanM
 oceanS
-
-/Local_Lab/bin/
-/Local_Lab/builds/
 
 *.o
 *.obj
@@ -58,18 +57,6 @@ oceanS
 *.dylib
 *.exe
 MakeDepend
-
-# -----------------------------------------------------------------------------
-# Local_Lab run-time links and generated results
-# Keep input files (*.in), scripts, configs, and overlays trackable.
-# -----------------------------------------------------------------------------
-/Local_Lab/runs/**/Inputfiles
-/Local_Lab/runs/**/ROMS
-/Local_Lab/runs/**/output/
-/Local_Lab/runs/**/*.log
-/Local_Lab/runs/**/resource*.txt
-/Local_Lab/runs/validation/
-/Local_Lab/baselines/.*.staging/
 
 # Logs, scheduler output, profiling output, and crash dumps
 *.log
@@ -100,6 +87,5 @@ Thumbs.db
 *~
 *.swp
 *.swo
-ROMS_CoSiNE15.tar
 Submission/
 .claude/
