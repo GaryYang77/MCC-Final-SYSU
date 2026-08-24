@@ -4506,6 +4506,7 @@
       integer :: F_Iend, F_Istr, F_Jend, F_Jstr
       integer :: BlockLen, Klen, LBi, UBi, LBj, UBj, Nlocal, Npts
       integer :: Ncross, Nnodes, Rnodes, ib, ii, jj, kk, rank
+      integer :: Nloc, q, gt
       integer :: NewB, NewK, NewN
 #  endif
 
@@ -4722,6 +4723,83 @@
           END DO
         END IF
 !
+!  Cache the crossing-block cells owned by this rank for each 3D
+!  gtype.  The per-variable fill then only visits locally owned cells.
+!
+        IF (contact(cr)%F2CnLocal.lt.0) THEN
+          allocate (contact(cr)%F2Cnl(4))
+          contact(cr)%F2Cnl=0
+          IF (Ncross.gt.0) THEN
+            allocate (contact(cr)%F2Clocal(4,BlockLen*Ncross,4))
+            DO gt=1,4
+              SELECT CASE (gt)
+                CASE (1)
+                  F_Istr=BOUNDS(dg)%IstrP(MyRank)
+                  F_Iend=BOUNDS(dg)%IendP(MyRank)
+                  F_Jstr=BOUNDS(dg)%JstrP(MyRank)
+                  F_Jend=BOUNDS(dg)%JendP(MyRank)
+                CASE (2)
+                  F_Istr=BOUNDS(dg)%IstrT(MyRank)
+                  F_Iend=BOUNDS(dg)%IendT(MyRank)
+                  F_Jstr=BOUNDS(dg)%JstrT(MyRank)
+                  F_Jend=BOUNDS(dg)%JendT(MyRank)
+                CASE (3)
+                  F_Istr=BOUNDS(dg)%IstrP(MyRank)
+                  F_Iend=BOUNDS(dg)%IendP(MyRank)
+                  F_Jstr=BOUNDS(dg)%JstrT(MyRank)
+                  F_Jend=BOUNDS(dg)%JendT(MyRank)
+                CASE (4)
+                  F_Istr=BOUNDS(dg)%IstrT(MyRank)
+                  F_Iend=BOUNDS(dg)%IendT(MyRank)
+                  F_Jstr=BOUNDS(dg)%JstrP(MyRank)
+                  F_Jend=BOUNDS(dg)%JendP(MyRank)
+              END SELECT
+              Nloc=0
+              DO m=1,Npoints
+                IF (contact(cr)%F2Ccross(m).gt.0) THEN
+                  i=contact(cr)%Idg(m)
+                  j=contact(cr)%Jdg(m)
+                  DO Jadd=-half,half
+                    jj=j+Jadd
+                    DO Iadd=-half,half
+                      ii=i+Iadd
+                      IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.   &
+     &                    ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
+                        Nloc=Nloc+1
+                      END IF
+                    END DO
+                  END DO
+                END IF
+              END DO
+              contact(cr)%F2Cnl(gt)=Nloc
+              q=0
+              DO m=1,Npoints
+                IF (contact(cr)%F2Ccross(m).gt.0) THEN
+                  i=contact(cr)%Idg(m)
+                  j=contact(cr)%Jdg(m)
+                  DO Jadd=-half,half
+                    jj=j+Jadd
+                    DO Iadd=-half,half
+                      ii=i+Iadd
+                      ib=(Jadd+half)*Rscale+Iadd+half+1
+                      IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.   &
+     &                    ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
+                        q=q+1
+                        contact(cr)%F2Clocal(1,q,gt)=ii
+                        contact(cr)%F2Clocal(2,q,gt)=jj
+                        contact(cr)%F2Clocal(3,q,gt)=ib
+                        contact(cr)%F2Clocal(4,q,gt)=                 &
+     &                                     contact(cr)%F2Ccross(m)
+                      END IF
+                    END DO
+                  END DO
+                END IF
+              END DO
+            END DO
+          END IF
+          contact(cr)%F2CnLocal=0
+        END IF
+!
 !  Reset this rank's physical bounds after the classification loop.
 !
         SELECT CASE (ABS(gtype))
@@ -4775,7 +4853,6 @@
           ELSE
             allocate (Fine3dCross(BlockLen,Klen,Ncross))
           END IF
-          Fine3dCross(1:BlockLen,1:Klen,1:Ncross)=0.0_r8
         END IF
 
         IF (GetMask) THEN
@@ -4835,26 +4912,16 @@
 
         IF (NtileI(dg)*NtileJ(dg).eq.numthreads) THEN
           IF (Ncross.gt.0) THEN
-            DO m=1,Npoints
-              i=contact(cr)%Idg(m)
-              j=contact(cr)%Jdg(m)
-              IF (contact(cr)%F2Ccross(m).gt.0) THEN
-                DO k=LBkF,UBkF
-                  kk=k-LBkF+1
-                  DO Jadd=-half,half
-                    jj=j+Jadd
-                    DO Iadd=-half,half
-                      ii=i+Iadd
-                      ib=(Jadd+half)*Rscale+Iadd+half+1
-                      IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.     &
-     &                    ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
-                        Fine3dCross(ib,kk,contact(cr)%F2Ccross(m))=   &
-     &                                                       A(ii,jj,k)
-                      END IF
-                    END DO
-                  END DO
-                END DO
-              END IF
+            gt=ABS(gtype)-p3dvar+1
+            DO q=1,contact(cr)%F2Cnl(gt)
+              ii=contact(cr)%F2Clocal(1,q,gt)
+              jj=contact(cr)%F2Clocal(2,q,gt)
+              ib=contact(cr)%F2Clocal(3,q,gt)
+              DO kk=1,Klen
+                k=LBkF+kk-1
+                Fine3dCross(ib,kk,contact(cr)%F2Clocal(4,q,gt))=      &
+     &                                             A(ii,jj,k)
+              END DO
             END DO
           END IF
           Npts=Klen*Npoints
@@ -4889,24 +4956,21 @@
                   END DO
                 END DO
               END DO
-            ELSE IF (contact(cr)%F2Ccross(m).gt.0) THEN
-              DO k=LBkF,UBkF
-                kk=k-LBkF+1
-                DO Jadd=-half,half
-                  jj=j+Jadd
-                  DO Iadd=-half,half
-                    ii=i+Iadd
-                    ib=(Jadd+half)*Rscale+Iadd+half+1
-                    IF (((F_Istr.le.ii).and.(ii.le.F_Iend)).and.       &
-     &                  ((F_Jstr.le.jj).and.(jj.le.F_Jend))) THEN
-                      Fine3dCross(ib,kk,contact(cr)%F2Ccross(m))=     &
-     &                                                       A(ii,jj,k)
-                    END IF
-                  END DO
-                END DO
-              END DO
             END IF
           END DO
+          IF (Ncross.gt.0) THEN
+            gt=ABS(gtype)-p3dvar+1
+            DO q=1,contact(cr)%F2Cnl(gt)
+              ii=contact(cr)%F2Clocal(1,q,gt)
+              jj=contact(cr)%F2Clocal(2,q,gt)
+              ib=contact(cr)%F2Clocal(3,q,gt)
+              DO kk=1,Klen
+                k=LBkF+kk-1
+                Fine3dCross(ib,kk,contact(cr)%F2Clocal(4,q,gt))=      &
+     &                                             A(ii,jj,k)
+              END DO
+            END DO
+          END IF
           Npts=Klen*Npoints
           CALL mp_assemble (dg, model, Npts, 0.0_r8,                  &
      &                      Fine3dSum(1:Klen,1:Npoints),              &
@@ -4932,44 +4996,73 @@
           Jc=contact(cr)%Jrg(m)
           IF (((Istr.le.Ic).and.(Ic.le.Iend)).and.                     &
      &        ((Jstr.le.Jc).and.(Jc.le.Jend))) THEN
-            DO k=LBkC,UBkC
-              kk=k-LBkC+1
-              my_avg=0.0_r8
-              IF (contact(cr)%F2Cowner(m).ge.0) THEN
-                IF (Fine3dCount(m).gt.0.0_r8) THEN
+            IF (contact(cr)%F2Cowner(m).ge.0) THEN
+              IF (Fine3dCount(m).gt.0.0_r8) THEN
+                DO k=LBkC,UBkC
+                  kk=k-LBkC+1
                   my_avg=Fine3dSum(kk,m)/Fine3dCount(m)
-                END IF
+#  ifdef MASKING
+                  my_avg=my_avg*Cmsk(Ic,Jc)
+#  endif
+                  C(Ic,Jc,k)=my_avg
+                END DO
               ELSE
-                my_count=0.0_r8
+                DO k=LBkC,UBkC
+                  C(Ic,Jc,k)=0.0_r8
+                END DO
+              END IF
+            ELSE
+#  ifdef MASKING
+              my_count=0.0_r8
+              DO Jadd=-half,half
+                DO Iadd=-half,half
+                  ib=(Jadd+half)*Rscale+Iadd+half+1
+                  my_count=my_count+                                   &
+     &                     MIN(1.0_r8,                                 &
+     &                         Fine3dCrossMask                         &
+     &                         (ib,contact(cr)%F2Ccross(m)))
+                END DO
+              END DO
+              IF (my_count.gt.0.0_r8) THEN
+                DO k=LBkC,UBkC
+                  kk=k-LBkC+1
+                  my_sum=0.0_r8
+                  DO Jadd=-half,half
+                    DO Iadd=-half,half
+                      ib=(Jadd+half)*Rscale+Iadd+half+1
+                      my_sum=my_sum+                                   &
+     &                       Fine3dCross                               &
+     &                       (ib,kk,contact(cr)%F2Ccross(m))*           &
+     &                       Fine3dCrossMask                            &
+     &                       (ib,contact(cr)%F2Ccross(m))
+                    END DO
+                  END DO
+                  my_avg=my_sum/my_count
+                  my_avg=my_avg*Cmsk(Ic,Jc)
+                  C(Ic,Jc,k)=my_avg
+                END DO
+              ELSE
+                DO k=LBkC,UBkC
+                  C(Ic,Jc,k)=0.0_r8
+                END DO
+              END IF
+#  else
+              DO k=LBkC,UBkC
+                kk=k-LBkC+1
                 my_sum=0.0_r8
                 DO Jadd=-half,half
                   DO Iadd=-half,half
                     ib=(Jadd+half)*Rscale+Iadd+half+1
-#   ifdef MASKING
-                    my_sum=my_sum+                                   &
-     &                     Fine3dCross                               &
-     &                     (ib,kk,contact(cr)%F2Ccross(m))*           &
-     &                     Fine3dCrossMask                            &
-     &                     (ib,contact(cr)%F2Ccross(m))
-                    my_count=my_count+                                &
-     &                       MIN(1.0_r8,                               &
-     &                           Fine3dCrossMask                       &
-     &                           (ib,contact(cr)%F2Ccross(m)))
-#   else
-                    my_sum=my_sum+                                   &
-     &                     Fine3dCross                               &
+                    my_sum=my_sum+                                     &
+     &                     Fine3dCross                                 &
      &                     (ib,kk,contact(cr)%F2Ccross(m))
-                    my_count=my_count+1.0_r8
-#   endif
                   END DO
                 END DO
-                IF (my_count.gt.0.0_r8) my_avg=my_sum/my_count
-              END IF
-#   ifdef MASKING
-              my_avg=my_avg*Cmsk(Ic,Jc)
-#   endif
-              C(Ic,Jc,k)=my_avg
-            END DO
+                my_avg=my_sum/REAL(BlockLen,r8)
+                C(Ic,Jc,k)=my_avg
+              END DO
+#  endif
+            END IF
           END IF
         END DO
         RETURN

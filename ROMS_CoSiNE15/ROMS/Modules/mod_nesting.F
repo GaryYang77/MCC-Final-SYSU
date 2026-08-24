@@ -292,6 +292,9 @@
         integer, pointer :: F2Ccross(:) ! slot of crossing donor block
         integer, pointer :: F2CcellOwner(:,:) ! owner within crossing block
         integer, pointer :: F2Creceiver(:) ! receiver of crossing block
+        integer :: F2CnLocal             ! local cross-cell lists built
+        integer, pointer :: F2Cnl(:)     ! local cross cells per gtype
+        integer, pointer :: F2Clocal(:,:,:) ! (ii,jj,ib,block) local cells
 # endif
 # ifdef SOLVE3D
         integer, pointer :: Kdg(:,:)         ! donor grid, cell K-index

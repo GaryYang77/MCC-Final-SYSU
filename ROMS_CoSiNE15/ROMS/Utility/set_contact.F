@@ -516,8 +516,11 @@
         Ucontact(cr) % Dlocal = 0
         Vcontact(cr) % Dlocal = 0
         Rcontact(cr) % F2CnCross = -1
+        Rcontact(cr) % F2CnLocal = -1
         Ucontact(cr) % F2CnCross = -1
+        Ucontact(cr) % F2CnLocal = -1
         Vcontact(cr) % F2CnCross = -1
+        Vcontact(cr) % F2CnLocal = -1
         Rcontact(cr) % F2Cowner = -1
         Ucontact(cr) % F2Cowner = -1
         Vcontact(cr) % F2Cowner = -1
