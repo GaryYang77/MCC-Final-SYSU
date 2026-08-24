@@ -101,3 +101,5 @@ Thumbs.db
 *.swp
 *.swo
 ROMS_CoSiNE15.tar
+Submission/
+.claude/
