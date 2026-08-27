@@ -27,15 +27,25 @@ Run the following commands from the repository root.
 
 ## Build
 
-The included application is `BYE24BIO15`. A typical Intel MPI build using `nf-config` is:
+The included application is `BYE24BIO15`. The public build script defaults to Intel `ifort`, MPI, NetCDF4, and a clean no-profile build:
 
 ```bash
-make -C ROMS_CoSiNE15 clean
-make -C ROMS_CoSiNE15 -j 8 \
-  FORT=ifort USE_NETCDF4=on NF_CONFIG=nf-config
+scripts/build_roms.sh
 ```
 
-The executable is written to `ROMS_CoSiNE15/oceanM` by default.
+Before building, confirm that `mpif90 -show` uses the compiler selected by `ROMS_FORT`. With Intel MPI, set `I_MPI_F90=ifort` if the wrapper does not already invoke `ifort`.
+
+The executable is written to `ROMS_CoSiNE15/bin_local/oceanM`. Build locations, job count, application, compiler rules, CPP flags, and `nf-config` can be overridden with environment variables:
+
+```bash
+ROMS_BUILD_JOBS=16 \
+ROMS_BUILD_DIR=/path/to/scratch/roms-build \
+ROMS_BIN_DIR=/path/to/scratch/roms-bin \
+NF_CONFIG=/path/to/nf-config \
+  scripts/build_roms.sh
+```
+
+Run `scripts/build_roms.sh --help` for the complete interface. The script wraps the existing ROMS makefile with `USE_MPI=on`, `USE_MPIF90=on`, `USE_NETCDF4=on`, and `MY_CPP_FLAGS=-DMCC_NO_PROFILE` by default. Set `ROMS_CPP_FLAGS` to an empty string only when an instrumented build is desired.
 
 ## SCS-Dongsha60 example
 
@@ -55,19 +65,24 @@ ROMS_CoSiNE15/Inputfiles/
 └── Dongsha60/
 ```
 
-The delivered package follows this layout, and the `.in` file lists the expected input paths. The checked-in configuration uses a `4x8 = 32` rank decomposition. The following example keeps that file unchanged and creates a runtime copy configured for `6x16 = 96` MPI ranks:
+The delivered package follows this layout, and the `.in` file lists the expected input paths. The checked-in configuration uses a `4x8 = 32` rank decomposition. The following non-Slurm example keeps that file unchanged and creates a runtime copy configured for `6x16 = 96` MPI ranks:
 
 ```bash
+run_dir=runs/scs_dongsha60_manual
+test ! -e "$run_dir"
+mkdir -p "$run_dir/output"
+cp ROMS_CoSiNE15/bin_local/oceanM "$run_dir/oceanM"
+ln -s ../../ROMS_CoSiNE15/ROMS "$run_dir/ROMS"
+ln -s ../../ROMS_CoSiNE15/Inputfiles "$run_dir/Inputfiles"
 cp ROMS_CoSiNE15/ROMS/External/ocean_SCS_Dongsha60_bio15.in \
-  ROMS_CoSiNE15/ocean.luteam.in
+  "$run_dir/ocean.in"
 sed -Ei \
   -e 's/^([[:space:]]*NtileI[[:space:]]*==).*/\1 6  6/' \
   -e 's/^([[:space:]]*NtileJ[[:space:]]*==).*/\1 16  16/' \
-  ROMS_CoSiNE15/ocean.luteam.in
-mkdir -p ROMS_CoSiNE15/output
+  "$run_dir/ocean.in"
 (
-  cd ROMS_CoSiNE15
-  mpirun -np 96 ./oceanM ocean.luteam.in \
+  cd "$run_dir"
+  mpirun -np 96 ./oceanM ocean.in \
     > roms.log 2>&1
 )
 ```
@@ -79,6 +94,28 @@ NtileI(ng) * NtileJ(ng) == MPI ranks
 ```
 
 When changing the number of ranks, update `NtileI` and `NtileJ` for both nested grids. Replace `mpirun` with the launcher required by your cluster, such as `srun`.
+
+### Slurm example
+
+The repository includes a generic Slurm template at `examples/slurm/scs_dongsha60.sbatch`. It defaults to 4 nodes, 96 MPI ranks, 24 ranks per node, and a `6x16` decomposition. Edit or override the resource directives for your cluster, load its compiler/MPI/NetCDF environment, then submit from the repository root:
+
+```bash
+sbatch examples/slurm/scs_dongsha60.sbatch
+```
+
+The template accepts alternate binary, dataset, run-directory, and tiling locations through environment variables:
+
+```bash
+export ROMS_BINARY=/path/to/oceanM
+export ROMS_INPUTFILES=/path/to/Inputfiles
+export ROMS_RUNS_DIR=/path/to/runs
+export ROMS_REPO_ROOT=/path/to/MCC-Final-SYSU
+export ROMS_TILES_I=6
+export ROMS_TILES_J=16
+sbatch --export=ALL examples/slurm/scs_dongsha60.sbatch
+```
+
+The 96-rank layout is an example rather than a requirement; when changing `--ntasks`, set the tiling variables so their product matches the new rank count. Each job creates an isolated run directory, copies its binary and input configuration, links the model and dataset trees, records wall time, and checks for normal completion and both average files.
 
 ## Evaluate ROMS-CoSiNE LuTeam-HPC-Optimized on your own case
 
@@ -109,11 +146,24 @@ The first directory is the reference and the second is the candidate. The tool c
 
 ```text
 ROMS_CoSiNE15/          ROMS-CoSiNE source and application configuration
+scripts/                Portable build entry points
+examples/slurm/         Scheduler templates for the example case
 tools/                  Optional output-analysis utilities
-tests/                  Tests for the public utilities
+tests/                  Tests for the comparison tool and public scripts
 LICENSE                 License for the SYSU MCC Team modifications
 THIRD_PARTY_NOTICES.md  Upstream licenses, attribution, and citations
 ```
+
+## Tests
+
+Install the Python dependencies and run the public test suite with:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest -q tests
+```
+
+The suite tests the NetCDF comparison metrics and uses mocked `make` and `srun` commands to exercise the public build/run orchestration. It does not compile ROMS, submit a real Slurm job, run the scientific model, or replace output validation on the target system.
 
 ## Project history
 

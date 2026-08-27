@@ -43,7 +43,7 @@ ROMS_CoSiNE15.tar
 /ROMS_CoSiNE15/Build*/
 /ROMS_CoSiNE15/bin_local/
 /ROMS_CoSiNE15/local_demo/
-/ROMS_CoSiNE15/ocean.fastpath.in
+/runs/
 oceanM
 oceanS
 
